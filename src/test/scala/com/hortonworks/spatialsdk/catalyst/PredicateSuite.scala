@@ -47,12 +47,12 @@ class PredicateSuite extends FunSuite with TestSparkContext {
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
 
-    val pdf = points.toDF()
-    val sdf = polygons.toDF()
+    val pdf = points.toDF().as("pdf")
+    val sdf = polygons.toDF().as("sdf")
     assert(pdf.count() === 2)
     assert(sdf.count() === 1)
     println(pdf.select($"point").show())
-    assert(pdf.join(sdf).where($"point" within  $"polygon").count() === 1)
+    assert(pdf.join(sdf).where($"pdf.point" within  $"sdf.polygon").count() === 1)
 
   }
 }
