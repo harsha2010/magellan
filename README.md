@@ -34,7 +34,7 @@ We will be adding support for other datastructures as necessary.
 
 You can read data as follows:
 
-	import org.apache.spark.spatialsdk._
+	import org.apache.spatialsdk._
 	
 	val sqlCtx = new SQLContext(sc)
 	val df = sqlCtx.shapeFile(path)
