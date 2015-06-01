@@ -33,7 +33,11 @@ case class ShapeFileRelation(path: String, prefix: String)
 
   @transient val sc = sqlContext.sparkContext
 
-  override val schema = StructType(List(StructField("shape", new PointUDT(), true)))
+  override val schema = {
+    StructType(List(StructField("point", new PointUDT(), true),
+        StructField("polygon", new PolygonUDT(), true)
+    ))
+  }
 
   override def buildScan(): RDD[Row] = {
     val baseRdd = sqlContext.sparkContext.newAPIHadoopFile(
@@ -42,16 +46,20 @@ case class ShapeFileRelation(path: String, prefix: String)
       classOf[NullWritable],
       classOf[ShapeWritable]
     )
-    val numFields = 1
-    val row = new GenericMutableRow(1)
+    val numFields = schema.fields.length
+    val row = new GenericMutableRow(numFields)
     baseRdd.mapPartitions { iter =>
       iter.flatMap { case(k, v) =>
         val shape = v.shape
-        if (shape == NullShape) {
-          None
-        } else {
-          row(0) = shape
-          Some(row)
+        shape match {
+          case NullShape => None
+          case _: Point =>
+            row(0) = shape
+            Some(row)
+          case _: Polygon =>
+            row(1) = shape
+            Some(row)
+          case _ => ???
         }
       }
     }

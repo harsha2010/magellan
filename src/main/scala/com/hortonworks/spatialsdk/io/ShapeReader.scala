@@ -21,7 +21,9 @@ import java.io.DataInput
 
 import org.apache.commons.io.EndianUtils
 
-import com.hortonworks.spatialsdk.{Point2D, Shape}
+import com.hortonworks.spatialsdk._
+
+import scala.collection.mutable.ArrayBuffer
 
 trait ShapeReader {
 
@@ -43,4 +45,31 @@ class PointReader extends ShapeReader {
     new Point2D(x, y)
   }
 
+}
+
+class PolygonReader extends ShapeReader {
+
+  override def readFields(dataInput: DataInput): Shape = {
+    // extract bounding box.
+    val Seq(xmin, ymin, xmax, ymax) = (0 until 4).map { _ =>
+      EndianUtils.swapDouble(dataInput.readDouble())
+    }
+    val box = Box(xmin, ymin, xmax, ymax)
+    // numRings
+    val numRings = EndianUtils.swapInteger(dataInput.readInt())
+    val numPoints = EndianUtils.swapInteger(dataInput.readInt())
+    val indices = Array[Int](numRings)
+    for (ring <- 0 until numRings) {
+      indices(ring) = EndianUtils.swapInteger(dataInput.readInt())
+    }
+    val points = ArrayBuffer[Point2D]()
+    for (_ <- 0 until numPoints) {
+      points.+= {
+        val x = EndianUtils.swapDouble(dataInput.readDouble())
+        val y = EndianUtils.swapDouble(dataInput.readDouble())
+        new Point2D(x, y)
+      }
+    }
+    Polygon(box, numRings, numPoints, indices, points)
+  }
 }
