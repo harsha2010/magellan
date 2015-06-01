@@ -17,12 +17,70 @@
 
 package com.hortonworks.spatialsdk
 
+import scala.util.Random
+
 /**
- * The bounding box for a two dimensional geometric shape.
+ * An axis parallel rectangle that can serve as boundaries of geometric shapes.
  *
  * @param xmin
  * @param ymin
  * @param xmax
  * @param ymax
  */
-case class Box(xmin: Double, ymin: Double, xmax: Double, ymax: Double)
+case class Box(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
+
+  /**
+   * Picks a point x uniformly at random in the epsilon annulus surrounding the box
+   *
+   * +----------------+
+   * |  +---+-----+ x |
+   * |  |         |   |
+   * |  +   Box   +   |
+   * |  |         |   |
+   * |  +---+-----+   |
+   * +----------------+
+   * @param eps
+   * @param seed
+   * @return
+   */
+  def away(
+      eps: Double,
+      seed: Int = 12345): Point = {
+    val rnd = new Random(seed)
+
+    def randomPointInInterval(start: Double, end: Double): Double = {
+      val l = end - start
+      val x = rnd.nextDouble() //(0,1)
+      start + x * (end - start)
+    }
+    val p = rnd.nextBoolean()
+    val q = rnd.nextBoolean()
+    val (x, y) = if (!p & !q) {
+      // left portion of the annulus [x - epsilon, x], [y - epsilon, y + epsilon]
+      (randomPointInInterval(xmin - eps, xmin),
+       randomPointInInterval(ymin - eps, ymax + eps))
+    } else if (!p && q) {
+      // top portion of annulus
+      (randomPointInInterval(xmin, xmax),
+       randomPointInInterval(ymax, ymax + eps))
+    } else if (p && !q) {
+      // right portion of annulus
+      (randomPointInInterval(xmax, xmax + eps),
+       randomPointInInterval(ymin - eps, ymax + eps))
+    } else {
+      // bottom portion of annulus
+      (randomPointInInterval(xmin, xmax),
+       randomPointInInterval(ymin - eps, ymin))
+    }
+    new Point(x, y)
+  }
+
+  /**
+   * Checks whether a point is contained within the box.
+   * @param point
+   * @return
+   */
+  def contains(point: Point): Boolean = {
+    !(point.x < xmin || point.x > xmax || point.y < ymin || point.y > ymax)
+  }
+}

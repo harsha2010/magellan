@@ -30,7 +30,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val df = sqlCtx.shapeFile(path, "testpoint")
     import sqlCtx.implicits._
     assert(df.count() == 1)
-    val point = df.select($"point").map {case Row(x: Point2D) => x}.first()
+    val point = df.select($"point").map {case Row(x: Point) => x}.first()
     assert(point.x ~== -99.796 absTol 0.2)
   }
 
@@ -41,8 +41,8 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     assert(df.count() == 1)
     val polygon = df.select($"polygon").map {case Row(x: Polygon) => x}.first()
-    assert(polygon.numRings === 1)
-    assert(polygon.numPoints === 6)
+    assert(polygon.indices.size === 1)
+    assert(polygon.points.size === 6)
   }
 
   test("shapefile-relation: Zillow DC Neighborhoods") {

@@ -21,6 +21,9 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
 
+@SQLUserDefinedType(udt = classOf[PolygonUDT])
+sealed trait PolygonLike extends Serializable with Shape
+
 /**
  * A polygon consists of one or more rings. A ring is a connected sequence of four or more points
  * that form a closed, non-self-intersecting loop. A polygon may contain multiple outer rings.
@@ -32,19 +35,54 @@ import org.apache.spark.sql.types._
  * The rings of a polygon are referred to as its parts.
  *
  * @param box
- * @param numRings
- * @param numPoints
  * @param indices
  * @param points
  */
 @SQLUserDefinedType(udt = classOf[PolygonUDT])
-case class Polygon(box: Box,
-    numRings: Int,
-    numPoints: Int,
-    indices: IndexedSeq[Int],
-    points: IndexedSeq[Point])
-  extends Serializable with Shape {
+class Polygon(val box: Box,
+    val indices: IndexedSeq[Int],
+    val points: IndexedSeq[Point])
+  extends PolygonLike {
 
+  override final val shapeType: Int = 5
+
+  def contains(point: Point): Boolean = {
+    // simple test: if the point is outside the bounding box, it cannot be in the polygon
+    if (!box.contains(point)) {
+      false
+    } else {
+      // pick a point q uniformly at random a distance epsilon away from the box
+      // the line segment between point and q should intersect the polygon
+      // an odd # of times if the point is within the polygon.
+      val q = box.away(0.1)
+      val line = Line(point, q)
+      var startIndex = 0
+      var endIndex = 1
+      val length = points.size
+      var intersections = 0
+      var currentRingIndex = 0
+      while (endIndex < length) {
+        val start = points(startIndex)
+        val end = points(endIndex)
+        if (line.intersects(Line(start, end))) {
+          intersections += 1
+        }
+        startIndex += 1
+        endIndex += 1
+        // if we reach a ring boundary skip it
+        val nextRingIndex = currentRingIndex + 1
+        if (nextRingIndex < indices.length) {
+          val nextRing = indices(nextRingIndex)
+          if (endIndex == nextRing) {
+            startIndex += 1
+            endIndex += 1
+            currentRingIndex = nextRingIndex
+          }
+        }
+      }
+      intersections % 2 != 0
+    }
+  }
 }
 
 private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
@@ -53,27 +91,25 @@ private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
 
   override def sqlType: DataType = {
     StructType(Seq(
+      StructField("type", IntegerType, nullable = false),
       StructField("xmin", DoubleType, nullable = false),
       StructField("ymin", DoubleType, nullable = false),
       StructField("xmax", DoubleType, nullable = false),
       StructField("ymax", DoubleType, nullable = false),
-      StructField("numRings", IntegerType, nullable = true),
-      StructField("numPoints", IntegerType, nullable = true),
       StructField("indices", ArrayType(IntegerType, containsNull = false), nullable = true),
       StructField("points", ArrayType(pointDataType, containsNull = false), nullable = true)))
   }
 
   override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(8)
+    val row = new GenericMutableRow(7)
     val polygon = obj.asInstanceOf[Polygon]
-    row(0) = polygon.box.xmin
-    row(1) = polygon.box.ymin
-    row(2) = polygon.box.xmax
-    row(3) = polygon.box.ymax
-    row(4) = polygon.numRings
-    row(5) = polygon.numPoints
-    row(6) = polygon.indices
-    row(7) = polygon.points
+    row(0) = polygon.shapeType
+    row(1) = polygon.box.xmin
+    row(2) = polygon.box.ymin
+    row(3) = polygon.box.xmax
+    row(4) = polygon.box.ymax
+    row(5) = polygon.indices
+    row(6) = polygon.points
     row
   }
 
@@ -83,14 +119,13 @@ private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
     datum match {
       case x: Polygon => x
       case r: Row => {
-        val box = Box(r.getDouble(0), r.getDouble(1),
-            r.getDouble(2), r.getDouble(3)
+        r.getInt(0)
+        val box = Box(r.getDouble(1), r.getDouble(2),
+            r.getDouble(3), r.getDouble(4)
           )
-        val numRings = r.getInt(4)
-        val numPoints = r.getInt(5)
-        val indices = r.get(6).asInstanceOf[IndexedSeq[Int]]
-        val points = r.get(7).asInstanceOf[IndexedSeq[Point]]
-        Polygon(box, numRings, numPoints, indices, points)
+        val indices = r.get(5).asInstanceOf[IndexedSeq[Int]]
+        val points = r.get(6).asInstanceOf[IndexedSeq[Point]]
+        new Polygon(box, indices, points)
       }
       case _ => ???
     }

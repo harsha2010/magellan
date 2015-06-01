@@ -17,13 +17,54 @@
 
 package com.hortonworks.spatialsdk
 
+import org.apache.spark.sql.Row
+
 /**
  * An abstraction for a geometric shape.
  */
-trait Shape extends Serializable
+trait Shape extends Serializable {
+
+  val shapeType: Int
+
+  /**
+   *
+   * @param other
+   * @return true if this shape envelops the other
+   */
+  def contains(other: Shape): Boolean = {
+    (this, other) match {
+      case (x: Point, y: Point) => x.equals(y)
+      case (x: Point, y: Polygon) => y.contains(x)
+      case (x: Polygon, y: Point) => x.contains(y)
+      case _ => ???
+    }
+  }
+}
 
 /**
  * A null shape indicates an absence of geometric data.
  * Each feature type (point, line, polygon, etc.) supports nulls.
  */
-object NullShape extends Shape
+object NullShape extends Shape {
+  override final val shapeType: Int = 0
+}
+
+object Shape {
+
+  private val pointUDT = new PointUDT
+  private val polygonUDT = new PolygonUDT
+
+  def deserialize(obj: Any): Shape = {
+    obj match {
+      case s: Shape => s
+      case row: Row =>
+        println("Type " + row)
+        row(0) match {
+          case 0 => NullShape
+          case 1 =>  pointUDT.deserialize(row)
+          case 5 => polygonUDT.deserialize(row)
+          case _ => ???
+        }
+    }
+  }
+}

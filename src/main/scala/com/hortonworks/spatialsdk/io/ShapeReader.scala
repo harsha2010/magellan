@@ -42,7 +42,7 @@ class PointReader extends ShapeReader {
   override def readFields(dataInput: DataInput): Shape = {
     val x = EndianUtils.swapDouble(dataInput.readDouble())
     val y = EndianUtils.swapDouble(dataInput.readDouble())
-    new Point2D(x, y)
+    new Point(x, y)
   }
 
 }
@@ -62,14 +62,14 @@ class PolygonReader extends ShapeReader {
     for (ring <- 0 until numRings) {
       indices(ring) = EndianUtils.swapInteger(dataInput.readInt())
     }
-    val points = ArrayBuffer[Point2D]()
+    val points = ArrayBuffer[Point]()
     for (_ <- 0 until numPoints) {
       points.+= {
         val x = EndianUtils.swapDouble(dataInput.readDouble())
         val y = EndianUtils.swapDouble(dataInput.readDouble())
-        new Point2D(x, y)
+        new Point(x, y)
       }
     }
-    Polygon(box, numRings, numPoints, indices, points)
+    new Polygon(box, indices, points)
   }
 }

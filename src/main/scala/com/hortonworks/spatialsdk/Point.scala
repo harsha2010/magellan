@@ -30,30 +30,33 @@ import org.apache.spark.sql.types._
  * and the y-coordinate is the latitude.
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
-sealed trait Point extends Serializable with Shape {
+sealed trait PointLike extends Serializable with Shape
+
+@SQLUserDefinedType(udt = classOf[PointUDT])
+class Point(val x: Double, val y: Double) extends PointLike {
+
+  override final val shapeType: Int = 1
+
+  def equalToTol(other: Point, eps: Double): Boolean = {
+    (math.abs(x - other.x) < eps && math.abs(y - other.y) < eps)
+  }
 
 }
-
-case class Point1D(x: Double) extends Point
-case class Point2D(x: Double, y: Double) extends Point
-case class Point3D(x: Double, y: Double, z: Double) extends Point
 
 private[spatialsdk] class PointUDT extends UserDefinedType[Point] {
 
   override def sqlType: DataType = {
     StructType(Seq(
-      StructField("type", ByteType, nullable = false),
+      StructField("type", IntegerType, nullable = false),
       StructField("x", DoubleType, nullable = true),
       StructField("y", DoubleType, nullable = true),
       StructField("z", DoubleType, nullable = true)))
   }
 
   override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(4)
+    val row = new GenericMutableRow(3)
     obj match {
-      case Point1D(x) => row(0) = 0; row(1) = x
-      case Point2D(x, y) => row(0) = 1; row(1) = x; row(2) = y
-      case Point3D(x, y, z) => row(0) = 0; row(1) = x; row(2) = y; row(3) = z;
+      case p: Point => row(0) = p.shapeType; row(1) = p.x; row(2) = p.y
       case _ => ???
     }
     row
@@ -66,9 +69,7 @@ private[spatialsdk] class PointUDT extends UserDefinedType[Point] {
       case row: Row => {
         val t = row(0)
         t match {
-          case 0 => Point1D(row.getDouble(1))
-          case 1 => Point2D(row.getDouble(1), row.getDouble(2))
-          case 2 => Point3D(row.getDouble(1), row.getDouble(2), row.getDouble(3))
+          case 1 => new Point(row.getDouble(1), row.getDouble(2))
           case _ => ???
         }
       }
