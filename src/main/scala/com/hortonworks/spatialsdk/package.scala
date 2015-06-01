@@ -26,12 +26,11 @@ package object spatialsdk {
     /**
      *
      * @param path path to the directory containing the shapefiles.
-     * @param prefix shapefile prefix.
      * @return
      */
-    def shapeFile(path: String, prefix: String) = {
+    def shapeFile(path: String) = {
 
-      sqlContext.baseRelationToDataFrame(new ShapeFileRelation(path, prefix)(sqlContext))
+      sqlContext.baseRelationToDataFrame(new ShapeFileRelation(path)(sqlContext))
     }
   }
 }

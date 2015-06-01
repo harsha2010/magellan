@@ -27,8 +27,8 @@ import com.hortonworks.spatialsdk.mapreduce.ShapeInputFormat
 /**
  * A Shapefile relation is the entry point for working with Shapefile formats.
  */
-case class ShapeFileRelation(path: String, prefix: String)
-                        (@transient val sqlContext: SQLContext)
+case class ShapeFileRelation(path: String)
+                            (@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan {
 
   @transient val sc = sqlContext.sparkContext

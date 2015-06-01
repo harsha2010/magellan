@@ -41,6 +41,19 @@ class Point(val x: Double, val y: Double) extends PointLike {
     (math.abs(x - other.x) < eps && math.abs(y - other.y) < eps)
   }
 
+  override def equals(other: Any): Boolean = {
+    other match {
+      case p: Point => x == p.x && y == p.y
+      case _ => false
+    }
+  }
+
+  override def hashCode(): Int = {
+    var code = 0
+    code = code * 41 + x.hashCode()
+    code = code * 41 + y.hashCode()
+    code
+  }
 }
 
 private[spatialsdk] class PointUDT extends UserDefinedType[Point] {
