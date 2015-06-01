@@ -6,7 +6,7 @@ This package allows one to read Geospatial data formats as Spark Data Sources. I
 
 You can link against this library using the following coordinates:
 
-	groupId: com.hortonworks
+	groupId: org.apache
 	artifactId: spark-spatialsdk_2.10
 	version: 1.0.0
 
@@ -32,19 +32,9 @@ We will be adding support for other datastructures as necessary.
 
 ## Reading Data
 
-You can read data by instantiating the [SpatialContext](https://github.com/harsha2010/spatialsdk/blob/master/src/main/scala/com/hortonworks/spatialsdk/SpatialContext.scala) as below:
+You can read data as follows:
 
-	import com.hortonworks.spatialsdk.SpatialContext
-	
-	val sqlCtx = new SpatialContext(sc)
-    val df = sqlCtx.shapeFile(path)
-    // this parses out the given shapefile
-    // the schema is of the form point, polygon
-    df.select($"polygon")...
-
-You can import implicits to make this a bit simpler:
-
-	import com.hortonworks.spatialsdk._
+	import org.apache.spark.spatialsdk._
 	
 	val sqlCtx = new SQLContext(sc)
 	val df = sqlCtx.shapeFile(path)
