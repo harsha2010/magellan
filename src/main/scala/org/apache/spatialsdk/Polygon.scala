@@ -21,9 +21,6 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
 
-@SQLUserDefinedType(udt = classOf[PolygonUDT])
-sealed trait PolygonLike extends Serializable with Shape
-
 /**
  * A polygon consists of one or more rings. A ring is a connected sequence of four or more points
  * that form a closed, non-self-intersecting loop. A polygon may contain multiple outer rings.
@@ -42,7 +39,7 @@ sealed trait PolygonLike extends Serializable with Shape
 class Polygon(val box: Box,
     val indices: IndexedSeq[Int],
     val points: IndexedSeq[Point])
-  extends PolygonLike {
+  extends Serializable with Shape {
 
   override final val shapeType: Int = 5
 
@@ -83,6 +80,24 @@ class Polygon(val box: Box,
       intersections % 2 != 0
     }
   }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Polygon =>
+      (that canEqual this) &&
+        indices == that.indices &&
+        points == that.points
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(indices, points)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+  override def toString = s"Polygon($shapeType, $box, $indices, $points)"
+
 }
 
 private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
@@ -130,5 +145,7 @@ private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
       case _ => ???
     }
   }
+
+  override def pyUDT: String = "spatialsdk.types.PolygonUDT"
 
 }
