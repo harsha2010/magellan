@@ -58,9 +58,20 @@ class PolygonReader extends ShapeReader {
     // numRings
     val numRings = EndianUtils.swapInteger(dataInput.readInt())
     val numPoints = EndianUtils.swapInteger(dataInput.readInt())
-    val indices = Array[Int](numRings)
+
+    val indices = Array.fill(numRings)(-1)
+
+    def tryl2b(l: Integer): Int = {
+      if ((0 <= l) && (l < numRings)) {
+        l
+      } else {
+        EndianUtils.swapInteger(l)
+      }
+    }
+
     for (ring <- 0 until numRings) {
-      indices(ring) = EndianUtils.swapInteger(dataInput.readInt())
+      val s = tryl2b(dataInput.readInt())
+      indices(ring) = s
     }
     val points = ArrayBuffer[Point]()
     for (_ <- 0 until numPoints) {
