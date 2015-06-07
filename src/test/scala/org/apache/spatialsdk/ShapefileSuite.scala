@@ -53,4 +53,11 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     assert(df.count() == 34)
   }
 
+  test("shapefile-relation: Zillow CA Neighborhoods") {
+    val sqlCtx = new SpatialContext(sc)
+    val path = this.getClass.getClassLoader.getResource("zillow_ca.shp").getPath
+    val df = sqlCtx.shapeFile(path)
+    import sqlCtx.implicits._
+    assert(df.count() == 948)
+  }
 }

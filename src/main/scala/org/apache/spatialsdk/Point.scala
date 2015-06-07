@@ -30,15 +30,12 @@ import org.apache.spark.sql.types._
  * and the y-coordinate is the latitude.
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
-sealed trait PointLike extends Serializable with Shape
-
-@SQLUserDefinedType(udt = classOf[PointUDT])
-class Point(val x: Double, val y: Double) extends PointLike {
+class Point(val x: Double, val y: Double) extends Serializable with Shape {
 
   override final val shapeType: Int = 1
 
   def equalToTol(other: Point, eps: Double): Boolean = {
-    (math.abs(x - other.x) < eps && math.abs(y - other.y) < eps)
+    math.abs(x - other.x) < eps && math.abs(y - other.y) < eps
   }
 
   override def equals(other: Any): Boolean = {
@@ -54,6 +51,10 @@ class Point(val x: Double, val y: Double) extends PointLike {
     code = code * 41 + y.hashCode()
     code
   }
+
+
+  override def toString = s"Point($shapeType, $x, $y)"
+
 }
 
 private[spatialsdk] class PointUDT extends UserDefinedType[Point] {
@@ -62,8 +63,7 @@ private[spatialsdk] class PointUDT extends UserDefinedType[Point] {
     StructType(Seq(
       StructField("type", IntegerType, nullable = false),
       StructField("x", DoubleType, nullable = true),
-      StructField("y", DoubleType, nullable = true),
-      StructField("z", DoubleType, nullable = true)))
+      StructField("y", DoubleType, nullable = true)))
   }
 
   override def serialize(obj: Any): Row = {
@@ -91,4 +91,7 @@ private[spatialsdk] class PointUDT extends UserDefinedType[Point] {
       case _ => ???
     }
   }
+
+  override def pyUDT: String = "spatialsdk.types.PointUDT"
+
 }
