@@ -17,20 +17,21 @@
 
 package org.apache.spatialsdk.mapreduce
 
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.mapreduce.lib.input._
-import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
-import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
+import org.apache.hadoop.io.{MapWritable, BytesWritable, NullWritable}
+import org.apache.spatialsdk.TestSparkContext
+import org.apache.spatialsdk.io.ShapeKey
+import org.scalatest.FunSuite
 
-class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
+class DBReaderSuite extends FunSuite with TestSparkContext {
 
-
-  override def createRecordReader(inputSplit: InputSplit,
-    taskAttemptContext: TaskAttemptContext) = {
-    new ShapefileReader
+  test("read dBase format") {
+    val path = this.getClass.getClassLoader.getResource("testzillow/zillow_ca.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    )
+    assert(baseRdd.count() == 948)
   }
-
-  // TODO: Use DBIndex to figure out how to efficiently split files.
-  override def isSplitable(context: JobContext, filename: Path): Boolean = false
-
 }

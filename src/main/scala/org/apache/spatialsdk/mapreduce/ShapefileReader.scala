@@ -20,14 +20,13 @@ package org.apache.spatialsdk.mapreduce
 import java.io.DataInputStream
 
 import org.apache.commons.io.EndianUtils
-import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
-import org.apache.hadoop.mapreduce.{TaskAttemptContext, InputSplit, RecordReader}
-import org.apache.spatialsdk.io.ShapeWritable
+import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
+import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
 
-class ShapefileReader extends RecordReader[NullWritable, ShapeWritable] {
+class ShapefileReader extends RecordReader[ShapeKey, ShapeWritable] {
 
-  private var key: NullWritable = _
+  private val key: ShapeKey = new ShapeKey()
 
   private var value: ShapeWritable = _
 
@@ -51,6 +50,7 @@ class ShapefileReader extends RecordReader[NullWritable, ShapeWritable] {
       val contentLength = 16 * (dis.readInt() + 4)
       value.readFields(dis)
       remaining -= contentLength
+      key.setRecordIndex(key.getRecordIndex() + 1)
       true
     }
   }
@@ -66,8 +66,6 @@ class ShapefileReader extends RecordReader[NullWritable, ShapeWritable] {
     val fs = file.getFileSystem(job)
     val is = fs.open(split.getPath())
     dis = new DataInputStream(is)
-    // skip header
-    val header = Array[Byte](100)
     require(is.readInt() == 9994)
     // skip the next 20 bytes which should all be zero
     0 until 5 foreach {_ => require(is.readInt() == 0)}
@@ -78,12 +76,14 @@ class ShapefileReader extends RecordReader[NullWritable, ShapeWritable] {
     require(version == 1000)
     // shape type: all the shapes in a given split have the same type
     val shapeType = EndianUtils.swapInteger(is.readInt())
+    key.setFileNamePrefix(split.getPath.getName.split("\\.")(0))
+    println(key.getFileNamePrefix())
     value = new ShapeWritable(shapeType)
     // skip the next 64 bytes
     0 until 8 foreach {_ => is.readDouble()}
   }
 
-  override def getCurrentKey: NullWritable = key
+  override def getCurrentKey: ShapeKey = key
 
   override def close(): Unit = dis.close()
 

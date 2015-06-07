@@ -26,7 +26,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
 
   test("shapefile-relation: points") {
     val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("testpoint.shp").getPath
+    val path = this.getClass.getClassLoader.getResource("testpoint/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
     assert(df.count() == 1)
@@ -36,7 +36,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
 
   test("shapefile-relation: polygons") {
     val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("testpolygon.shp").getPath
+    val path = this.getClass.getClassLoader.getResource("testpolygon/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
     assert(df.count() == 1)
@@ -47,13 +47,10 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
 
   test("shapefile-relation: Zillow DC Neighborhoods") {
     val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("zillow_dc.shp").getPath
+    val path = this.getClass.getClassLoader.getResource("testzillow/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
     assert(df.count() == 34)
-    val polygon = df.select($"polygon").map {case Row(x: Polygon) => x}.first()
-    val box = polygon.box
-    assert(box.xmax ~== -77.026 absTol 0.01)
   }
 
 }
