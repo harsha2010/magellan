@@ -88,6 +88,7 @@ private[spatialsdk] class PointUDT extends UserDefinedType[Point] {
       }
       // TODO: There is a bug in UDT serialization in Spark.This should never happen.
       case p: Point => p
+      case null => null
       case _ => ???
     }
   }

@@ -18,6 +18,8 @@
 package org.apache.spatialsdk
 
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StringType
 import org.scalatest.FunSuite
 
 import TestingUtils._
@@ -45,19 +47,20 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     assert(polygon.points.size === 6)
   }
 
-  test("shapefile-relation: Zillow DC Neighborhoods") {
+  test("shapefile-relation: Zillow Neighborhoods") {
     val sqlCtx = new SpatialContext(sc)
     val path = this.getClass.getClassLoader.getResource("testzillow/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
-    assert(df.count() == 34)
-  }
+    assert(df.count() == 1671)  // 34 + 948 + 689
 
-  test("shapefile-relation: Zillow CA Neighborhoods") {
-    val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("zillow_ca.shp").getPath
-    val df = sqlCtx.shapeFile(path)
-    import sqlCtx.implicits._
-    assert(df.count() == 948)
+    // CA should have some metadata attached to it
+    val extractValue: (Map[String, String], String) => String =
+      (map: Map[String, String], key: String) => {
+        map.getOrElse(key, null)
+      }
+    val stateUdf = callUDF(extractValue, StringType, col("metadata"), lit("STATE"))
+    val dfwithmeta = df.withColumn("STATE", stateUdf)
+    assert(dfwithmeta.filter($"STATE" === "CA").count() === 948)
   }
 }

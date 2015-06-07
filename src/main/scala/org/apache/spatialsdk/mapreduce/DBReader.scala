@@ -45,8 +45,6 @@ class DBReader extends RecordReader[ShapeKey, MapWritable] {
 
   private var fieldDescriptors: ListBuffer[(Text, Byte, Int, Byte)] = _
 
-  private val mapValue = new Text()
-
   override def getProgress: Float = recordsRead / numRecords.toFloat
 
   override def nextKeyValue(): Boolean = {
@@ -74,8 +72,7 @@ class DBReader extends RecordReader[ShapeKey, MapWritable] {
         case 'C' => {
           val b = Array.fill[Byte](length)(0)
           dis.readFully(b)
-          val fld = mapValue
-          fld.clear()
+          val fld = new Text()
           fld.append(b, 0, length)
           fld
         }
@@ -83,13 +80,14 @@ class DBReader extends RecordReader[ShapeKey, MapWritable] {
           if (decimalCount == 0) {
             val b = Array.fill[Byte](length)(0)
             dis.readFully(b)
-            val fld = mapValue
+            val fld = new Text()
             fld.set(new String(b))
             fld
           } else {
             val b = Array.fill[Byte](length)(0)
             dis.readFully(b)
-            val fld = mapValue
+            val fld = new Text()
+            fld.clear()
             fld.set(new String(b))
             fld
           }
