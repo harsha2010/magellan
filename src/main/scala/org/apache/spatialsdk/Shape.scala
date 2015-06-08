@@ -34,7 +34,6 @@ trait Shape extends Serializable {
   def contains(other: Shape): Boolean = {
     (this, other) match {
       case (x: Point, y: Point) => x.equals(y)
-      case (x: Point, y: Polygon) => y.contains(x)
       case (x: Polygon, y: Point) => x.contains(y)
       case _ => ???
     }

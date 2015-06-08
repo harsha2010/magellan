@@ -54,7 +54,11 @@ package object dsl {
 
     }
 
-    implicit def point(x: Double, y: Double): Expression = PointConverter(x, y)
+    implicit def point(x: Double, y: Double): Expression = PointConverter(lit(x).expr, lit(y).expr)
+
+    implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
+
+    implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
   }
 
