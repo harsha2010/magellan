@@ -17,16 +17,16 @@
 
 package org.apache.spatialsdk.catalyst
 
-import org.apache.spatialsdk.{Box, TestSparkContext, Point, Polygon}
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.spatialsdk.dsl.expressions._
+import org.apache.spatialsdk
+import org.apache.spatialsdk.{Polygon, Point, Box, TestSparkContext}
+import org.scalatest.FunSuite
 
 import scala.language.implicitConversions
 
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.spatialsdk.dsl.expressions._
-import org.scalatest.FunSuite
-
-case class PointExample(point: Point)
-case class PolygonExample(polygon: Polygon)
+case class PointExample(point: spatialsdk.Point)
+case class PolygonExample(polygon: spatialsdk.Polygon)
 
 class PredicateSuite extends FunSuite with TestSparkContext {
 
@@ -39,7 +39,8 @@ class PredicateSuite extends FunSuite with TestSparkContext {
 
     val box = Box(-1.0,-1.0, 1.0, 1.0)
     val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0),
+      new Point(1.0, 1.0))
     val polygons = sc.parallelize(Seq(
         PolygonExample(new Polygon(box, Array(0), ring))
       ))

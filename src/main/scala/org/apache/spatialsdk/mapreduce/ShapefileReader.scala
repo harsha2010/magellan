@@ -77,7 +77,6 @@ class ShapefileReader extends RecordReader[ShapeKey, ShapeWritable] {
     // shape type: all the shapes in a given split have the same type
     val shapeType = EndianUtils.swapInteger(is.readInt())
     key.setFileNamePrefix(split.getPath.getName.split("\\.")(0))
-    println(key.getFileNamePrefix())
     value = new ShapeWritable(shapeType)
     // skip the next 64 bytes
     0 until 8 foreach {_ => is.readDouble()}

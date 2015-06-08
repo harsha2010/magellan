@@ -58,7 +58,6 @@ object Shape {
     obj match {
       case s: Shape => s
       case row: Row =>
-        println("Type " + row)
         row(0) match {
           case 0 => NullShape
           case 1 =>  pointUDT.deserialize(row)

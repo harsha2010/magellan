@@ -17,17 +17,20 @@
 
 package org.apache.spatialsdk
 
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StringType
 import org.scalatest.FunSuite
+
+import org.apache.spark.sql.{SQLContext, Row}
+import org.apache.spark.sql.functions._
+import org.apache.spatialsdk._
+import org.apache.spark.sql.spatialsdk.dsl.expressions._
+import org.apache.spark.sql.types.StringType
 
 import TestingUtils._
 
 class ShapefileSuite extends FunSuite with TestSparkContext {
 
   test("shapefile-relation: points") {
-    val sqlCtx = new SpatialContext(sc)
+    val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testpoint/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
@@ -37,7 +40,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   }
 
   test("shapefile-relation: polygons") {
-    val sqlCtx = new SpatialContext(sc)
+    val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testpolygon/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
@@ -48,11 +51,11 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   }
 
   test("shapefile-relation: Zillow Neighborhoods") {
-    val sqlCtx = new SpatialContext(sc)
+    val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testzillow/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
-    assert(df.count() == 1671)  // 34 + 948 + 689
+    assert(df.count() == 1932)  // 34 + 948 + 689 + 261
 
     // CA should have some metadata attached to it
     val extractValue: (Map[String, String], String) => String =
@@ -62,5 +65,8 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val stateUdf = callUDF(extractValue, StringType, col("metadata"), lit("STATE"))
     val dfwithmeta = df.withColumn("STATE", stateUdf)
     assert(dfwithmeta.filter($"STATE" === "CA").count() === 948)
+
+    assert(df.select($"metadata"("STATE").as("state")).filter($"state" === "CA").count() === 948)
+    assert(df.select($"metadata"("STATE").as("state")).filter($"state" isNull).count() === 723)
   }
 }

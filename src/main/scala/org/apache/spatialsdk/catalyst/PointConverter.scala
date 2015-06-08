@@ -15,8 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.spatialsdk
+package org.apache.spatialsdk.catalyst
 
-object Util {
+import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.types.DataType
+
+import org.apache.spatialsdk
+import org.apache.spatialsdk.PointUDT
+
+/**
+ * Convert x and y coordinates to a `Point`
+ * 
+ * @param x
+ * @param y
+ */
+case class PointConverter(x: Double, y: Double) extends LeafExpression {
+
+  private lazy val value = new spatialsdk.Point(x, y)
+
+  override def foldable: Boolean = true
+
+  override def nullable: Boolean = false
+
+  override def toString: String = "(%.3d, %.3d)".format(x, y)
+
+  override def eval(input: Row): spatialsdk.Point = value
+
+  override type EvaluatedType = spatialsdk.Point
+
+  override val dataType: DataType = new PointUDT
 
 }

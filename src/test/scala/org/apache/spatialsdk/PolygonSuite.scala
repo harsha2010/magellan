@@ -41,4 +41,20 @@ class PolygonSuite extends FunSuite {
     assert(!polygon.contains(new Point(2.0, 0.0)))
     assert(!polygon.contains(new Point(0.0, 0.0)))
   }
+
+  test("point in polygon: OH") {
+    val box = Box(-81.7519912719727,3.143E-319,3.143E-319,41.4934368133545)
+    val ring = Array(new Point(-81.734260559082, 41.4910373687744),
+        new Point(-81.7333030700684, 41.4907093048096),
+        new Point(-81.7333488464355, 41.4905986785889),
+        new Point( -81.7331447601318, 41.49045753479),
+        new Point(-81.7330646514893, 41.4903812408447),
+        new Point(-81.7328319549561, 41.4901103973389),
+        new Point(-81.734260559082, 41.4910373687744)
+    )
+
+    val polygon = new Polygon(box, Array(0), ring)
+    assert(!polygon.contains(new Point(-80.2, 25.77)))
+
+  }
 }
