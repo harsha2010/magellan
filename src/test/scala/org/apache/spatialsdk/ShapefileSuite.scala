@@ -21,7 +21,6 @@ import org.scalatest.FunSuite
 
 import org.apache.spark.sql.{SQLContext, Row}
 import org.apache.spark.sql.functions._
-import org.apache.spatialsdk._
 import org.apache.spark.sql.spatialsdk.dsl.expressions._
 import org.apache.spark.sql.types.StringType
 
@@ -69,4 +68,17 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     assert(df.select($"metadata"("STATE").as("state")).filter($"state" === "CA").count() === 948)
     assert(df.select($"metadata"("STATE").as("state")).filter($"state" isNull).count() === 723)
   }
+
+  test("shapefile-relation: polylines") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
+    val df = sqlCtx.shapeFile(path)
+    import sqlCtx.implicits._
+    assert(df.count() == 14959)
+    // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
+    val start = new Point(5979764.107174277, 2085848.5510566086)
+    val end = new Point(6024892.0635061115, 4184000.396185901)
+    assert(df.filter($"polyline" intersects line(start, end)).count() > 0)
+  }
+
 }

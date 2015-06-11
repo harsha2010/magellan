@@ -14,9 +14,7 @@
 
 package org.apache.spatialsdk
 
-import scala.collection.JavaConversions._
-
-import org.apache.hadoop.io.{Text, MapWritable}
+import org.apache.hadoop.io.{MapWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.sources._
@@ -24,6 +22,8 @@ import org.apache.spark.sql.types.{MapType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
 import org.apache.spatialsdk.mapreduce.{DBInputFormat, ShapeInputFormat}
+
+import scala.collection.JavaConversions._
 
 /**
  * A Shapefile relation is the entry point for working with Shapefile formats.
@@ -36,8 +36,9 @@ case class ShapeFileRelation(path: String)
 
   override val schema = {
     StructType(List(StructField("point", new PointUDT(), true),
-        StructField("polygon", new PolygonUDT(), true),
-        StructField("metadata", MapType(StringType, StringType, true), true)
+      StructField("polyline", new PolyLineUDT(), true),
+      StructField("polygon", new PolygonUDT(), true),
+      StructField("metadata", MapType(StringType, StringType, true), true)
     ))
   }
 
@@ -72,14 +73,17 @@ case class ShapeFileRelation(path: String)
 
     dataRdd.leftOuterJoin(metadataRdd).mapPartitions { iter =>
       iter.flatMap { case ((filePrefix, recordIndex), (shape, meta)) =>
-        row(2) = meta.fold(Map[String, String]())(identity)
+        row(3) = meta.fold(Map[String, String]())(identity)
         shape match {
           case NullShape => None
           case _: Point =>
             row(0) = shape
             Some(row)
-          case _: Polygon =>
+          case _: PolyLine =>
             row(1) = shape
+            Some(row)
+          case _: Polygon =>
+            row(2) = shape
             Some(row)
           case _ => ???
         }

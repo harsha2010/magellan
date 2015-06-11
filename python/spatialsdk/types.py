@@ -105,10 +105,6 @@ class PolygonUDT(UserDefinedType):
         """
         StructType([
             StructField("type", IntegerType(), False),
-            StructField("xmin", DoubleType(), False),
-            StructField("ymin", DoubleType(), False),
-            StructField("xmax", DoubleType(), False),
-            StructField("ymax", DoubleType(), False),
             StructField("indices", ArrayType(IntegerType(), False), True),
             StructField("points", ArrayType(PointUDT(), False), True)])
 
@@ -132,7 +128,7 @@ class PolygonUDT(UserDefinedType):
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, Polygon):
-            return (5, obj.box, obj.indices, obj.points)
+            return (5, obj.indices, obj.points)
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -144,7 +140,7 @@ class PolygonUDT(UserDefinedType):
             "PolygonUDT.deserialize given row with length %d but requires 4" % len(datum)
         tpe = datum[0]
         assert tpe == 5, "Polygon should have type = 5"
-        return Polygon(datum[1], datum[2], datum[3])
+        return Polygon(datum[1], datum[2])
 
     def simpleString(self):
         return 'polygon'
@@ -183,7 +179,6 @@ class Polygon(object):
     Point([-1.0,-1.0, 1.0, 1.0], [0], Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 1.0))
     """
 
-    def __init__(self, box, indices, points):
-        self.box = box
+    def __init__(self, indices, points):
         self.indices = indices
         self.points = points

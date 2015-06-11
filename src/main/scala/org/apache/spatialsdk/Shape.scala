@@ -28,16 +28,25 @@ trait Shape extends Serializable {
 
   /**
    *
-   * @param other
-   * @return true if this shape envelops the other
+   * @param point
+   * @return true if this shape envelops the given point
    */
-  def contains(other: Shape): Boolean = {
-    (this, other) match {
-      case (x: Point, y: Point) => x.equals(y)
-      case (x: Polygon, y: Point) => x.contains(y)
+  def contains(point: Point): Boolean
+
+  /**
+   *
+   * @param line
+   * @return number of times this shape intersects the given line.
+   */
+  def intersects(line: Line): Boolean
+
+  def contains(shape: Shape): Boolean = {
+    shape match {
+      case point: Point => this.contains(point)
       case _ => ???
     }
   }
+
 }
 
 /**
@@ -45,12 +54,29 @@ trait Shape extends Serializable {
  * Each feature type (point, line, polygon, etc.) supports nulls.
  */
 object NullShape extends Shape {
+
   override final val shapeType: Int = 0
+
+  /**
+   *
+   * @param point
+   * @return true if this shape envelops the given point
+   */
+  override def contains(point: Point): Boolean = false
+
+  /**
+   *
+   * @param line
+   * @return true if this shape intersects the given line.
+   */
+  override def intersects(line: Line): Boolean = false
+
 }
 
 object Shape {
 
   private val pointUDT = new PointUDT
+  private val polyLineUDT = new PolyLineUDT
   private val polygonUDT = new PolygonUDT
 
   def deserialize(obj: Any): Shape = {
@@ -60,6 +86,7 @@ object Shape {
         row(0) match {
           case 0 => NullShape
           case 1 =>  pointUDT.deserialize(row)
+          case 3 => polyLineUDT.deserialize(row)
           case 5 => polygonUDT.deserialize(row)
           case _ => ???
         }

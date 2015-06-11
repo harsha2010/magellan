@@ -17,13 +17,18 @@
 
 package org.apache.spatialsdk
 
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
+import org.apache.spark.sql.types._
+
 /**
  * Line segment between two points.
  *
  * @param start
  * @param end
  */
-case class Line(start: Point, end: Point) {
+@SQLUserDefinedType(udt = classOf[LineUDT])
+class Line(val start: Point, val end: Point) extends Serializable with Shape {
 
   def intersects(other: Line): Boolean = {
     // test for degeneracy
@@ -40,4 +45,52 @@ case class Line(start: Point, end: Point) {
         ccw(start, end, other.start) != ccw(start, end, other.end)
     }
   }
+
+  override val shapeType: Int = 2
+
+  /**
+   *
+   * @param point
+   * @return true if this shape envelops the given point
+   */
+  override def contains(point: Point): Boolean = ???
+}
+
+class LineUDT extends UserDefinedType[Line] {
+
+  private val pointDataType = new PointUDT().sqlType
+
+  override def sqlType: DataType = {
+    StructType(Seq(
+      StructField("type", IntegerType, nullable = false),
+      StructField("start", pointDataType, nullable = true),
+      StructField("end", pointDataType, nullable = true)))
+  }
+
+  override def serialize(obj: Any): Row = {
+    val row = new GenericMutableRow(7)
+    val line = obj.asInstanceOf[Line]
+    row(0) = line.shapeType
+    row(1) = line.start
+    row(2) = line.end
+    row
+  }
+
+  override def userClass: Class[Line] = classOf[Line]
+
+  override def deserialize(datum: Any): Line = {
+    datum match {
+      case x: Line => x
+      case r: Row => {
+        val start = r(1).asInstanceOf[Point]
+        val end = r(2).asInstanceOf[Point]
+        new Line(start, end)
+      }
+      case null => null
+      case _ => ???
+    }
+  }
+
+  override def pyUDT: String = "spatialsdk.types.LineUDT"
+
 }

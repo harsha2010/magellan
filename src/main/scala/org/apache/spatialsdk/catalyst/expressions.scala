@@ -17,8 +17,9 @@
 
 package org.apache.spatialsdk.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{Expression, Row, UnaryExpression}
-import org.apache.spark.sql.types.{DataType, MapType}
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row, UnaryExpression}
+import org.apache.spark.sql.types.{BooleanType, IntegerType, DataType, MapType}
+import org.apache.spatialsdk.{Line, Shape}
 
 /**
  * Extract value out of map by key or return null if key does not exist

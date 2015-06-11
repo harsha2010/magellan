@@ -18,9 +18,11 @@
 package org.apache.spark.sql.spatialsdk
 
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
-import org.apache.spatialsdk.catalyst.{PointConverter, GetMapValue, Within}
+import org.apache.spark.sql.types.DataType
+import org.apache.spatialsdk.{LineUDT, Line, Point}
+import org.apache.spatialsdk.catalyst.{GetMapValue, Intersects, PointConverter, Within}
 
 package object dsl {
   trait ImplicitOperators {
@@ -35,6 +37,10 @@ package object dsl {
 
     def apply(other: Expression): Expression = GetMapValue(expr, other)
 
+    def intersects(other: Expression): Expression = Intersects(expr, other)
+
+    def intersects(other: Any): Column = Column(Intersects(expr, lit(other).expr))
+
   }
 
   trait ExpressionConversions {
@@ -46,12 +52,13 @@ package object dsl {
     implicit class DslColumn(c: Column) {
       def col: Column = c
 
-      def within(other: Any): Column = Column(Within(lit(c).expr, lit(other).expr))
+      def within(other: Any): Column = Column(Within(col.expr, lit(other).expr))
 
       def apply(other: Any): Column = Column(GetMapValue(col.expr, lit(other).expr))
 
       def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
 
+      def intersects(other: Expression): Column = Column(Intersects(c.expr, other))
     }
 
     implicit def point(x: Double, y: Double): Expression = PointConverter(lit(x).expr, lit(y).expr)
@@ -60,8 +67,23 @@ package object dsl {
 
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
+    implicit def line(start: Point, end: Point) = LineLiteral(start, end)
+
+    case class LineLiteral(start: Point, end: Point) extends LeafExpression {
+
+      override def foldable: Boolean = true
+      override def nullable: Boolean = false
+
+      type EvaluatedType = Line
+      override def eval(input: Row): Line = new Line(start, end)
+
+      override val dataType: DataType = new LineUDT()
+
+    }
+
   }
 
   object expressions extends ExpressionConversions  // scalastyle:ignore
 
 }
+
