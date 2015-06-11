@@ -17,16 +17,21 @@
 
 package org.apache.spatialsdk
 
-import org.apache.spark.sql.Row
 import org.scalatest.FunSuite
+
+import org.apache.spark.sql.{SQLContext, Row}
+import org.apache.spark.sql.functions._
+import org.apache.spatialsdk._
+import org.apache.spark.sql.spatialsdk.dsl.expressions._
+import org.apache.spark.sql.types.StringType
 
 import TestingUtils._
 
 class ShapefileSuite extends FunSuite with TestSparkContext {
 
   test("shapefile-relation: points") {
-    val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("testpoint.shp").getPath
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("testpoint/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
     assert(df.count() == 1)
@@ -35,8 +40,8 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   }
 
   test("shapefile-relation: polygons") {
-    val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("testpolygon.shp").getPath
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("testpolygon/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
     assert(df.count() == 1)
@@ -45,22 +50,23 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     assert(polygon.points.size === 6)
   }
 
-  test("shapefile-relation: Zillow DC Neighborhoods") {
-    val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("zillow_dc.shp").getPath
+  test("shapefile-relation: Zillow Neighborhoods") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("testzillow/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
-    assert(df.count() == 34)
-    val polygon = df.select($"polygon").map {case Row(x: Polygon) => x}.first()
-    val box = polygon.box
-    assert(box.xmax ~== -77.026 absTol 0.01)
-  }
+    assert(df.count() == 1932)  // 34 + 948 + 689 + 261
 
-  test("shapefile-relation: Zillow CA Neighborhoods") {
-    val sqlCtx = new SpatialContext(sc)
-    val path = this.getClass.getClassLoader.getResource("zillow_ca.shp").getPath
-    val df = sqlCtx.shapeFile(path)
-    import sqlCtx.implicits._
-    assert(df.count() == 948)
+    // CA should have some metadata attached to it
+    val extractValue: (Map[String, String], String) => String =
+      (map: Map[String, String], key: String) => {
+        map.getOrElse(key, null)
+      }
+    val stateUdf = callUDF(extractValue, StringType, col("metadata"), lit("STATE"))
+    val dfwithmeta = df.withColumn("STATE", stateUdf)
+    assert(dfwithmeta.filter($"STATE" === "CA").count() === 948)
+
+    assert(df.select($"metadata"("STATE").as("state")).filter($"state" === "CA").count() === 948)
+    assert(df.select($"metadata"("STATE").as("state")).filter($"state" isNull).count() === 723)
   }
 }

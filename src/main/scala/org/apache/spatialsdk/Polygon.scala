@@ -142,6 +142,7 @@ private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
         val points = r.get(6).asInstanceOf[IndexedSeq[Point]]
         new Polygon(box, indices, points)
       }
+      case null => null
       case _ => ???
     }
   }

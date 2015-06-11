@@ -14,14 +14,16 @@
 
 package org.apache.spatialsdk
 
-import org.apache.hadoop.io.NullWritable
+import scala.collection.JavaConversions._
+
+import org.apache.hadoop.io.{Text, MapWritable}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.types.{MapType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SQLContext}
-import org.apache.spatialsdk.io.ShapeWritable
-import org.apache.spatialsdk.mapreduce.ShapeInputFormat
+import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
+import org.apache.spatialsdk.mapreduce.{DBInputFormat, ShapeInputFormat}
 
 /**
  * A Shapefile relation is the entry point for working with Shapefile formats.
@@ -34,22 +36,43 @@ case class ShapeFileRelation(path: String)
 
   override val schema = {
     StructType(List(StructField("point", new PointUDT(), true),
-        StructField("polygon", new PolygonUDT(), true)
+        StructField("polygon", new PolygonUDT(), true),
+        StructField("metadata", MapType(StringType, StringType, true), true)
     ))
   }
 
   override def buildScan(): RDD[Row] = {
-    val baseRdd = sqlContext.sparkContext.newAPIHadoopFile(
-      path,
+    val shapefileRdd = sqlContext.sparkContext.newAPIHadoopFile(
+      path + "/*.shp",
       classOf[ShapeInputFormat],
-      classOf[NullWritable],
+      classOf[ShapeKey],
       classOf[ShapeWritable]
     )
+
+    val dbaseRdd = sqlContext.sparkContext.newAPIHadoopFile(
+      path + "/*.dbf",
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    )
+
     val numFields = schema.fields.length
     val row = new GenericMutableRow(numFields)
-    baseRdd.mapPartitions { iter =>
-      iter.flatMap { case(k, v) =>
-        val shape = v.shape
+    val dataRdd = shapefileRdd.map { case(k, v) =>
+      ((k.getFileNamePrefix(), k.getRecordIndex()), v.shape)
+    }
+    val metadataRdd = dbaseRdd.map { case(k, v) =>
+      val meta = v.entrySet().map { kv =>
+        val k = kv.getKey.asInstanceOf[Text].toString
+        val v = kv.getValue.asInstanceOf[Text].toString
+        (k, v)
+      }.toMap
+      ((k.getFileNamePrefix(), k.getRecordIndex()), meta)
+    }
+
+    dataRdd.leftOuterJoin(metadataRdd).mapPartitions { iter =>
+      iter.flatMap { case ((filePrefix, recordIndex), (shape, meta)) =>
+        row(2) = meta.fold(Map[String, String]())(identity)
         shape match {
           case NullShape => None
           case _: Point =>

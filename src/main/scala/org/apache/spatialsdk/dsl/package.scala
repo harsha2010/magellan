@@ -20,19 +20,25 @@ package org.apache.spark.sql.spatialsdk
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.functions._
-import org.apache.spatialsdk.catalyst.Within
+import org.apache.spatialsdk.catalyst.{PointConverter, GetMapValue, Within}
 
 package object dsl {
   trait ImplicitOperators {
+
     def expr: Expression
 
     def within(other: Expression): Expression = Within(expr, other)
 
     def within(other: Any): Column = Column(Within(expr, lit(other).expr))
 
+    def apply(other: Any): Expression = GetMapValue(expr, lit(other).expr)
+
+    def apply(other: Expression): Expression = GetMapValue(expr, other)
+
   }
 
   trait ExpressionConversions {
+
     implicit class DslExpression(e: Expression) extends ImplicitOperators {
       def expr: Expression = e
     }
@@ -41,7 +47,19 @@ package object dsl {
       def col: Column = c
 
       def within(other: Any): Column = Column(Within(lit(c).expr, lit(other).expr))
+
+      def apply(other: Any): Column = Column(GetMapValue(col.expr, lit(other).expr))
+
+      def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
+
     }
+
+    implicit def point(x: Double, y: Double): Expression = PointConverter(lit(x).expr, lit(y).expr)
+
+    implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
+
+    implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
+
   }
 
   object expressions extends ExpressionConversions  // scalastyle:ignore

@@ -15,8 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.spatialsdk
+package org.apache.spatialsdk.mapreduce
 
-object Util {
+import org.apache.hadoop.io.{MapWritable, BytesWritable, NullWritable}
+import org.apache.spatialsdk.TestSparkContext
+import org.apache.spatialsdk.io.ShapeKey
+import org.scalatest.FunSuite
 
+class DBReaderSuite extends FunSuite with TestSparkContext {
+
+  test("read dBase format") {
+    val path = this.getClass.getClassLoader.getResource("testzillow/zillow_ca.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    )
+    assert(baseRdd.count() == 948)
+  }
 }

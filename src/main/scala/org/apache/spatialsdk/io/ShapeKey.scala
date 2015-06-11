@@ -15,22 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.spatialsdk.mapreduce
+package org.apache.spatialsdk.io
 
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.mapreduce.lib.input._
-import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
-import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
+import java.io.{DataOutput, DataInput}
 
-class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
+import org.apache.hadoop.io
+import org.apache.hadoop.io.{Text, LongWritable, Writable}
 
+private[spatialsdk] class ShapeKey extends Writable {
 
-  override def createRecordReader(inputSplit: InputSplit,
-    taskAttemptContext: TaskAttemptContext) = {
-    new ShapefileReader
+  var fileNamePrefix: Text = new Text()
+  var recordIndex: LongWritable = new io.LongWritable()
+
+  def setFileNamePrefix(fileNamePrefix: String) = {
+    val f = fileNamePrefix.getBytes()
+    this.fileNamePrefix.clear()
+    this.fileNamePrefix.append(f, 0, f.length)
   }
 
-  // TODO: Use DBIndex to figure out how to efficiently split files.
-  override def isSplitable(context: JobContext, filename: Path): Boolean = false
+  def setRecordIndex(recordIndex: Long) = {
+    this.recordIndex.set(recordIndex)
+  }
+
+  def getRecordIndex(): Long = recordIndex.get()
+
+  def getFileNamePrefix(): String = fileNamePrefix.toString()
+
+  override def write(dataOutput: DataOutput): Unit = ???
+
+  override def readFields(dataInput: DataInput): Unit = ???
 
 }

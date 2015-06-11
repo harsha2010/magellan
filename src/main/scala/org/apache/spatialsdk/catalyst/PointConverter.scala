@@ -15,22 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.spatialsdk.mapreduce
+package org.apache.spatialsdk.catalyst
 
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.mapreduce.lib.input._
-import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
-import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
+import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.types.DataType
+import org.apache.spatialsdk.{Point, PointUDT}
 
-class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
+/**
+ * Convert x and y coordinates to a `Point`
+ *
+ * @param left
+ * @param right
+ */
+case class PointConverter(override val left: Expression,
+    override val right: Expression) extends BinaryExpression {
 
 
-  override def createRecordReader(inputSplit: InputSplit,
-    taskAttemptContext: TaskAttemptContext) = {
-    new ShapefileReader
+  override def nullable: Boolean = false
+
+  override def eval(input: Row): Point = {
+    val x = left.eval(input).asInstanceOf[Double]
+    val y = right.eval(input).asInstanceOf[Double]
+    new Point(x, y)
   }
 
-  // TODO: Use DBIndex to figure out how to efficiently split files.
-  override def isSplitable(context: JobContext, filename: Path): Boolean = false
+  override type EvaluatedType = Point
 
+  override val dataType: DataType = new PointUDT
+
+  override def symbol: String = "point"
 }
