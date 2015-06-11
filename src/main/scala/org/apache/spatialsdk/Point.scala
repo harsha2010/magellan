@@ -55,6 +55,20 @@ class Point(val x: Double, val y: Double) extends Serializable with Shape {
 
   override def toString = s"Point($shapeType, $x, $y)"
 
+  /**
+   *
+   * @param line
+   * @return number of times this shape intersects the given line.
+   */
+  def intersects(line: Line): Boolean = ???
+
+  /**
+   *
+   * @param point
+   * @return true if this shape envelops the given point
+   */
+  override def contains(point: Point): Boolean = this.equals(point)
+
 }
 
 private[spatialsdk] class PointUDT extends UserDefinedType[Point] {

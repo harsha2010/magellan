@@ -37,12 +37,11 @@ class PredicateSuite extends FunSuite with TestSparkContext {
       PointExample(new Point(2.0, 2.0))
     ))
 
-    val box = Box(-1.0,-1.0, 1.0, 1.0)
     val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
       new Point(-1.0, -1.0), new Point(-1.0, 1.0),
       new Point(1.0, 1.0))
     val polygons = sc.parallelize(Seq(
-        PolygonExample(new Polygon(box, Array(0), ring))
+        PolygonExample(new Polygon(Array(0), ring))
       ))
 
     val sqlContext = new SQLContext(sc)

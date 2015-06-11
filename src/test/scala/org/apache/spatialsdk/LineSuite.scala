@@ -22,16 +22,16 @@ import org.scalatest.FunSuite
 class LineSuite extends FunSuite {
 
   test("intersects") {
-    val first = Line(new Point(0.0, 0.0), new Point(1.0, 1.0))
-    val second = Line(new Point(0.0, 1.0), new Point(1.0, 0.0))
+    val first = new Line(new Point(0.0, 0.0), new Point(1.0, 1.0))
+    val second = new Line(new Point(0.0, 1.0), new Point(1.0, 0.0))
     assert(first.intersects(second))
     assert(second.intersects(first))
 
     //check degenerate points
-    val startDegenerate = Line(new Point(0.0, 0.0), new Point(1.0, 0.0))
+    val startDegenerate = new Line(new Point(0.0, 0.0), new Point(1.0, 0.0))
     assert(first.intersects(startDegenerate))
 
-    val third = Line(new Point(0.0, 1.0), new Point(0.9, 1.0))
+    val third = new Line(new Point(0.0, 1.0), new Point(0.9, 1.0))
     assert(!first.intersects(third))
   }
 }

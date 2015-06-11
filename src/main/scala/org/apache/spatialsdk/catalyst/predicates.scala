@@ -17,9 +17,9 @@
 
 package org.apache.spatialsdk.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{Row, Predicate, BinaryExpression, Expression}
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row}
 import org.apache.spark.sql.types.{BooleanType, DataType}
-import org.apache.spatialsdk.Shape
+import org.apache.spatialsdk.{Line, Shape}
 
 /**
  * A function that returns true if the shape `left` is within the shape `right`.
@@ -44,6 +44,38 @@ case class Within(left: Expression, right: Expression)
       val leftShape = Shape.deserialize(leftEval)
       val rightShape = Shape.deserialize(rightEval)
       if (rightEval == null) null else rightShape.contains(leftShape)
+    }
+  }
+
+  override def nullable: Boolean = left.nullable || right.nullable
+
+}
+
+/**
+ * A function that returns the number of times the left shape intersects the right line.
+ * @param left
+ * @param right
+ */
+case class Intersects(left: Expression, right: Expression)
+  extends BinaryExpression {
+
+  override type EvaluatedType = Boolean
+
+  override def symbol: String = nodeName
+
+  override def toString: String = s"$nodeName($left, $right)"
+
+  override def dataType: DataType = BooleanType
+
+  override def eval(input: Row): Boolean = {
+    val leftEval = left.eval(input)
+    if (leftEval == null) {
+      false
+    } else {
+      val rightEval = right.eval(input)
+      val leftShape = Shape.deserialize(leftEval)
+      val rightShape = Shape.deserialize(rightEval).asInstanceOf[Line]
+      if (rightEval == null) false else leftShape.intersects(rightShape)
     }
   }
 

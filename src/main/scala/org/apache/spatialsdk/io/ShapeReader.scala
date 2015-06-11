@@ -21,7 +21,7 @@ import java.io.DataInput
 
 import org.apache.commons.io.EndianUtils
 
-import org.apache.spatialsdk.{Polygon, Box, Shape, Point}
+import org.apache.spatialsdk._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -47,9 +47,17 @@ class PointReader extends ShapeReader {
 
 }
 
-class PolygonReader extends ShapeReader {
+class PolygonReader extends PolyLineReader {
 
   override def readFields(dataInput: DataInput): Shape = {
+    val (indices, points) = extract(dataInput)
+    new Polygon(indices, points)
+  }
+}
+
+class PolyLineReader extends ShapeReader {
+
+  def extract(dataInput: DataInput): (IndexedSeq[Int], IndexedSeq[Point]) = {
     // extract bounding box.
     val Seq(xmin, ymin, xmax, ymax) = (0 until 4).map { _ =>
       EndianUtils.swapDouble(dataInput.readDouble())
@@ -81,6 +89,22 @@ class PolygonReader extends ShapeReader {
         new Point(x, y)
       }
     }
-    new Polygon(box, indices, points)
+    (indices, points)
+  }
+
+  override def readFields(dataInput: DataInput): Shape = {
+    val (indices, points) = extract(dataInput)
+    new PolyLine(indices, points)
+  }
+}
+
+class PolyLineZReader extends PolyLineReader {
+
+  override def readFields(dataInput: DataInput): Shape = {
+    val (indices, points) = extract(dataInput)
+    // throw away the Z and M values
+    val size = points.length
+    (0 until (4 + 2 * size)).foreach(_ => dataInput.readDouble())
+    new PolyLine(indices, points)
   }
 }
