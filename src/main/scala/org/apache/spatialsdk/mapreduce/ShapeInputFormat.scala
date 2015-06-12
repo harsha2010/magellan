@@ -22,7 +22,7 @@ import org.apache.hadoop.mapreduce.lib.input._
 import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
 import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
 
-class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
+private[spatialsdk] class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
 
 
   override def createRecordReader(inputSplit: InputSplit,

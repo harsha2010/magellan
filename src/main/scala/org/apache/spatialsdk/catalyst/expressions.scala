@@ -23,10 +23,10 @@ import org.apache.spatialsdk.{Line, Shape}
 
 /**
  * Extract value out of map by key or return null if key does not exist
- * 
  * @param child
  * @param key
  */
+// TODO: Once Spark 1.4 is out, remove this and substitute with Spark 1.4 implementation
 case class GetMapValue(child: Expression, key: Expression) extends UnaryExpression {
 
   override type EvaluatedType = Any
