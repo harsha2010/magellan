@@ -27,6 +27,14 @@ trait Shape extends Serializable {
   val shapeType: Int
 
   /**
+   * Applies an arbitrary point wise transformation to a given shape.
+   *
+   * @param fn
+   * @return
+   */
+  def transform(fn: Point => Point): Shape
+
+  /**
    *
    * @param point
    * @return true if this shape envelops the given point
@@ -70,6 +78,14 @@ object NullShape extends Shape {
    * @return true if this shape intersects the given line.
    */
   override def intersects(line: Line): Boolean = false
+
+  /**
+   * Applies an arbitrary point wise transformation to a given shape.
+   *
+   * @param fn
+   * @return
+   */
+  override def transform(fn: (Point) => Point): Shape = this
 
 }
 

@@ -22,7 +22,7 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DataType
 import org.apache.spatialsdk.{LineUDT, Line, Point}
-import org.apache.spatialsdk.catalyst.{GetMapValue, Intersects, PointConverter, Within}
+import org.apache.spatialsdk.catalyst._
 
 package object dsl {
   trait ImplicitOperators {
@@ -40,6 +40,8 @@ package object dsl {
     def intersects(other: Expression): Expression = Intersects(expr, other)
 
     def intersects(other: Any): Column = Column(Intersects(expr, lit(other).expr))
+
+    def transform(fn: Point => Point) = Transformer(expr, fn)
 
   }
 
@@ -59,6 +61,9 @@ package object dsl {
       def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
 
       def intersects(other: Expression): Column = Column(Intersects(c.expr, other))
+
+      def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
+
     }
 
     implicit def point(x: Double, y: Double): Expression = PointConverter(lit(x).expr, lit(y).expr)

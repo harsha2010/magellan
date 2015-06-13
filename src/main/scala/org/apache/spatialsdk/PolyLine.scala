@@ -54,6 +54,17 @@ class PolyLine(
   override def toString = s"PolyLine($shapeType, $indices, $points)"
 
   /**
+   * Applies an arbitrary point wise transformation to a given shape.
+   *
+   * @param fn
+   * @return
+   */
+  override def transform(fn: (Point) => Point): PolyLine = {
+    val transformedPoints = points.map(fn)
+    new PolyLine(indices, transformedPoints)
+  }
+
+  /**
    *
    * @param point
    * @return true if this shape envelops the given point

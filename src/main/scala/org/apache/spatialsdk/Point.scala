@@ -30,7 +30,7 @@ import org.apache.spark.sql.types._
  * and the y-coordinate is the latitude.
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
-class Point(val x: Double, val y: Double) extends Serializable with Shape {
+class Point(val x: Double, val y: Double) extends Shape {
 
   override final val shapeType: Int = 1
 
@@ -68,6 +68,14 @@ class Point(val x: Double, val y: Double) extends Serializable with Shape {
    * @return true if this shape envelops the given point
    */
   override def contains(point: Point): Boolean = this.equals(point)
+
+  /**
+   * Applies an arbitrary point wise transformation to a given shape.
+   *
+   * @param fn
+   * @return
+   */
+  override def transform(fn: (Point) => Point): Point = fn(this)
 
 }
 
