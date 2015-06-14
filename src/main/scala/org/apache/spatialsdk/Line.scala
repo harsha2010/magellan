@@ -54,6 +54,16 @@ class Line(val start: Point, val end: Point) extends Serializable with Shape {
    * @return true if this shape envelops the given point
    */
   override def contains(point: Point): Boolean = ???
+
+  /**
+   * Applies an arbitrary point wise transformation to a given shape.
+   *
+   * @param fn
+   * @return
+   */
+  override def transform(fn: (Point) => Point): Line = {
+    new Line(start.transform(fn), end.transform(fn))
+  }
 }
 
 class LineUDT extends UserDefinedType[Line] {

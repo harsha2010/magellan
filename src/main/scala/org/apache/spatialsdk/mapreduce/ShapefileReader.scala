@@ -25,7 +25,7 @@ import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext
 import org.apache.spatialsdk.Box
 import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
 
-class ShapefileReader extends RecordReader[ShapeKey, ShapeWritable] {
+private[spatialsdk] class ShapefileReader extends RecordReader[ShapeKey, ShapeWritable] {
 
   private val key: ShapeKey = new ShapeKey()
 

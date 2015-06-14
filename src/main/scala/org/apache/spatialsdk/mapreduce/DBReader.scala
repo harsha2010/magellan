@@ -27,7 +27,7 @@ import org.apache.spatialsdk.io.ShapeKey
 
 import scala.collection.mutable.ListBuffer
 
-class DBReader extends RecordReader[ShapeKey, MapWritable] {
+private[spatialsdk] class DBReader extends RecordReader[ShapeKey, MapWritable] {
 
   private var key: ShapeKey = new ShapeKey()
 

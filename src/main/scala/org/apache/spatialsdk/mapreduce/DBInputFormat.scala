@@ -26,7 +26,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
 import org.apache.spatialsdk.io.ShapeKey
 
-class DBInputFormat extends FileInputFormat[ShapeKey, MapWritable] {
+private[spatialsdk] class DBInputFormat extends FileInputFormat[ShapeKey, MapWritable] {
 
   override def createRecordReader(inputSplit: InputSplit,
       taskAttemptContext: TaskAttemptContext) = {

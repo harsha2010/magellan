@@ -33,7 +33,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val path = this.getClass.getClassLoader.getResource("testpoint/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
-    assert(df.count() == 1)
+    assert(df.count() === 1)
     val point = df.select($"point").map {case Row(x: Point) => x}.first()
     assert(point.x ~== -99.796 absTol 0.2)
   }
@@ -43,7 +43,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val path = this.getClass.getClassLoader.getResource("testpolygon/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
-    assert(df.count() == 1)
+    assert(df.count() === 1)
     val polygon = df.select($"polygon").map {case Row(x: Polygon) => x}.first()
     assert(polygon.indices.size === 1)
     assert(polygon.points.size === 6)
@@ -54,7 +54,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val path = this.getClass.getClassLoader.getResource("testzillow/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
-    assert(df.count() == 1932)  // 34 + 948 + 689 + 261
+    assert(df.count() === 1932)  // 34 + 948 + 689 + 261
 
     // CA should have some metadata attached to it
     val extractValue: (Map[String, String], String) => String =
@@ -74,11 +74,21 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
     val df = sqlCtx.shapeFile(path)
     import sqlCtx.implicits._
-    assert(df.count() == 14959)
+    assert(df.count() === 14959)
     // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
     val start = new Point(5979764.107174277, 2085848.5510566086)
     val end = new Point(6024892.0635061115, 4184000.396185901)
     assert(df.filter($"polyline" intersects line(start, end)).count() > 0)
   }
 
+  test("shapefile-relation: points and polygons") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("testcomposite/").getPath
+    val df = sqlCtx.shapeFile(path)
+    assert(df.count() === 2)
+    // each row should either contain a point or a polygon but not both
+    import sqlCtx.implicits._
+    assert(df.filter($"point" isNull).count() === 1)
+    assert(df.filter($"polygon" isNull).count() === 1)
+  }
 }

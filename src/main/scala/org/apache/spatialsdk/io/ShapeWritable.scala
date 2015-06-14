@@ -23,9 +23,9 @@ import org.apache.commons.io.EndianUtils
 import org.apache.hadoop.io.Writable
 import org.apache.spatialsdk.Shape
 
-class ShapeWritable(shapeType: Int) extends Writable {
+private[spatialsdk] class ShapeWritable(shapeType: Int) extends Writable {
 
-  private[spatialsdk] var shape: Shape = _
+  var shape: Shape = _
 
   override def write(dataOutput: DataOutput): Unit = {
     ???

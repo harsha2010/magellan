@@ -17,7 +17,7 @@
 
 package org.apache.spatialsdk
 
-trait Multipath extends Serializable with Shape {
+trait Multipath extends Shape {
 
   val indices: IndexedSeq[Int]
   val points: IndexedSeq[Point]

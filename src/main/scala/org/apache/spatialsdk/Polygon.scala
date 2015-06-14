@@ -73,6 +73,17 @@ class Polygon(
 
   override def toString = s"Polygon($shapeType, $box, $indices, $points)"
 
+  /**
+   * Applies an arbitrary point wise transformation to a given shape.
+   *
+   * @param fn
+   * @return
+   */
+  override def transform(fn: (Point) => Point): Polygon = {
+    val transformedPoints = points.map(fn)
+    new Polygon(indices, transformedPoints)
+  }
+
 }
 
 private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {

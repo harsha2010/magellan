@@ -16,7 +16,7 @@ package org.apache.spatialsdk
 
 import org.apache.hadoop.io.{MapWritable, Text}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
+import org.apache.spark.sql.catalyst.expressions.{Expression, Attribute, GenericMutableRow}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.{MapType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SQLContext}
@@ -43,6 +43,7 @@ case class ShapeFileRelation(path: String)
   }
 
   override def buildScan(): RDD[Row] = {
+
     val shapefileRdd = sqlContext.sparkContext.newAPIHadoopFile(
       path + "/*.shp",
       classOf[ShapeInputFormat],
@@ -58,11 +59,12 @@ case class ShapeFileRelation(path: String)
     )
 
     val numFields = schema.fields.length
-    val row = new GenericMutableRow(numFields)
-    val dataRdd = shapefileRdd.map { case(k, v) =>
+
+    val dataRdd = shapefileRdd.map { case (k, v) =>
       ((k.getFileNamePrefix(), k.getRecordIndex()), v.shape)
     }
-    val metadataRdd = dbaseRdd.map { case(k, v) =>
+
+    val metadataRdd = dbaseRdd.map { case (k, v) =>
       val meta = v.entrySet().map { kv =>
         val k = kv.getKey.asInstanceOf[Text].toString
         val v = kv.getValue.asInstanceOf[Text].toString
@@ -72,7 +74,10 @@ case class ShapeFileRelation(path: String)
     }
 
     dataRdd.leftOuterJoin(metadataRdd).mapPartitions { iter =>
+      val row = new GenericMutableRow(numFields)
       iter.flatMap { case ((filePrefix, recordIndex), (shape, meta)) =>
+        // we are re-using rows. clear them before next call
+        (0 until numFields).foreach(i => row.setNullAt(i))
         row(3) = meta.fold(Map[String, String]())(identity)
         shape match {
           case NullShape => None

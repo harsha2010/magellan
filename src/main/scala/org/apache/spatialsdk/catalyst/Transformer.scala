@@ -15,22 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.spatialsdk.mapreduce
+package org.apache.spatialsdk.catalyst
 
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.mapreduce.lib.input._
-import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
-import org.apache.spatialsdk.io.{ShapeKey, ShapeWritable}
+import org.apache.spark.sql.catalyst.expressions.{Row, Expression, UnaryExpression}
+import org.apache.spark.sql.types.DataType
+import org.apache.spatialsdk.{Point, Shape}
 
-private[spatialsdk] class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
+case class Transformer(
+    override val child: Expression,
+    fn: Point => Point)
+  extends UnaryExpression {
 
+  override type EvaluatedType = child.EvaluatedType
 
-  override def createRecordReader(inputSplit: InputSplit,
-    taskAttemptContext: TaskAttemptContext) = {
-    new ShapefileReader
+  override def eval(input: Row): EvaluatedType = {
+    val row = child.eval(input).asInstanceOf[Row]
+    val shape = Shape.deserialize(row)
+    shape.transform(fn).asInstanceOf[EvaluatedType]
   }
 
-  // TODO: Use DBIndex to figure out how to efficiently split files.
-  override def isSplitable(context: JobContext, filename: Path): Boolean = false
+  override def nullable: Boolean = child.nullable
+
+  override def dataType: DataType = child.dataType
 
 }

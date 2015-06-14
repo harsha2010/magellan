@@ -25,7 +25,7 @@ import org.apache.spatialsdk._
 
 import scala.collection.mutable.ArrayBuffer
 
-trait ShapeReader {
+private[spatialsdk] trait ShapeReader {
 
   def readFields(dataInput: DataInput): Shape
 
@@ -37,7 +37,7 @@ class NullShapeReader extends ShapeReader {
 
 }
 
-class PointReader extends ShapeReader {
+private[spatialsdk] class PointReader extends ShapeReader {
 
   override def readFields(dataInput: DataInput): Shape = {
     val x = EndianUtils.swapDouble(dataInput.readDouble())
@@ -47,7 +47,7 @@ class PointReader extends ShapeReader {
 
 }
 
-class PolygonReader extends PolyLineReader {
+private[spatialsdk] class PolygonReader extends PolyLineReader {
 
   override def readFields(dataInput: DataInput): Shape = {
     val (indices, points) = extract(dataInput)
@@ -55,7 +55,7 @@ class PolygonReader extends PolyLineReader {
   }
 }
 
-class PolyLineReader extends ShapeReader {
+private[spatialsdk] class PolyLineReader extends ShapeReader {
 
   def extract(dataInput: DataInput): (IndexedSeq[Int], IndexedSeq[Point]) = {
     // extract bounding box.
@@ -98,7 +98,7 @@ class PolyLineReader extends ShapeReader {
   }
 }
 
-class PolyLineZReader extends PolyLineReader {
+private[spatialsdk] class PolyLineZReader extends PolyLineReader {
 
   override def readFields(dataInput: DataInput): Shape = {
     val (indices, points) = extract(dataInput)
