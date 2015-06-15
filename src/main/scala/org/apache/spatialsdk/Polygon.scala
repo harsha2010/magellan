@@ -71,7 +71,7 @@ class Polygon(
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 
-  override def toString = s"Polygon($shapeType, $box, $indices, $points)"
+  override def toString = s"Polygon($shapeType, $indices, $points)"
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -88,7 +88,8 @@ class Polygon(
 
 private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
 
-  private val pointDataType = new PointUDT().sqlType
+  private val pointUDT = new PointUDT()
+  private val pointDataType = pointUDT.sqlType
 
   override def sqlType: DataType = {
     StructType(Seq(
@@ -98,11 +99,11 @@ private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
   }
 
   override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(7)
+    val row = new GenericMutableRow(3)
     val polygon = obj.asInstanceOf[Polygon]
     row(0) = polygon.shapeType
-    row(1) = polygon.indices
-    row(2) = polygon.points
+    row.update(1, polygon.indices.toSeq)
+    row.update(2, polygon.points.map(pointUDT.serialize).toSeq)
     row
   }
 
@@ -113,9 +114,9 @@ private[spatialsdk] class PolygonUDT extends UserDefinedType[Polygon] {
       case x: Polygon => x
       case r: Row => {
         r.getInt(0)
-        val indices = r.get(1).asInstanceOf[IndexedSeq[Int]]
-        val points = r.get(2).asInstanceOf[IndexedSeq[Point]]
-        new Polygon(indices, points)
+        val indices = r.get(1).asInstanceOf[Seq[Int]]
+        val points = r.get(2).asInstanceOf[Seq[_]]
+        new Polygon(indices.toIndexedSeq, points.map(pointUDT.deserialize).toIndexedSeq)
       }
       case null => null
       case _ => ???

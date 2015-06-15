@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sys
+
 from pyspark.sql.types import UserDefinedType, StructField, StructType,\
     ArrayType, DoubleType, IntegerType
 
@@ -35,8 +37,7 @@ class PointUDT(UserDefinedType):
         StructType([
             StructField("type", IntegerType(), False),
             StructField("x", DoubleType(), True),
-            StructField("y", DoubleType(), True),
-            StructField("z", DoubleType(), True)])
+            StructField("y", DoubleType(), True)])
 
     @classmethod
     def module(cls):
@@ -87,9 +88,13 @@ class Point(object):
     >>> v = Point(1.0, 2.0)
     Point([1.0, 2.0])
     """
-    def __init__(self, x, y):
+    def __init__(self, x=0.0, y=0.0):
         self.x = x
         self.y = y
+
+    def toShapely(self):
+        from shapely.geometry import Point as SPoint
+        return SPoint(self.x, self.y)
 
 
 class PolygonUDT(UserDefinedType):
@@ -97,6 +102,7 @@ class PolygonUDT(UserDefinedType):
 
     .. note:: WARN: SpatialSDK Internal Use Only
     """
+    pointUDT = PointUDT()
 
     @classmethod
     def sqlType(cls):
@@ -128,7 +134,9 @@ class PolygonUDT(UserDefinedType):
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, Polygon):
-            return (5, obj.indices, obj.points)
+            indices = [int(index) for index in obj.indices]
+            points = [self.pointUDT.serialize(point) for point in obj.points]
+            return (5, indices, points)
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -136,11 +144,11 @@ class PolygonUDT(UserDefinedType):
         """
         Converts a SQL datum into a user-type object.
         """
-        assert len(datum) == 4, \
+        assert len(datum) == 3, \
             "PolygonUDT.deserialize given row with length %d but requires 4" % len(datum)
         tpe = datum[0]
         assert tpe == 5, "Polygon should have type = 5"
-        return Polygon(datum[1], datum[2])
+        return Polygon(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
 
     def simpleString(self):
         return 'polygon'
@@ -174,11 +182,49 @@ class Polygon(object):
     Vertices for a single, ringed polygon are, therefore, always in clockwise order.
     The rings of a polygon are referred to as its parts.
 
-    >>> v = Polygon([-1.0,-1.0, 1.0, 1.0], [0], \
-                    [Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 1.0))
+    >>> v = Polygon([0], [Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 1.0))
     Point([-1.0,-1.0, 1.0, 1.0], [0], Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 1.0))
     """
 
     def __init__(self, indices, points):
         self.indices = indices
         self.points = points
+        # compute the bounding box
+        MAX_VALUE = sys.float_info.max
+        MIN_VALUE = sys.float_info.min
+        xmin = MAX_VALUE
+        ymin = MAX_VALUE
+        xmax = MIN_VALUE
+        ymax = MIN_VALUE
+        for point in points:
+            x = point.x
+            y = point.y
+            if x < xmin:
+                xmin = x
+            if x > xmax:
+                xmax = x
+            if y < ymin:
+                ymin = y
+            if y > ymax:
+                ymax = y
+
+        self.box = (xmin, ymin, xmax, ymax)
+
+    def toShapely(self):
+        from shapely.geometry import Polygon as SPolygon
+        from itertools import izip
+        points = []
+        l = []
+        l.extend(self.indices)
+        l.append(len(self.points))
+
+        for i,j in zip(l, l[1:]):
+            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
+            points.append(spoints)
+
+        shell = points[0]
+        holes = points[1:]
+        return SPolygon(shell=shell, holes=holes)
+
+
+
