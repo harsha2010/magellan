@@ -1,8 +1,8 @@
-name := "spark-spatialsdk"
+name := "magellan"
 
 version := "1.0.0"
 
-organization := "com.hortonworks"
+organization := "org.apache"
 
 scalaVersion := "2.10.4"
 
@@ -45,7 +45,7 @@ pomExtra := (
   </licenses>
   <scm>
     <url>git@github.com:harsha2010/spatialsdk.git</url>
-    <connection>scm:git:git@github.com:harsha2010/spatialsdk.git</connection>
+    <connection>scm:git:git@github.com:harsha2010/magellan.git</connection>
   </scm>
   <developers>
     <developer>
@@ -55,7 +55,7 @@ pomExtra := (
     </developer>
   </developers>)
 
-spName := "hortonworks/spatialsdk"
+spName := "org.apache/magellan"
 
 sparkVersion := "1.3.1"
 
