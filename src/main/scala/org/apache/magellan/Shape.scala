@@ -48,13 +48,6 @@ trait Shape extends Serializable {
    */
   def intersects(line: Line): Boolean
 
-  def contains(shape: Shape): Boolean = {
-    shape match {
-      case point: Point => this.contains(point)
-      case _ => ???
-    }
-  }
-
 }
 
 /**

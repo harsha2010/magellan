@@ -17,6 +17,8 @@
 
 package org.apache.magellan
 
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
+import com.vividsolutions.jts.geom.{Point => JTSPoint, Coordinate, CoordinateSequenceFactory, GeometryFactory, PrecisionModel}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -31,6 +33,14 @@ import org.apache.spark.sql.types._
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
 class Point(val x: Double, val y: Double) extends Shape {
+
+  private[magellan] val delegate = {
+    val precisionModel = new PrecisionModel()
+    val geomFactory = new GeometryFactory(precisionModel)
+    val csf = CoordinateArraySequenceFactory.instance()
+    val cs = csf.create(Array(new Coordinate(x, y)))
+    new JTSPoint(cs, geomFactory)
+  }
 
   override final val shapeType: Int = 1
 
