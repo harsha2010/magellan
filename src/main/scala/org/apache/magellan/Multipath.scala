@@ -17,31 +17,9 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom.{Coordinate, LinearRing,
-  GeometryFactory, PrecisionModel, Polygon => JTSPolygon}
-
-import scala.collection.mutable.ArrayBuffer
-
 trait Multipath extends Shape {
 
   val indices: IndexedSeq[Int]
   val points: IndexedSeq[Point]
-
-  override val delegate = {
-    val precisionModel = new PrecisionModel()
-    val geomFactory = new GeometryFactory(precisionModel)
-    val csf = CoordinateArraySequenceFactory.instance()
-
-    val rings = ArrayBuffer[LinearRing]()
-    for (Seq(i, j) <- (indices ++ Seq(points.size)).sliding(2)) {
-      val coords = points.slice(i, j).map(point => new Coordinate(point.x, point.y))
-      val csf = CoordinateArraySequenceFactory.instance()
-      rings+= new LinearRing(csf.create(coords.toArray), geomFactory)
-    }
-    val shell = rings(0)
-    val holes = rings.drop(1).toArray
-    new JTSPolygon(shell, holes, geomFactory)
-  }
 
 }

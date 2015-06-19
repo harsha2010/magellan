@@ -78,7 +78,8 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
     val start = new Point(5979764.107174277, 2085848.5510566086)
     val end = new Point(6024892.0635061115, 4184000.396185901)
-    assert(df.filter($"polyline" intersects line(start, end)).count() > 0)
+    assert(df.filter(point(6024892.0635061115, 4184000.396185901) within $"polyline").count() > 0)
+    // assert(df.filter($"polyline" intersects line(start, end)).count() > 0)
   }
 
   test("shapefile-relation: points and polygons") {

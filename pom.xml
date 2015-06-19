@@ -20,9 +20,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.vividsolutions</groupId>
-            <artifactId>jts</artifactId>
-            <version>1.13</version>
+            <groupId>com.esri.geometry</groupId>
+            <artifactId>esri-geometry-api</artifactId>
+            <version>1.2.1</version>
         </dependency>
         <dependency>
             <groupId>com.twitter</groupId>

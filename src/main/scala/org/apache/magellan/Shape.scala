@@ -17,7 +17,9 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.{Geometry => JTSGeometry}
+import java.io.{ObjectInputStream, ObjectOutputStream}
+
+import com.esri.core.geometry.{Geometry => ESRIGeometry, SpatialReference, GeometryEngine}
 import org.apache.spark.sql.Row
 
 /**
@@ -27,7 +29,7 @@ trait Shape extends Serializable {
 
   val shapeType: Int
 
-  val delegate: JTSGeometry
+  val delegate: ESRIGeometry
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -43,7 +45,9 @@ trait Shape extends Serializable {
    * @return true if the two shapes intersect each other.
    */
   def intersects(shape: Shape): Boolean = {
-    delegate.intersects(shape.delegate)
+    val sref = SpatialReference.create(26910)
+    val intersection = GeometryEngine.intersect(delegate, shape.delegate, sref)
+    ! intersection.isEmpty
   }
 
   /**
@@ -52,7 +56,8 @@ trait Shape extends Serializable {
    * @return true if this shape contains the other.
    */
   def contains(shape: Shape): Boolean = {
-    delegate.contains(shape.delegate)
+    val sref = SpatialReference.create(26910)
+    GeometryEngine.contains(delegate, shape.delegate, sref)
   }
 
 }

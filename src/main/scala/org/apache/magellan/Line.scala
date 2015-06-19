@@ -17,8 +17,7 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom.{LineString, Coordinate, GeometryFactory, PrecisionModel}
+import com.esri.core.geometry.{Line => ESRILine}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -34,12 +33,11 @@ class Line(val start: Point, val end: Point) extends Serializable with Shape {
 
   override val shapeType: Int = 2
 
-  override val delegate = {
-    val precisionModel = new PrecisionModel()
-    val geomFactory = new GeometryFactory(precisionModel)
-    val csf = CoordinateArraySequenceFactory.instance()
-    val coords = csf.create(Array(new Coordinate(start.x, start.y), new Coordinate(end.x, end.y)))
-    new LineString(coords, geomFactory)
+  override lazy val delegate = {
+    val l = new ESRILine()
+    l.setStart(start.delegate)
+    l.setEnd(end.delegate)
+    l
   }
 
   override def transform(fn: (Point) => Point): Line = {

@@ -17,6 +17,9 @@
 
 package org.apache.magellan
 
+import java.io.{ObjectInputStream, ObjectOutputStream}
+
+import com.esri.core.geometry.{Polyline => ESRIPolyline}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -34,6 +37,36 @@ class PolyLine(
   extends Multipath {
 
   override val shapeType: Int = 3
+
+  override lazy val delegate = {
+    val p = new ESRIPolyline()
+    var startIndex = 0
+    var endIndex = 1
+    val length = points.size
+    var currentRingIndex = 0
+    var start = points(startIndex)
+
+    p.startPath(start.delegate)
+
+    while (endIndex < length) {
+      val end = points(endIndex)
+      p.lineTo(end.delegate)
+      startIndex += 1
+      endIndex += 1
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
+          start = points(startIndex)
+        }
+      }
+    }
+    p
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 

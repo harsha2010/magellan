@@ -17,8 +17,9 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, Point => JTSPoint, PrecisionModel}
+import java.io.{ObjectInputStream, ObjectOutputStream}
+
+import com.esri.core.geometry.{Point => ESRIPoint}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -32,14 +33,15 @@ import org.apache.spark.sql.types._
  * and the y-coordinate is the latitude.
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
-class Point(val x: Double, val y: Double) extends Shape {
+class Point(var x: Double, var y: Double) extends Shape {
 
-  override val delegate = {
-    val precisionModel = new PrecisionModel()
-    val geomFactory = new GeometryFactory(precisionModel)
-    val csf = CoordinateArraySequenceFactory.instance()
-    val cs = csf.create(Array(new Coordinate(x, y)))
-    new JTSPoint(cs, geomFactory)
+  def this() {this(0.0, 0.0)}
+
+  override lazy val delegate = {
+    val p = new ESRIPoint()
+    p.setX(x)
+    p.setY(y)
+    p
   }
 
   override final val shapeType: Int = 1
