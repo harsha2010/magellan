@@ -22,7 +22,6 @@ import java.io.DataInputStream
 import org.apache.commons.io.EndianUtils
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
-import org.apache.magellan.Box
 import org.apache.magellan.io.{ShapeKey, ShapeWritable}
 
 private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWritable] {
@@ -80,13 +79,7 @@ private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWrit
     key.setFileNamePrefix(split.getPath.getName.split("\\.")(0))
     value = new ShapeWritable(shapeType)
     // skip the next 64 bytes
-    val box = Box(EndianUtils.swapDouble(is.readDouble()),
-        EndianUtils.swapDouble(is.readDouble()),
-        EndianUtils.swapDouble(is.readDouble()),
-        EndianUtils.swapDouble(is.readDouble())
-      )
-
-    0 until 4 foreach {_ => is.readDouble()}
+    0 until 8 foreach {_ => is.readDouble()}
   }
 
   override def getCurrentKey: ShapeKey = key

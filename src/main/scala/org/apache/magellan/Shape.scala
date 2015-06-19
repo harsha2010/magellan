@@ -17,6 +17,7 @@
 
 package org.apache.magellan
 
+import com.vividsolutions.jts.geom.{Geometry => JTSGeometry}
 import org.apache.spark.sql.Row
 
 /**
@@ -25,6 +26,8 @@ import org.apache.spark.sql.Row
 trait Shape extends Serializable {
 
   val shapeType: Int
+
+  val delegate: JTSGeometry
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -36,17 +39,21 @@ trait Shape extends Serializable {
 
   /**
    *
-   * @param point
-   * @return true if this shape envelops the given point
+   * @param shape
+   * @return true if the two shapes intersect each other.
    */
-  def contains(point: Point): Boolean
+  def intersects(shape: Shape): Boolean = {
+    delegate.intersects(shape.delegate)
+  }
 
   /**
    *
-   * @param line
-   * @return number of times this shape intersects the given line.
+   * @param shape
+   * @return true if this shape contains the other.
    */
-  def intersects(line: Line): Boolean
+  def contains(shape: Shape): Boolean = {
+    delegate.contains(shape.delegate)
+  }
 
 }
 
@@ -58,26 +65,12 @@ object NullShape extends Shape {
 
   override final val shapeType: Int = 0
 
-  /**
-   *
-   * @param point
-   * @return true if this shape envelops the given point
-   */
-  override def contains(point: Point): Boolean = false
+  override val delegate = null
 
-  /**
-   *
-   * @param line
-   * @return true if this shape intersects the given line.
-   */
-  override def intersects(line: Line): Boolean = false
+  override def intersects(shape: Shape): Boolean = false
 
-  /**
-   * Applies an arbitrary point wise transformation to a given shape.
-   *
-   * @param fn
-   * @return
-   */
+  override def contains(shape: Shape): Boolean = false
+
   override def transform(fn: (Point) => Point): Shape = this
 
 }
@@ -94,7 +87,7 @@ object Shape {
       case row: Row =>
         row(0) match {
           case 0 => NullShape
-          case 1 =>  pointUDT.deserialize(row)
+          case 1 => pointUDT.deserialize(row)
           case 3 => polyLineUDT.deserialize(row)
           case 5 => polygonUDT.deserialize(row)
           case _ => ???

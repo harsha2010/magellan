@@ -20,7 +20,7 @@ package org.apache.magellan.catalyst
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.apache.magellan
-import org.apache.magellan.{Polygon, Point, Box, TestSparkContext}
+import org.apache.magellan.{Polygon, Point, TestSparkContext}
 import org.scalatest.FunSuite
 
 import scala.language.implicitConversions

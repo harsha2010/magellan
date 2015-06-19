@@ -42,20 +42,6 @@ class Polygon(
 
   override val shapeType: Int = 5
 
-  override def contains(point: Point): Boolean = {
-    // simple test: if the point is outside the bounding box, it cannot be in the polygon
-    if (!box.contains(point)) {
-      false
-    } else {
-      // pick a point q uniformly at random a distance epsilon away from the box
-      // the line segment between point and q should intersect the polygon
-      // an odd # of times if the point is within the polygon.
-      val q = box.away(0.1)
-      val line = new Line(point, q)
-      intersections(line) % 2 != 0
-    }
-  }
-
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
 
   override def equals(other: Any): Boolean = other match {

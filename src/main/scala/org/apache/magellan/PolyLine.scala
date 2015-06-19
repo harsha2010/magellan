@@ -64,13 +64,6 @@ class PolyLine(
     new PolyLine(indices, transformedPoints)
   }
 
-  /**
-   *
-   * @param point
-   * @return true if this shape envelops the given point
-   */
-  override def contains(point: Point): Boolean = ???
-
 }
 
 private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {

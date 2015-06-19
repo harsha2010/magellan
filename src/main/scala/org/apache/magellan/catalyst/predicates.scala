@@ -17,9 +17,9 @@
 
 package org.apache.magellan.catalyst
 
+import org.apache.magellan.Shape
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row}
 import org.apache.spark.sql.types.{BooleanType, DataType}
-import org.apache.magellan.{Line, Shape}
 
 /**
  * A function that returns true if the shape `left` is within the shape `right`.
@@ -74,7 +74,7 @@ case class Intersects(left: Expression, right: Expression)
     } else {
       val rightEval = right.eval(input)
       val leftShape = Shape.deserialize(leftEval)
-      val rightShape = Shape.deserialize(rightEval).asInstanceOf[Line]
+      val rightShape = Shape.deserialize(rightEval)
       if (rightEval == null) false else leftShape.intersects(rightShape)
     }
   }
