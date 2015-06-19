@@ -17,12 +17,12 @@
 
 package org.apache.spark.sql.magellan
 
+import org.apache.magellan._
+import org.apache.magellan.catalyst._
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DataType
-import org.apache.magellan.{LineUDT, Line, Point}
-import org.apache.magellan.catalyst._
 
 package object dsl {
   trait ImplicitOperators {
@@ -31,7 +31,15 @@ package object dsl {
 
     def within(other: Expression): Expression = Within(expr, other)
 
-    def within(other: Any): Column = Column(Within(expr, lit(other).expr))
+    def within(other: Column): Column = Column(Within(expr, other.expr))
+
+    def within(other: Shape): Column = Column(Within(expr, ShapeLiteral(other)))
+
+    def >?(other: Expression): Expression = Within(other, expr)
+
+    def >?(other: Shape): Expression = Within(ShapeLiteral(other), expr)
+
+    def >?(other: Column): Column = Column(Within(other.expr, expr))
 
     def apply(other: Any): Expression = GetMapValue(expr, lit(other).expr)
 
@@ -39,7 +47,11 @@ package object dsl {
 
     def intersects(other: Expression): Expression = Intersects(expr, other)
 
-    def intersects(other: Any): Column = Column(Intersects(expr, lit(other).expr))
+    def intersects(other: Shape): Column = Column(Intersects(expr, ShapeLiteral(other)))
+
+    def intersection(other: Expression): Expression = Intersection(expr, other)
+
+    def intersection(other: Shape): Column = Column(Intersection(expr, ShapeLiteral(other)))
 
     def transform(fn: Point => Point) = Transformer(expr, fn)
 
@@ -54,39 +66,43 @@ package object dsl {
     implicit class DslColumn(c: Column) {
       def col: Column = c
 
-      def within(other: Any): Column = Column(Within(col.expr, lit(other).expr))
+      def within(other: Column): Column = Column(Within(col.expr, other.expr))
+
+      def within(other: Shape): Column = Column(Within(col.expr, ShapeLiteral(other)))
+
+      def >?(other: Shape): Column = Column(Within(ShapeLiteral(other), col.expr))
+
+      def >?(other: Column): Column = Column(Within(other.expr, col.expr))
+
+      def >?(other: Expression): Column = Column(Within(other, col.expr))
 
       def apply(other: Any): Column = Column(GetMapValue(col.expr, lit(other).expr))
 
       def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
 
-      def intersects(other: Expression): Column = Column(Intersects(c.expr, other))
+      def intersects(other: Column): Column = Column(Intersects(c.expr, other.expr))
+
+      def intersects(other: Shape): Column = Column(Intersects(c.expr, ShapeLiteral(other)))
+
+      def intersection(other: Column): Column = Column(Intersection(c.expr, other.expr))
+
+      def intersection(other: Shape): Column = Column(Intersection(c.expr, ShapeLiteral(other)))
+
+      def intersection(other: Expression): Column = Column(Intersection(c.expr, other))
 
       def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
 
     }
 
-    implicit def point(x: Double, y: Double): Expression = PointConverter(lit(x).expr, lit(y).expr)
+    implicit def point(x: Double, y: Double): Expression = ShapeLiteral(new Point(x, y))
 
     implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
 
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
-    implicit def line(start: Point, end: Point) = LineLiteral(start, end)
-
-    case class LineLiteral(start: Point, end: Point) extends LeafExpression {
-
-      override def foldable: Boolean = true
-      override def nullable: Boolean = false
-
-      type EvaluatedType = Line
-      override def eval(input: Row): Line = new Line(start, end)
-
-      override val dataType: DataType = new LineUDT()
-
-    }
-
+    implicit def shape(shape: Shape) = ShapeLiteral(shape)
   }
+
 
   object expressions extends ExpressionConversions  // scalastyle:ignore
 

@@ -18,7 +18,7 @@
 package org.apache.magellan
 
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom.{Point => JTSPoint, Coordinate, CoordinateSequenceFactory, GeometryFactory, PrecisionModel}
+import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, Point => JTSPoint, PrecisionModel}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -34,7 +34,7 @@ import org.apache.spark.sql.types._
 @SQLUserDefinedType(udt = classOf[PointUDT])
 class Point(val x: Double, val y: Double) extends Shape {
 
-  private[magellan] val delegate = {
+  override private[magellan] def toJTS() = {
     val precisionModel = new PrecisionModel()
     val geomFactory = new GeometryFactory(precisionModel)
     val csf = CoordinateArraySequenceFactory.instance()
@@ -63,21 +63,7 @@ class Point(val x: Double, val y: Double) extends Shape {
   }
 
 
-  override def toString = s"Point($shapeType, $x, $y)"
-
-  /**
-   *
-   * @param line
-   * @return number of times this shape intersects the given line.
-   */
-  def intersects(line: Line): Boolean = ???
-
-  /**
-   *
-   * @param point
-   * @return true if this shape envelops the given point
-   */
-  override def contains(point: Point): Boolean = this.equals(point)
+  override def toString = s"Point($x, $y)"
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -127,4 +113,13 @@ private[magellan] class PointUDT extends UserDefinedType[Point] {
 
   override def pyUDT: String = "magellan.types.PointUDT"
 
+}
+
+object Point {
+
+  private[magellan] def fromJTS(jtsPoint: JTSPoint): Point = {
+    new Point(jtsPoint.getX(), jtsPoint.getY())
+  }
+
+  def apply(x: Double, y: Double) = new Point(x, y)
 }

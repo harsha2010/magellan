@@ -17,6 +17,8 @@
 
 package org.apache.magellan
 
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
+import com.vividsolutions.jts.geom.{LineString, Coordinate, GeometryFactory, PrecisionModel}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -30,40 +32,39 @@ import org.apache.spark.sql.types._
 @SQLUserDefinedType(udt = classOf[LineUDT])
 class Line(val start: Point, val end: Point) extends Serializable with Shape {
 
-  def intersects(other: Line): Boolean = {
-    // test for degeneracy
-    if (start == other.start ||
-        end == other.end ||
-        start == other.end ||
-        end == other.start) {
-      true
-    } else {
-      def ccw(a: Point, b: Point, c: Point) = {
-        (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x)
-      }
-      ccw(start, other.start, other.end) != ccw(end, other.start, other.end) &&
-        ccw(start, end, other.start) != ccw(start, end, other.end)
-    }
-  }
-
   override val shapeType: Int = 2
 
-  /**
-   *
-   * @param point
-   * @return true if this shape envelops the given point
-   */
-  override def contains(point: Point): Boolean = ???
+  override private[magellan] def toJTS() = {
+    val precisionModel = new PrecisionModel()
+    val geomFactory = new GeometryFactory(precisionModel)
+    val csf = CoordinateArraySequenceFactory.instance()
+    val coords = csf.create(Array(new Coordinate(start.x, start.y), new Coordinate(end.x, end.y)))
+    new LineString(coords, geomFactory)
+  }
 
-  /**
-   * Applies an arbitrary point wise transformation to a given shape.
-   *
-   * @param fn
-   * @return
-   */
   override def transform(fn: (Point) => Point): Line = {
     new Line(start.transform(fn), end.transform(fn))
   }
+
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Line]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Line =>
+      (that canEqual this) &&
+        start == that.start &&
+        end == that.end
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(start, end)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+
+  override def toString = s"Line($start, $end)"
+
 }
 
 class LineUDT extends UserDefinedType[Line] {
@@ -103,4 +104,13 @@ class LineUDT extends UserDefinedType[Line] {
 
   override def pyUDT: String = "magellan.types.LineUDT"
 
+}
+
+private[magellan] object Line {
+
+  def fromJTS(jtsLine: LineString): Line = {
+    val start = Point.fromJTS(jtsLine.getStartPoint)
+    val end = Point.fromJTS(jtsLine.getEndPoint)
+    new Line(start, end)
+  }
 }

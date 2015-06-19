@@ -17,8 +17,9 @@
 
 package org.apache.magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{Expression, Row, UnaryExpression}
-import org.apache.spark.sql.types.{DataType, MapType}
+import org.apache.magellan.{NullShape, Shape}
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row, UnaryExpression}
+import org.apache.spark.sql.types._
 
 /**
  * Extract value out of map by key or return null if key does not exist
@@ -56,5 +57,37 @@ case class GetMapValue(child: Expression, key: Expression) extends UnaryExpressi
   override def nullable: Boolean = true
 
   override def dataType: DataType = child.dataType.asInstanceOf[MapType].valueType
+
+}
+
+/**
+ * A function that returns the intersection between the left and right shapes.
+ * @param left
+ * @param right
+ */
+case class Intersection(left: Expression, right: Expression)
+  extends BinaryExpression {
+
+  override type EvaluatedType = Shape
+
+  override def symbol: String = nodeName
+
+  override def toString: String = s"$nodeName($left, $right)"
+
+  override def dataType: DataType = left.dataType
+
+  override def eval(input: Row): Shape = {
+    val leftEval = left.eval(input)
+    if (leftEval == null) {
+      NullShape
+    } else {
+      val rightEval = right.eval(input)
+      val leftShape = Shape.deserialize(leftEval)
+      val rightShape = Shape.deserialize(rightEval)
+      if (rightEval == null) NullShape else leftShape.intersection(rightShape)
+    }
+  }
+
+  override def nullable: Boolean = left.nullable || right.nullable
 
 }

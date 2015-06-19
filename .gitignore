@@ -1,0 +1,10 @@
+*.iml
+*jar
+/lib/
+/classes/
+/target/
+/python/*pyc
+/project/project/
+/project/target/
+.idea/
+.lein-deps-sum

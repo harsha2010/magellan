@@ -15,23 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.magellan
+package org.apache.magellan.catalyst
 
-import org.scalatest.FunSuite
+import org.apache.magellan.Shape
+import org.apache.spark.sql.catalyst.expressions.{LeafExpression, Row}
+import org.apache.spark.sql.types.DataType
 
-class BoxSuite extends FunSuite {
+case class ShapeLiteral(shape: Shape) extends LeafExpression {
 
-  test("contains") {
-    val box = Box(-1.0,-1.0, 1.0, 1.0)
-    assert(box.contains(new Point(0.0, 0.0)))
-    assert(!box.contains(new Point(2.0, 0.0)))
-    assert(box.contains(new Point(1.0, 1.0)))
-  }
+  override def foldable: Boolean = true
 
-  test("away") {
-    val box = Box(-1.0,-1.0, 1.0, 1.0)
-    val point = box.away(0.1)
-    assert(!box.contains(point))
-    assert(Box(-1.1, -1.1, 1.1, 1.1).contains(point))
-  }
+  override def nullable: Boolean = false
+
+  type EvaluatedType = Shape
+
+  override def eval(input: Row): Shape = shape
+
+  override val dataType: DataType = Shape.TYPES(shape.shapeType)
+
 }
