@@ -17,44 +17,38 @@
 
 package org.apache.magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{Expression, Row, UnaryExpression}
-import org.apache.spark.sql.types.{DataType, MapType}
+import org.apache.magellan.{NullShape, Shape}
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row}
+import org.apache.spark.sql.types._
 
 /**
- * Extract value out of map by key or return null if key does not exist
- * @param child
- * @param key
+ * A function that returns the intersection between the left and right shapes.
+ * @param left
+ * @param right
  */
-// TODO: Once Spark 1.4 is out, remove this and substitute with Spark 1.4 implementation
-case class GetMapValue(child: Expression, key: Expression) extends UnaryExpression {
+case class Intersection(left: Expression, right: Expression)
+  extends BinaryExpression {
 
-  override type EvaluatedType = Any
+  override type EvaluatedType = Shape
 
-  override def foldable: Boolean = child.foldable && key.foldable
-  override def toString: String = s"$child[$key]"
-  override def children: Seq[Expression] = child :: key :: Nil
+  override def symbol: String = nodeName
 
-  override def eval(input: Row): Any = {
-    val value = child.eval(input)
-    if (value == null) {
-      null
+  override def toString: String = s"$nodeName($left, $right)"
+
+  override def dataType: DataType = left.dataType
+
+  override def eval(input: Row): Shape = {
+    val leftEval = left.eval(input)
+    if (leftEval == null) {
+      NullShape
     } else {
-      val o = key.eval(input)
-      if (o == null) {
-        null
-      } else {
-        evalNotNull(value, o)
-      }
+      val rightEval = right.eval(input)
+      val leftShape = Shape.deserialize(leftEval)
+      val rightShape = Shape.deserialize(rightEval)
+      if (rightEval == null) NullShape else leftShape.intersection(rightShape)
     }
   }
 
-  protected def evalNotNull(value: Any, key: Any) = {
-    val map = value.asInstanceOf[Map[Any, _]]
-    map.get(key).orNull
-  }
-
-  override def nullable: Boolean = true
-
-  override def dataType: DataType = child.dataType.asInstanceOf[MapType].valueType
+  override def nullable: Boolean = left.nullable || right.nullable
 
 }

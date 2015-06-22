@@ -17,9 +17,13 @@
 
 package org.apache.magellan
 
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
+import com.vividsolutions.jts.geom._
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * A PolyLine is an ordered set of vertices that consists of one or more parts.
@@ -29,11 +33,24 @@ import org.apache.spark.sql.types._
  */
 @SQLUserDefinedType(udt = classOf[PolyLineUDT])
 class PolyLine(
-    override val indices: IndexedSeq[Int],
-    override val points: IndexedSeq[Point])
-  extends Multipath {
+    val indices: IndexedSeq[Int],
+    val points: IndexedSeq[Point])
+  extends Shape {
 
   override val shapeType: Int = 3
+
+  override private[magellan] def toJTS() = {
+    val precisionModel = new PrecisionModel()
+    val geomFactory = new GeometryFactory(precisionModel)
+    val csf = CoordinateArraySequenceFactory.instance()
+    val lines = ArrayBuffer[LineString]()
+    for (Seq(i, j) <- (indices ++ Seq(points.size)).sliding(2)) {
+      val coords = points.slice(i, j).map(point => new Coordinate(point.x, point.y))
+      val csf = CoordinateArraySequenceFactory.instance()
+      lines+= new LineString(csf.create(coords.toArray), geomFactory)
+    }
+    new MultiLineString(lines.toArray, geomFactory)
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 
@@ -63,13 +80,6 @@ class PolyLine(
     val transformedPoints = points.map(fn)
     new PolyLine(indices, transformedPoints)
   }
-
-  /**
-   *
-   * @param point
-   * @return true if this shape envelops the given point
-   */
-  override def contains(point: Point): Boolean = ???
 
 }
 
@@ -110,5 +120,25 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
   }
 
   override def pyUDT: String = "magellan.types.PolyLineUDT"
+
+}
+
+private[magellan] object PolyLine {
+
+  def fromJTS(mls: MultiLineString): PolyLine = {
+    def pointseq(l: LineString): Seq[Point] = {
+      val len = l.getNumPoints
+      for (i <- (0 until len)) yield Point.fromJTS(l.getPointN(i))
+    }
+    val numGeom = mls.getNumGeometries
+    val numPoints = mls.getNumPoints
+    val indices = Array.fill(numGeom)(0)
+    val points = ArrayBuffer[Point]()
+    for (i <- (0 until numGeom)) {
+      val l = mls.getGeometryN(i).asInstanceOf[LineString]
+      points ++= pointseq(l)
+    }
+    new PolyLine(indices, points.toIndexedSeq)
+  }
 
 }

@@ -17,9 +17,13 @@
 
 package org.apache.magellan
 
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
+import com.vividsolutions.jts.geom.{Polygon => JTSPolygon, _}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * A polygon consists of one or more rings. A ring is a connected sequence of four or more points
@@ -36,24 +40,26 @@ import org.apache.spark.sql.types._
  */
 @SQLUserDefinedType(udt = classOf[PolygonUDT])
 class Polygon(
-    override val indices: IndexedSeq[Int],
-    override val points: IndexedSeq[Point])
-  extends Multipath {
+    val indices: IndexedSeq[Int],
+    val points: IndexedSeq[Point])
+  extends Shape {
 
   override val shapeType: Int = 5
 
-  override def contains(point: Point): Boolean = {
-    // simple test: if the point is outside the bounding box, it cannot be in the polygon
-    if (!box.contains(point)) {
-      false
-    } else {
-      // pick a point q uniformly at random a distance epsilon away from the box
-      // the line segment between point and q should intersect the polygon
-      // an odd # of times if the point is within the polygon.
-      val q = box.away(0.1)
-      val line = new Line(point, q)
-      intersections(line) % 2 != 0
+  override private[magellan] def toJTS() = {
+    val precisionModel = new PrecisionModel()
+    val geomFactory = new GeometryFactory(precisionModel)
+    val csf = CoordinateArraySequenceFactory.instance()
+
+    val rings = ArrayBuffer[LinearRing]()
+    for (Seq(i, j) <- (indices ++ Seq(points.size)).sliding(2)) {
+      val coords = points.slice(i, j).map(point => new Coordinate(point.x, point.y))
+      val csf = CoordinateArraySequenceFactory.instance()
+      rings+= new LinearRing(csf.create(coords.toArray), geomFactory)
     }
+    val shell = rings(0)
+    val holes = rings.drop(1).toArray
+    new JTSPolygon(shell, holes, geomFactory)
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
@@ -125,4 +131,27 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 
   override def pyUDT: String = "magellan.types.PolygonUDT"
 
+}
+
+private[magellan] object Polygon {
+
+  def fromJTS(jtsPolygon: JTSPolygon): Polygon = {
+    val shell = jtsPolygon.getExteriorRing
+    val numHoles = jtsPolygon.getNumInteriorRing
+    val indices = Array.fill(numHoles + 1)(0)
+    var offset = shell.getNumPoints
+    var points = ArrayBuffer[Point]()
+    def pointseq(l: LineString): Seq[Point] = {
+      val len = l.getNumPoints
+      for (i <- (0 until len)) yield Point.fromJTS(l.getPointN(i))
+    }
+    points ++= pointseq(shell)
+    for (i <- (1 until numHoles)) {
+      val hole = jtsPolygon.getInteriorRingN(i)
+      indices(i) = offset
+      offset += hole.getNumPoints
+      points ++= pointseq(hole)
+    }
+    new Polygon(indices, points.toIndexedSeq)
+  }
 }

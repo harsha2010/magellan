@@ -19,11 +19,34 @@ import sys
 
 from shapely.geometry import Point as SPoint
 from shapely.geometry import Polygon as SPolygon
+from shapely.geometry import LineString, MultiLineString
 from itertools import izip
-from pyspark.sql.types import UserDefinedType, StructField, StructType,\
+from pyspark.sql.types import UserDefinedType, StructField, StructType, \
     ArrayType, DoubleType, IntegerType
 
 __all__ = ['Point', 'Polygon']
+
+class ShapelyGeometry(object):
+
+    _shapeType = None
+
+    def toShapely(self):
+        raise NotImplementedError()
+
+    def contains(self, other):
+        return self.toShapely().contains(other.toShapely())
+
+    def intersects(self, other):
+        return self.toShapely().intersects(other.toShapely())
+
+    def area(self):
+        return self.toShapely().area()
+
+    def distance(self, other):
+        return self.toShapely().distance(other.toShapely())
+
+    def convex_hull(self):
+        return self.toShapely().convex_hull()
 
 
 class PointUDT(UserDefinedType):
@@ -79,7 +102,7 @@ class PointUDT(UserDefinedType):
         return 'point'
 
 
-class Point(object):
+class Point(ShapelyGeometry):
     """
     A point is a zero dimensional shape.
     The coordinates of a point can be in linear units such as feet or meters,
@@ -92,21 +115,26 @@ class Point(object):
     Point([1.0, 2.0])
     """
     def __init__(self, x=0.0, y=0.0):
+        self._shapeType = 1
         self.x = x
         self.y = y
-        self.spoint = SPoint(self.x, self.y)
-
-    def toShapely(self):
-        return self.spoint
 
     def __str__(self):
-        return "Point (" + self.x + "," + self.y + ")"
+        return "Point (" + str(self.x) + "," + str(self.y) + ")"
 
     def __repr__(self):
         return self.__str__()
 
+    def __unicode__(self):
+        return self.__str__()
+
     def __reduce__(self):
+        print "Got here %s" % self.__str__()
         return (Point, (self.x, self.y))
+
+    def toShapely(self):
+        return SPoint(self.x, self.y)
+
 
 
 class PolygonUDT(UserDefinedType):
@@ -183,7 +211,7 @@ class PolygonUDT(UserDefinedType):
         return points[index]
 
 
-class Polygon(object):
+class Polygon(ShapelyGeometry):
     """
     A polygon consists of one or more rings. A ring is a connected sequence of four or more points
     that form a closed, non-self-intersecting loop. A polygon may contain multiple outer rings.
@@ -199,46 +227,9 @@ class Polygon(object):
     """
 
     def __init__(self, indices = [], points = []):
+        self._shapeType = 5
         self.indices = indices
         self.points = points
-        # compute the bounding box
-        MAX_VALUE = sys.float_info.max
-        MIN_VALUE = sys.float_info.min
-        xmin = MAX_VALUE
-        ymin = MAX_VALUE
-        xmax = MIN_VALUE
-        ymax = MIN_VALUE
-        for point in points:
-            x = point.x
-            y = point.y
-            if x < xmin:
-                xmin = x
-            if x > xmax:
-                xmax = x
-            if y < ymin:
-                ymin = y
-            if y > ymax:
-                ymax = y
-
-        self.box = (xmin, ymin, xmax, ymax)
-        l = []
-        l.extend(self.indices)
-        l.append(len(self.points))
-
-        for i,j in zip(l, l[1:]):
-            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
-            points.append(spoints)
-
-        shell = points[0]
-        holes = points[1:]
-        self.spolygon = SPolygon(shell=shell, holes=holes)
-
-    def toShapely(self):
-        return self.spolygon
-
-
-    def contains(self, point):
-        self.spolygon.contains(point.spoint)
 
     def __str__(self):
         inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
@@ -248,14 +239,125 @@ class Polygon(object):
     def __repr__(self):
         return self.__str__()
 
-    def __setstate__(self, state):
-        self.indices = state(0)
-        self.points = state(1)
+    def toShapely(self):
+        l = []
+        l.extend(self.indices)
+        l.append(len(self.points))
+        p = []
+        for i,j in zip(l, l[1:]):
+            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
+            p.append(spoints)
 
-    def __getstate__(self):
-        return (self.indices, self.points)
+        shell = p[0]
+        holes = p[1:]
+        return SPolygon(shell=shell, holes=holes)
 
-    def __reduce__(self):
-        return(Polygon, (), (self.indices, self.points))
 
+class PolyLineUDT(UserDefinedType):
+    """User-defined type (UDT).
+
+    .. note:: WARN: SpatialSDK Internal Use Only
+    """
+    pointUDT = PointUDT()
+
+    @classmethod
+    def sqlType(cls):
+        """
+        Underlying SQL storage type for this UDT.
+        """
+        StructType([
+            StructField("type", IntegerType(), False),
+            StructField("indices", ArrayType(IntegerType(), False), True),
+            StructField("points", ArrayType(PointUDT(), False), True)])
+
+
+    @classmethod
+    def module(cls):
+        """
+        The Python module of the UDT.
+        """
+        "magellan.types"
+
+    @classmethod
+    def scalaUDT(cls):
+        """
+        The class name of the paired Scala UDT.
+        """
+        "org.apache.magellan.PolyLineUDT"
+
+    def serialize(self, obj):
+        """
+        Converts the a user-type object into a SQL datum.
+        """
+        if isinstance(obj, PolyLine):
+            indices = [int(index) for index in obj.indices]
+            points = [self.pointUDT.serialize(point) for point in obj.points]
+            return (3, indices, points)
+        else:
+            raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
+
+    def deserialize(self, datum):
+        """
+        Converts a SQL datum into a user-type object.
+        """
+        assert len(datum) == 3, \
+            "PolyLineUDT.deserialize given row with length %d but requires 4" % len(datum)
+        tpe = datum[0]
+        assert tpe == 3, "PolyLine should have type = 5"
+        return Polygon(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
+
+    def simpleString(self):
+        return 'polyline'
+
+    def __str__(self):
+        inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
+        pts = "[" + ",".join([str(v) for v in self.points]) + "]"
+        return "(" + ",".join((inds, pts)) + ")"
+
+    def __getitem__(self, index):
+        points = self.points
+        if not isinstance(index, int):
+            raise TypeError(
+                "Indices must be of type integer, got type %s" % type(index))
+        if index < 0:
+            index += self.size
+        if index >= self.size or index < 0:
+            raise ValueError("Index %d out of bounds." % index)
+
+        return points[index]
+
+
+class PolyLine(ShapelyGeometry):
+    """
+    A PolyLine is an ordered set of vertices that consists of one or more parts.
+    A part is a connected sequence of two or more points.
+    Parts may or may not be connected to one another.
+    Parts may or may not intersect one another
+
+    >>> v = PolyLine([0], [Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 0.0))
+    Point([0], Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 0.0))
+    """
+
+    def __init__(self, indices = [], points = []):
+        self._shapeType = 3
+        self.indices = indices
+        self.points = points
+
+    def __str__(self):
+        inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
+        pts = "[" + ",".join([str(v) for v in self.points]) + "]"
+        return "(" + ",".join((inds, pts)) + ")"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def toShapely(self):
+        l = []
+        l.extend(self.indices)
+        l.append(len(self.points))
+        p = []
+        for i,j in zip(l, l[1:]):
+            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
+            p.append(LineString(spoints))
+        return MultiLineString(p)
 

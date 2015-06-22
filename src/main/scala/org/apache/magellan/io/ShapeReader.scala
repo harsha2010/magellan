@@ -20,7 +20,6 @@ package org.apache.magellan.io
 import java.io.DataInput
 
 import org.apache.commons.io.EndianUtils
-
 import org.apache.magellan._
 
 import scala.collection.mutable.ArrayBuffer
@@ -59,10 +58,8 @@ private[magellan] class PolyLineReader extends ShapeReader {
 
   def extract(dataInput: DataInput): (IndexedSeq[Int], IndexedSeq[Point]) = {
     // extract bounding box.
-    val Seq(xmin, ymin, xmax, ymax) = (0 until 4).map { _ =>
-      EndianUtils.swapDouble(dataInput.readDouble())
-    }
-    val box = Box(xmin, ymin, xmax, ymax)
+    (0 until 4).foreach { _ => EndianUtils.swapDouble(dataInput.readDouble())}
+
     // numRings
     val numRings = EndianUtils.swapInteger(dataInput.readInt())
     val numPoints = EndianUtils.swapInteger(dataInput.readInt())

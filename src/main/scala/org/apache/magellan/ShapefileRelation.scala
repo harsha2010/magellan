@@ -18,7 +18,7 @@ import org.apache.hadoop.io.{MapWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.{Expression, Attribute, GenericMutableRow}
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.types.{MapType, StringType, StructField, StructType}
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.magellan.io.{ShapeKey, ShapeWritable}
 import org.apache.magellan.mapreduce.{DBInputFormat, ShapeInputFormat}
@@ -38,7 +38,8 @@ case class ShapeFileRelation(path: String)
     StructType(List(StructField("point", new PointUDT(), true),
       StructField("polyline", new PolyLineUDT(), true),
       StructField("polygon", new PolygonUDT(), true),
-      StructField("metadata", MapType(StringType, StringType, true), true)
+      StructField("metadata", MapType(StringType, StringType, true), true),
+      StructField("valid", BooleanType, true)
     ))
   }
 
@@ -79,6 +80,7 @@ case class ShapeFileRelation(path: String)
         // we are re-using rows. clear them before next call
         (0 until numFields).foreach(i => row.setNullAt(i))
         row(3) = meta.fold(Map[String, String]())(identity)
+        row(4) = if (shape == NullShape) false else shape.isValid()
         shape match {
           case NullShape => None
           case _: Point =>
