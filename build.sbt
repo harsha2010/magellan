@@ -59,7 +59,7 @@ pomExtra := (
 
 spName := "org.apache/magellan"
 
-sparkVersion := "1.3.1"
+sparkVersion := "1.4.0"
 
 sparkComponents += "sql"
 

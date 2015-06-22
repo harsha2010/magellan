@@ -28,10 +28,10 @@ __all__ = ['Point', 'Polygon']
 
 class ShapelyGeometry(object):
 
-    _shapely_obj = None
+    _shapeType = None
 
     def toShapely(self):
-        return self._shapely_obj
+        raise NotImplementedError()
 
     def contains(self, other):
         return self.toShapely().contains(other.toShapely())
@@ -115,9 +115,9 @@ class Point(ShapelyGeometry):
     Point([1.0, 2.0])
     """
     def __init__(self, x=0.0, y=0.0):
+        self._shapeType = 1
         self.x = x
         self.y = y
-        self._shapely_obj = SPoint(self.x, self.y)
 
     def __str__(self):
         return "Point (" + str(self.x) + "," + str(self.y) + ")"
@@ -127,6 +127,13 @@ class Point(ShapelyGeometry):
 
     def __unicode__(self):
         return self.__str__()
+
+    def __reduce__(self):
+        print "Got here %s" % self.__str__()
+        return (Point, (self.x, self.y))
+
+    def toShapely(self):
+        return SPoint(self.x, self.y)
 
 
 
@@ -220,28 +227,19 @@ class Polygon(ShapelyGeometry):
     """
 
     def __init__(self, indices = [], points = []):
+        self._shapeType = 5
         self.indices = indices
         self.points = points
-        # compute the bounding box
-        MAX_VALUE = sys.float_info.max
-        MIN_VALUE = sys.float_info.min
-        xmin = MAX_VALUE
-        ymin = MAX_VALUE
-        xmax = MIN_VALUE
-        ymax = MIN_VALUE
-        for point in points:
-            x = point.x
-            y = point.y
-            if x < xmin:
-                xmin = x
-            if x > xmax:
-                xmax = x
-            if y < ymin:
-                ymin = y
-            if y > ymax:
-                ymax = y
 
-        self.box = (xmin, ymin, xmax, ymax)
+    def __str__(self):
+        inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
+        pts = "[" + ",".join([str(v) for v in self.points]) + "]"
+        return "(" + ",".join((inds, pts)) + ")"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def toShapely(self):
         l = []
         l.extend(self.indices)
         l.append(len(self.points))
@@ -252,15 +250,7 @@ class Polygon(ShapelyGeometry):
 
         shell = p[0]
         holes = p[1:]
-        self._shapely_obj = SPolygon(shell=shell, holes=holes)
-
-    def __str__(self):
-        inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
-        pts = "[" + ",".join([str(v) for v in self.points]) + "]"
-        return "(" + ",".join((inds, pts)) + ")"
-
-    def __repr__(self):
-        return self.__str__()
+        return SPolygon(shell=shell, holes=holes)
 
 
 class PolyLineUDT(UserDefinedType):
@@ -302,7 +292,7 @@ class PolyLineUDT(UserDefinedType):
         if isinstance(obj, PolyLine):
             indices = [int(index) for index in obj.indices]
             points = [self.pointUDT.serialize(point) for point in obj.points]
-            return (5, indices, points)
+            return (3, indices, points)
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -349,36 +339,9 @@ class PolyLine(ShapelyGeometry):
     """
 
     def __init__(self, indices = [], points = []):
+        self._shapeType = 3
         self.indices = indices
         self.points = points
-        # compute the bounding box
-        MAX_VALUE = sys.float_info.max
-        MIN_VALUE = sys.float_info.min
-        xmin = MAX_VALUE
-        ymin = MAX_VALUE
-        xmax = MIN_VALUE
-        ymax = MIN_VALUE
-        for point in points:
-            x = point.x
-            y = point.y
-            if x < xmin:
-                xmin = x
-            if x > xmax:
-                xmax = x
-            if y < ymin:
-                ymin = y
-            if y > ymax:
-                ymax = y
-
-        self.box = (xmin, ymin, xmax, ymax)
-        l = []
-        l.extend(self.indices)
-        l.append(len(self.points))
-        p = []
-        for i,j in zip(l, l[1:]):
-            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
-            p.append(LineString(spoints))
-        self._shapely_obj = MultiLineString(p)
 
     def __str__(self):
         inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
@@ -387,3 +350,14 @@ class PolyLine(ShapelyGeometry):
 
     def __repr__(self):
         return self.__str__()
+
+    def toShapely(self):
+        l = []
+        l.extend(self.indices)
+        l.append(len(self.points))
+        p = []
+        for i,j in zip(l, l[1:]):
+            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
+            p.append(LineString(spoints))
+        return MultiLineString(p)
+

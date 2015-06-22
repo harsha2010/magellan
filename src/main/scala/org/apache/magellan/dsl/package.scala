@@ -22,7 +22,6 @@ import org.apache.magellan.catalyst._
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.DataType
 
 package object dsl {
   trait ImplicitOperators {

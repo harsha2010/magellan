@@ -195,7 +195,7 @@ private[magellan] object Shape {
     obj match {
       case s: Shape => s
       case row: Row =>
-        TYPES.get(row.getInt(0)).fold[Shape](NullShape)(_.deserialize(row))
+        TYPES.get(toInt(row, 0)).fold[Shape](NullShape)(_.deserialize(row))
     }
   }
 
@@ -206,6 +206,13 @@ private[magellan] object Shape {
       case jtsPolygon: JTSPolygon => Polygon.fromJTS(jtsPolygon)
       case jtsMls: MultiLineString => PolyLine.fromJTS(jtsMls)
       case _ => ???
+    }
+  }
+
+  private def toInt(row: Row, index: Int): Int = {
+    row(index) match {
+      case i: Int => i
+      case i: Long => i.toInt
     }
   }
 }
