@@ -17,9 +17,10 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.{Geometry => JTSGeometry, LineString, MultiLineString, Point => JTSPoint, Polygon => JTSPolygon}
+import java.io.{ObjectInputStream, ObjectOutputStream}
+
+import com.esri.core.geometry.{Geometry => ESRIGeometry, Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyline, _}
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
 
 /**
@@ -29,9 +30,8 @@ trait Shape extends Serializable {
 
   val shapeType: Int
 
-  private lazy val delegate = toJTS()
-
-  private[magellan] def toJTS(): JTSGeometry
+  private[magellan] val delegate: ESRIGeometry
+  @transient private var factory = OperatorFactoryLocal.getInstance
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -49,14 +49,78 @@ trait Shape extends Serializable {
    *
    * @return <code>true</code> if this <code>Shape</code> is valid
    */
-  def isValid(): Boolean = delegate.isValid
+  def isValid(): Boolean = true
+
   /**
+   * Tests whether this shape intersects the argument shape.
+   * <p>
+   * The <code>intersects</code> predicate has the following equivalent definitions:
+   * <ul>
+   * <li>The two geometries have at least one point in common
+   * <li><code>! other.disjoint(this) = true</code>
+   * <br>(<code>intersects</code> is the inverse of <code>disjoint</code>)
+   * </ul>
    *
-   * @param shape
-   * @return true if the two shapes intersect each other.
+   * @param  other  the <code>Shape</code> with which to compare this <code>Shape</code>
+   * @return        <code>true</code> if the two <code>Shape</code>s intersect
+   *
+   * @see Shape#disjoint
    */
-  def intersects(shape: Shape): Boolean = {
-    delegate.intersects(shape.delegate)
+  def intersects(other: Shape): Boolean = {
+    intersects(other, 7)
+  }
+
+  /**
+   * Tests whether this shape intersects the argument shape.
+   * <p>
+   * The <code>intersects</code> predicate has the following equivalent definitions:
+   * <ul>
+   * <li>The two geometries have at least one point in common
+   * <li><code>! other.disjoint(this) = true</code>
+   * <br>(<code>intersects</code> is the inverse of <code>disjoint</code>)
+   * </ul>
+   *
+   * @param  other  the <code>Shape</code> with which to compare this <code>Shape</code>
+   * @param bitMask The dimension of the intersection. The value is either -1, or a bitmask mask of values (1 << dim).
+   *                The value of -1 means the lower dimension in the intersecting pair.
+   *                This is a fastest option when intersecting polygons with polygons or polylines.
+   *                The bitmask of values (1 << dim), where dim is the desired dimension value, is used to indicate
+   *                what dimensions of geometry one wants to be returned. For example, to return
+   *                multipoints and lines only, pass (1 << 0) | (1 << 1), which is equivalen to 1 | 2, or 3.
+   * @return        <code>true</code> if the two <code>Shape</code>s intersect
+   *
+   * @see Shape#disjoint
+   */
+  def intersects(other: Shape, bitMask: Int): Boolean = {
+    val op = factory.getOperator(Operator.Type.Intersection).asInstanceOf[OperatorIntersection]
+    val result_cursor = op.execute(new SimpleGeometryCursor(
+      delegate), new SimpleGeometryCursor(other.delegate), null, null, bitMask)
+    var esriGeom: ESRIGeometry = null
+    do {
+      esriGeom = result_cursor.next()
+    } while (esriGeom != null && esriGeom.isEmpty)
+    esriGeom != null && !esriGeom.isEmpty
+  }
+
+  /**
+   * Tests whether this shape touches the
+   * argument shape.
+   * <p>
+   * The <code>touches</code> predicate has the following equivalent definitions:
+   * <ul>
+   * <li>The geometries have at least one point in common,
+   * but their interiors do not intersect.
+   * If both shapes have dimension 0, the predicate returns <code>false</code>,
+   * since points have only interiors.
+   * This predicate is symmetric.
+   *
+   *
+   * @param  other  the <code>Shape</code> with which to compare this <code>Shape</code>
+   * @return        <code>true</code> if the two <code>Shape</code>s touch;
+   *                Returns <code>false</code> if both <code>Shape</code>s are points
+   */
+  def touches(other: Shape): Boolean = {
+    GeometryEngine.touches(delegate, other.delegate, null)
   }
 
   /**
@@ -81,7 +145,7 @@ trait Shape extends Serializable {
    * @return true if this shape contains the other.
    */
   def contains(other: Shape): Boolean = {
-    delegate.contains(other.delegate)
+    GeometryEngine.contains(delegate, other.delegate, null)
   }
 
   /**
@@ -123,8 +187,14 @@ trait Shape extends Serializable {
    * @return a Shape representing the point-set common to the two <code>Shape</code>s
    */
   def intersection(other: Shape): Shape = {
-    val jtsGeom = delegate.intersection(other.delegate)
-    Shape.fromJTS(jtsGeom)
+    val op = factory.getOperator(Operator.Type.Intersection).asInstanceOf[OperatorIntersection]
+    val result_cursor = op.execute(new SimpleGeometryCursor(
+      delegate), new SimpleGeometryCursor(other.delegate), null, null, 7)
+    var esriGeom: ESRIGeometry = null
+    do {
+      esriGeom = result_cursor.next()
+    } while (esriGeom != null && esriGeom.isEmpty)
+    Shape.fromESRI(esriGeom)
   }
 
   /**
@@ -141,27 +211,31 @@ trait Shape extends Serializable {
    * s which contain 3 or more points;
    * For degenerate classes the Shape that is returned is specified as follows:
    * <TABLE>
-   *   <TR>
-   *     <TH>Number of <code>Point</code>s in argument <code>Shape</code></TH>
-   *     <TH><code>Shape</code></TH>
-   *   </TR>
-   *   <TR>
-   *     <TD>0</TD>
-   *     <TD><code>NullShape</code></TD>
-   *     <TD>1</TD>
-   *     <TD><code>Point</code></TD>
-   *     <TD>2</TD>
-   *     <TD><code>Line</code></TD>
-   *     <TD>3 or more</TD>
-   *     <TD><code>Polygon</code></TD>
-   *   </TR>
+   * <TR>
+   * <TH>Number of <code>Point</code>s in argument <code>Shape</code></TH>
+   * <TH><code>Shape</code></TH>
+   * </TR>
+   * <TR>
+   * <TD>0</TD>
+   * <TD><code>NullShape</code></TD>
+   * <TD>1</TD>
+   * <TD><code>Point</code></TD>
+   * <TD>2</TD>
+   * <TD><code>Line</code></TD>
+   * <TD>3 or more</TD>
+   * <TD><code>Polygon</code></TD>
+   * </TR>
    * </TABLE>
    *
    * @return    the minimum-area convex Shape containing this <code>Shape</code>'
    *            s points
    */
   def convexHull(): Shape = {
-    Shape.fromJTS(delegate.convexHull())
+    ???
+  }
+
+  private def readObject(is: ObjectInputStream): Unit = {
+    factory = OperatorFactoryLocal.getInstance
   }
 }
 
@@ -172,7 +246,7 @@ object NullShape extends Shape {
 
   override final val shapeType: Int = 0
 
-  override private[magellan] def toJTS() = null
+  override private[magellan] val delegate = null
 
   override def intersects(shape: Shape): Boolean = false
 
@@ -195,17 +269,29 @@ private[magellan] object Shape {
     obj match {
       case s: Shape => s
       case row: Row =>
-        TYPES.get(row.getInt(0)).fold[Shape](NullShape)(_.deserialize(row))
+        TYPES.get(toInt(row, 0)).fold[Shape](NullShape)(_.deserialize(row))
     }
   }
 
-  def fromJTS(jtsGeom: JTSGeometry): Shape = {
-    jtsGeom match {
-      case jtsPoint: JTSPoint => Point.fromJTS(jtsPoint)
-      case jtsLine: LineString => Line.fromJTS(jtsLine)
-      case jtsPolygon: JTSPolygon => Polygon.fromJTS(jtsPolygon)
-      case jtsMls: MultiLineString => PolyLine.fromJTS(jtsMls)
+  def fromESRI(esriGeom: ESRIGeometry): Shape = {
+    esriGeom match {
+      case esriPoint: ESRIPoint => Point.fromESRI(esriPoint)
+      case esriPolygon: ESRIPolygon => Polygon.fromESRI(esriPolygon)
+      case esriPolyline: ESRIPolyline => {
+        if (esriPolyline.getPointCount == 2) {
+          Line.fromESRI(esriPolyline)
+        } else {
+          PolyLine.fromESRI(esriPolyline)
+        }
+      }
       case _ => ???
+    }
+  }
+
+  private def toInt(row: Row, index: Int): Int = {
+    row(index) match {
+      case i: Int => i
+      case i: Long => i.toInt
     }
   }
 }

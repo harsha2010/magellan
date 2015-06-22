@@ -14,7 +14,7 @@ libraryDependencies += "commons-io" % "commons-io" % "2.4"
 
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.5" % "provided"
 
-libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
+libraryDependencies += "com.esri.geometry" % "esri-geometry-api" % "1.2.1"
 
 resolvers ++= Seq(
   "Apache Staging" at "https://repository.apache.org/content/repositories/staging/",
@@ -59,7 +59,7 @@ pomExtra := (
 
 spName := "org.apache/magellan"
 
-sparkVersion := "1.3.1"
+sparkVersion := "1.4.0"
 
 sparkComponents += "sql"
 

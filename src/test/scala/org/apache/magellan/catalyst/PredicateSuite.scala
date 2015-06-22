@@ -119,4 +119,22 @@ class PredicateSuite extends FunSuite with TestSparkContext {
     assert(df.where($"intersection" >? new Point(0.5, 0.5)).count() == 1)
     assert(df.where($"intersection" >? new Point(-0.5, 0.5)).count() == 0)
   }
+
+  test("transform") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0),
+      new Point(1.0, 1.0))
+
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(new Polygon(Array(0), ring1))
+    ))
+
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+
+    val df = polygons.toDF().as("pdf")
+    val scale: Point => Point = (p: Point) => {new Point(p.x * 2, p.y * 2)}
+    val scaledDf = df.withColumn("scale", $"polygon" transform scale)
+    assert(scaledDf.where(point(1.5, 1.5) within $"scale").count() == 1)
+  }
 }

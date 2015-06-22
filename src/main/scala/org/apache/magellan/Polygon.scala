@@ -17,8 +17,7 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom.{Polygon => JTSPolygon, _}
+import com.esri.core.geometry.{Polygon => ESRIPolygon}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -46,20 +45,37 @@ class Polygon(
 
   override val shapeType: Int = 5
 
-  override private[magellan] def toJTS() = {
-    val precisionModel = new PrecisionModel()
-    val geomFactory = new GeometryFactory(precisionModel)
-    val csf = CoordinateArraySequenceFactory.instance()
+  override private[magellan] val delegate = {
+    val p = new ESRIPolygon()
+    if (points.length > 0) {
+      var startIndex = 0
+      var endIndex = 1
+      val length = points.size
+      var currentRingIndex = 0
+      var start = points(startIndex)
 
-    val rings = ArrayBuffer[LinearRing]()
-    for (Seq(i, j) <- (indices ++ Seq(points.size)).sliding(2)) {
-      val coords = points.slice(i, j).map(point => new Coordinate(point.x, point.y))
-      val csf = CoordinateArraySequenceFactory.instance()
-      rings+= new LinearRing(csf.create(coords.toArray), geomFactory)
+      p.startPath(start.delegate)
+
+      while (endIndex < length) {
+        val end = points(endIndex)
+        p.lineTo(end.delegate)
+        startIndex += 1
+        endIndex += 1
+        // if we reach a ring boundary skip it
+        val nextRingIndex = currentRingIndex + 1
+        if (nextRingIndex < indices.length) {
+          val nextRing = indices(nextRingIndex)
+          if (endIndex == nextRing) {
+            startIndex += 1
+            endIndex += 1
+            currentRingIndex = nextRingIndex
+            p.closePathWithLine()
+            start = points(startIndex)
+          }
+        }
+      }
     }
-    val shell = rings(0)
-    val holes = rings.drop(1).toArray
-    new JTSPolygon(shell, holes, geomFactory)
+    p
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
@@ -135,23 +151,28 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 
 private[magellan] object Polygon {
 
-  def fromJTS(jtsPolygon: JTSPolygon): Polygon = {
-    val shell = jtsPolygon.getExteriorRing
-    val numHoles = jtsPolygon.getNumInteriorRing
-    val indices = Array.fill(numHoles + 1)(0)
-    var offset = shell.getNumPoints
-    var points = ArrayBuffer[Point]()
-    def pointseq(l: LineString): Seq[Point] = {
-      val len = l.getNumPoints
-      for (i <- (0 until len)) yield Point.fromJTS(l.getPointN(i))
+  def fromESRI(esriPolygon: ESRIPolygon): Polygon = {
+    val length = esriPolygon.getPointCount
+    if (length == 0) {
+      new Polygon(Array[Int](), Array[Point]())
+    } else {
+      val indices = ArrayBuffer[Int]()
+      indices.+=(0)
+      val points = ArrayBuffer[Point]()
+      var currentRing = esriPolygon.getPoint(0)
+      points.+=(Point.fromESRI(currentRing))
+
+      for (i <- (1 until length)) {
+        val p = esriPolygon.getPoint(i)
+        if (p.getX == currentRing.getX && p.getY == currentRing.getY) {
+          if (i < length - 1) {
+            indices.+=(i)
+            currentRing = esriPolygon.getPoint(i + 1)
+          }
+        }
+        points.+=(Point.fromESRI(p))
+      }
+      new Polygon(indices.toIndexedSeq, points.toIndexedSeq)
     }
-    points ++= pointseq(shell)
-    for (i <- (1 until numHoles)) {
-      val hole = jtsPolygon.getInteriorRingN(i)
-      indices(i) = offset
-      offset += hole.getNumPoints
-      points ++= pointseq(hole)
-    }
-    new Polygon(indices, points.toIndexedSeq)
   }
 }

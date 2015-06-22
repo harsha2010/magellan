@@ -55,6 +55,36 @@ class PolygonSuite extends FunSuite {
 
   }
 
+  test("polygon intersects") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+    val polygon1 = new Polygon(Array(0), ring1)
+
+    val ring2 = Array(new Point(2.0, 2.0), new Point(2.0, 0.0),
+      new Point(0.0, 0.0), new Point(0.0, 2.0), new Point(2.0, 2.0))
+    val polygon2 = new Polygon(Array(0), ring2)
+
+    assert(polygon2.intersects(polygon1))
+
+    val ring3 = Array(new Point(1.0, -1.0), new Point(2.0, -1.0),
+      new Point(2.0, 1.0), new Point(1.0, 1.0), new Point(1.0, -1.0))
+    val polygon3 = new Polygon(Array(0), ring3)
+    // the intersection region must be the line (1,-1), (1,1)
+    assert(polygon3.intersects(polygon1))
+
+    val ring4 = Array(new Point(1.0, 1.0), new Point(3.0, 1.0),
+      new Point(3.0, 3.0), new Point(1.0, 3.0), new Point(1.0, 1.0))
+    val polygon4 = new Polygon(Array(0), ring4)
+    // the intersection region must be the point (1,1)
+    assert(polygon4.intersects(polygon1))
+
+    val ring5 = Array(new Point(2.0, -1.0), new Point(3.0, -1.0),
+      new Point(3.0, 0.0), new Point(2.0, 0.0), new Point(2.0, -1.0))
+    val polygon5 = new Polygon(Array(0), ring5)
+    // the intersection region must be empty
+    assert(!polygon5.intersects(polygon1))
+  }
+
   test("polygon intersection") {
     val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
       new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
@@ -69,28 +99,19 @@ class PolygonSuite extends FunSuite {
     val square = polygon2.intersection(polygon1)
     assert(square.isInstanceOf[Polygon])
     assert(square.contains(new Point(0.75, 0.75)))
+  }
 
+  test("from ESRI") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+    val polygon1 = new Polygon(Array(0), ring1)
+    val polygon2 = Polygon.fromESRI(polygon1.delegate)
+    assert(polygon1.equals(polygon2))
 
-    val ring3 = Array(new Point(1.0, -1.0), new Point(2.0, -1.0),
-      new Point(2.0, 1.0), new Point(1.0, 1.0), new Point(1.0, -1.0))
+    val ring3 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(1.0, 1.0))
     val polygon3 = new Polygon(Array(0), ring3)
-    // the intersection region must be the line (1,-1), (1,1)
-    val line = polygon3.intersection(polygon1)
-    assert(line.isInstanceOf[Line])
-    assert(line.contains(new Point(1.0, 0.0)))
-
-    val ring4 = Array(new Point(1.0, 1.0), new Point(3.0, 1.0),
-      new Point(3.0, 3.0), new Point(1.0, 3.0), new Point(1.0, 1.0))
-    val polygon4 = new Polygon(Array(0), ring4)
-    // the intersection region must be the point (1,1)
-    val point = polygon4.intersection(polygon1)
-    assert(point.equals(new Point(1.0, 1.0)))
-
-    val ring5 = Array(new Point(2.0, -1.0), new Point(3.0, -1.0),
-      new Point(3.0, 0.0), new Point(2.0, 0.0), new Point(2.0, -1.0))
-    val polygon5 = new Polygon(Array(0), ring5)
-    // the intersection region must be empty
-    val empty = polygon5.intersection(polygon1)
-    assert(empty.isEmpty())
+    val polygon4 = Polygon.fromESRI(polygon3.delegate)
+    assert(polygon3.equals(polygon4))
   }
 }

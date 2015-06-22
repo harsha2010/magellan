@@ -17,8 +17,7 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom.{LineString, Coordinate, GeometryFactory, PrecisionModel}
+import com.esri.core.geometry.{Polyline => ESRILine}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -34,12 +33,11 @@ class Line(val start: Point, val end: Point) extends Serializable with Shape {
 
   override val shapeType: Int = 2
 
-  override private[magellan] def toJTS() = {
-    val precisionModel = new PrecisionModel()
-    val geomFactory = new GeometryFactory(precisionModel)
-    val csf = CoordinateArraySequenceFactory.instance()
-    val coords = csf.create(Array(new Coordinate(start.x, start.y), new Coordinate(end.x, end.y)))
-    new LineString(coords, geomFactory)
+  override private[magellan] val delegate = {
+    val l = new ESRILine()
+    l.startPath(start.delegate)
+    l.lineTo(end.delegate)
+    l
   }
 
   override def transform(fn: (Point) => Point): Line = {
@@ -108,9 +106,9 @@ class LineUDT extends UserDefinedType[Line] {
 
 private[magellan] object Line {
 
-  def fromJTS(jtsLine: LineString): Line = {
-    val start = Point.fromJTS(jtsLine.getStartPoint)
-    val end = Point.fromJTS(jtsLine.getEndPoint)
+  def fromESRI(esriLine: ESRILine): Line = {
+    val start = Point.fromESRI(esriLine.getPoint(0))
+    val end = Point.fromESRI(esriLine.getPoint(1))
     new Line(start, end)
   }
 }

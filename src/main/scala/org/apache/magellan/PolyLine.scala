@@ -17,8 +17,7 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom._
+import com.esri.core.geometry.{Polyline => ESRIPolyline}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -39,17 +38,32 @@ class PolyLine(
 
   override val shapeType: Int = 3
 
-  override private[magellan] def toJTS() = {
-    val precisionModel = new PrecisionModel()
-    val geomFactory = new GeometryFactory(precisionModel)
-    val csf = CoordinateArraySequenceFactory.instance()
-    val lines = ArrayBuffer[LineString]()
-    for (Seq(i, j) <- (indices ++ Seq(points.size)).sliding(2)) {
-      val coords = points.slice(i, j).map(point => new Coordinate(point.x, point.y))
-      val csf = CoordinateArraySequenceFactory.instance()
-      lines+= new LineString(csf.create(coords.toArray), geomFactory)
+  override private[magellan] val delegate = {
+    val p = new ESRIPolyline()
+    var startIndex = 0
+    var endIndex = 1
+    val length = points.size
+    var currentRingIndex = 0
+
+    while (endIndex < length) {
+      val start = points(startIndex)
+      p.startPath(start.delegate)
+      val end = points(endIndex)
+      p.lineTo(end.delegate)
+      startIndex += 1
+      endIndex += 1
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
+        }
+      }
     }
-    new MultiLineString(lines.toArray, geomFactory)
+    p
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
@@ -125,20 +139,25 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
 
 private[magellan] object PolyLine {
 
-  def fromJTS(mls: MultiLineString): PolyLine = {
-    def pointseq(l: LineString): Seq[Point] = {
-      val len = l.getNumPoints
-      for (i <- (0 until len)) yield Point.fromJTS(l.getPointN(i))
-    }
-    val numGeom = mls.getNumGeometries
-    val numPoints = mls.getNumPoints
-    val indices = Array.fill(numGeom)(0)
+  def fromESRI(esriPolyline: ESRIPolyline): PolyLine = {
+    val length = esriPolyline.getPointCount
+    val indices = ArrayBuffer[Int]()
+    indices.+=(0)
     val points = ArrayBuffer[Point]()
-    for (i <- (0 until numGeom)) {
-      val l = mls.getGeometryN(i).asInstanceOf[LineString]
-      points ++= pointseq(l)
+    var currentRing = esriPolyline.getPoint(0)
+    points.+=(Point.fromESRI(currentRing))
+
+    for (i <- (1 until length)) {
+      val p = esriPolyline.getPoint(i)
+      if (p.getX == currentRing.getX && p.getY == currentRing.getY) {
+        if (i < length - 1) {
+          indices.+=(i)
+          currentRing = esriPolyline.getPoint(i + 1)
+        }
+      }
+      points.+=(Point.fromESRI(p))
     }
-    new PolyLine(indices, points.toIndexedSeq)
+    new PolyLine(indices.toIndexedSeq, points.toIndexedSeq)
   }
 
 }

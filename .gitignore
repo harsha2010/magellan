@@ -3,6 +3,7 @@
 /lib/
 /classes/
 /target/
+/python/magellan/*pyc
 /python/*pyc
 /project/project/
 /project/target/

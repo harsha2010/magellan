@@ -17,8 +17,7 @@
 
 package org.apache.magellan
 
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
-import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, Point => JTSPoint, PrecisionModel}
+import com.esri.core.geometry.{Point => ESRIPoint}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -34,12 +33,11 @@ import org.apache.spark.sql.types._
 @SQLUserDefinedType(udt = classOf[PointUDT])
 class Point(val x: Double, val y: Double) extends Shape {
 
-  override private[magellan] def toJTS() = {
-    val precisionModel = new PrecisionModel()
-    val geomFactory = new GeometryFactory(precisionModel)
-    val csf = CoordinateArraySequenceFactory.instance()
-    val cs = csf.create(Array(new Coordinate(x, y)))
-    new JTSPoint(cs, geomFactory)
+  override private[magellan] val delegate = {
+    val p = new ESRIPoint()
+    p.setX(x)
+    p.setY(y)
+    p
   }
 
   override final val shapeType: Int = 1
@@ -117,8 +115,8 @@ private[magellan] class PointUDT extends UserDefinedType[Point] {
 
 object Point {
 
-  private[magellan] def fromJTS(jtsPoint: JTSPoint): Point = {
-    new Point(jtsPoint.getX(), jtsPoint.getY())
+  private[magellan] def fromESRI(esriPoint: ESRIPoint): Point = {
+    new Point(esriPoint.getX(), esriPoint.getY())
   }
 
   def apply(x: Double, y: Double) = new Point(x, y)

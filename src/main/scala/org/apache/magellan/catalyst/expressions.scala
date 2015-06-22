@@ -18,47 +18,8 @@
 package org.apache.magellan.catalyst
 
 import org.apache.magellan.{NullShape, Shape}
-import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row, UnaryExpression}
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row}
 import org.apache.spark.sql.types._
-
-/**
- * Extract value out of map by key or return null if key does not exist
- * @param child
- * @param key
- */
-// TODO: Once Spark 1.4 is out, remove this and substitute with Spark 1.4 implementation
-case class GetMapValue(child: Expression, key: Expression) extends UnaryExpression {
-
-  override type EvaluatedType = Any
-
-  override def foldable: Boolean = child.foldable && key.foldable
-  override def toString: String = s"$child[$key]"
-  override def children: Seq[Expression] = child :: key :: Nil
-
-  override def eval(input: Row): Any = {
-    val value = child.eval(input)
-    if (value == null) {
-      null
-    } else {
-      val o = key.eval(input)
-      if (o == null) {
-        null
-      } else {
-        evalNotNull(value, o)
-      }
-    }
-  }
-
-  protected def evalNotNull(value: Any, key: Any) = {
-    val map = value.asInstanceOf[Map[Any, _]]
-    map.get(key).orNull
-  }
-
-  override def nullable: Boolean = true
-
-  override def dataType: DataType = child.dataType.asInstanceOf[MapType].valueType
-
-}
 
 /**
  * A function that returns the intersection between the left and right shapes.

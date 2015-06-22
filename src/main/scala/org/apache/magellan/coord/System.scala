@@ -22,19 +22,19 @@ import org.apache.magellan.Point
 /**
  * Abstraction for a coordinate system.
  */
-trait System {
+trait System extends Serializable {
 
   /**
    * Returns a transformer from `LongLat` to this system.
    * @return
    */
-  def from(params: Map[String, Any]): Point => Point
+  def from(): Point => Point
 
   /**
    * Returns a transformer to `LongLat` from this system.
    * @return
    */
-  def to(params: Map[String, Any]): Point => Point
+  def to(): Point => Point
 
 }
 
@@ -45,13 +45,13 @@ trait System {
  */
 case object LongLat extends System {
 
-  override def from(params: Map[String, Any]) = identity
+  override def from() = identity
 
-  override def to(params: Map[String, Any]) = identity
+  override def to() = identity
 
 }
 
-case object NAD83 extends System {
+class NAD83(params: Map[String, Any]) extends System {
 
   val RAD = 180d / Math.PI
   val ER  = 6378137.toDouble  // semi-major axis for GRS-80
@@ -69,7 +69,7 @@ case object NAD83 extends System {
       38.43333333333333, 36.5)
   )
 
-  override def from(params: Map[String, Any]) = {
+  override def from() = {
     val zone = params("zone").asInstanceOf[Int]
     ZONES.get(zone) match {
       case Some(x) => if (x.length == 5) {
@@ -81,7 +81,7 @@ case object NAD83 extends System {
     }
   }
 
-  override def to(params: Map[String, Any]) = {
+  override def to() = {
     val zone = params("zone").asInstanceOf[Int]
     ZONES.get(zone) match {
       case Some(x) => if (x.length == 5) {
