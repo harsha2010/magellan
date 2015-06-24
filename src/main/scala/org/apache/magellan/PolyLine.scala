@@ -17,9 +17,12 @@
 
 package org.apache.magellan
 
+import com.esri.core.geometry.{Polyline => ESRIPolyline}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * A PolyLine is an ordered set of vertices that consists of one or more parts.
@@ -29,11 +32,39 @@ import org.apache.spark.sql.types._
  */
 @SQLUserDefinedType(udt = classOf[PolyLineUDT])
 class PolyLine(
-    override val indices: IndexedSeq[Int],
-    override val points: IndexedSeq[Point])
-  extends Multipath {
+    val indices: IndexedSeq[Int],
+    val points: IndexedSeq[Point])
+  extends Shape {
 
   override val shapeType: Int = 3
+
+  override private[magellan] val delegate = {
+    val p = new ESRIPolyline()
+    var startIndex = 0
+    var endIndex = 1
+    val length = points.size
+    var currentRingIndex = 0
+
+    while (endIndex < length) {
+      val start = points(startIndex)
+      p.startPath(start.delegate)
+      val end = points(endIndex)
+      p.lineTo(end.delegate)
+      startIndex += 1
+      endIndex += 1
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
+        }
+      }
+    }
+    p
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 
@@ -63,13 +94,6 @@ class PolyLine(
     val transformedPoints = points.map(fn)
     new PolyLine(indices, transformedPoints)
   }
-
-  /**
-   *
-   * @param point
-   * @return true if this shape envelops the given point
-   */
-  override def contains(point: Point): Boolean = ???
 
 }
 
@@ -110,5 +134,30 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
   }
 
   override def pyUDT: String = "magellan.types.PolyLineUDT"
+
+}
+
+private[magellan] object PolyLine {
+
+  def fromESRI(esriPolyline: ESRIPolyline): PolyLine = {
+    val length = esriPolyline.getPointCount
+    val indices = ArrayBuffer[Int]()
+    indices.+=(0)
+    val points = ArrayBuffer[Point]()
+    var currentRing = esriPolyline.getPoint(0)
+    points.+=(Point.fromESRI(currentRing))
+
+    for (i <- (1 until length)) {
+      val p = esriPolyline.getPoint(i)
+      if (p.getX == currentRing.getX && p.getY == currentRing.getY) {
+        if (i < length - 1) {
+          indices.+=(i)
+          currentRing = esriPolyline.getPoint(i + 1)
+        }
+      }
+      points.+=(Point.fromESRI(p))
+    }
+    new PolyLine(indices.toIndexedSeq, points.toIndexedSeq)
+  }
 
 }

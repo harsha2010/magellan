@@ -17,4 +17,4 @@
 
 from __future__ import absolute_import
 
-__all__ = ['types']
+__all__ = ['types','column','functions']

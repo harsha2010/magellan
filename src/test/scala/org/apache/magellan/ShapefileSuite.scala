@@ -17,14 +17,14 @@
 
 package org.apache.magellan
 
-import org.scalatest.FunSuite
-
-import org.apache.spark.sql.{SQLContext, Row}
+import org.apache.magellan.TestingUtils._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.{Row, SQLContext}
+import org.scalatest.FunSuite
 
-import TestingUtils._
+case class UberRecord(tripId: String, timestamp: String, point: Point)
 
 class ShapefileSuite extends FunSuite with TestSparkContext {
 
@@ -76,9 +76,9 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     assert(df.count() === 14959)
     // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
-    val start = new Point(5979764.107174277, 2085848.5510566086)
-    val end = new Point(6024892.0635061115, 4184000.396185901)
-    assert(df.filter($"polyline" intersects line(start, end)).count() > 0)
+    val start = new Point(5989880.123683602, 2107393.125753522)
+    val end = new Point(5988698.112268105, 2107728.9863022715)
+    assert(df.filter($"polyline" intersects new Line(start, end)).count() > 0)
   }
 
   test("shapefile-relation: points and polygons") {
@@ -90,5 +90,13 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     assert(df.filter($"point" isNull).count() === 1)
     assert(df.filter($"polygon" isNull).count() === 1)
+  }
+
+  test("shapefile-relation: valid") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
+    val df = sqlCtx.shapeFile(path)
+    import sqlCtx.implicits._
+    assert(df.filter($"valid").count() == 14959)
   }
 }

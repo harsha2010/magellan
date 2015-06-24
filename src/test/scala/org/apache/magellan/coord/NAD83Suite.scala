@@ -30,13 +30,14 @@ class NAD83Suite extends FunSuite {
       expected: Tuple2[Double, Double]): Unit = {
 
       val originalPoint = new Point(coords._1, coords._2)
-      val to = NAD83.to(Map("zone" -> zone))
+      val nad83 = new NAD83(Map("zone" -> zone))
+      val to = nad83.to()
       val toPoint = originalPoint.transform(to)
       assert(toPoint.x ~== expected._1 absTol 0.01)
       assert(toPoint.y ~== expected._2 absTol 0.01)
 
       val expectedPoint = new Point(expected._1, expected._2)
-      val from = NAD83.from(Map("zone" -> zone))
+      val from = nad83.from()
       val fromPoint = expectedPoint.transform(from)
 
       assert(fromPoint.x ~== coords._1 absTol 1000.0)

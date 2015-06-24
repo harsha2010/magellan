@@ -1,4 +1,4 @@
-# Geospatial Analytics Using Spark
+# Magellan: Geospatial Analytics Using Spark
 
 This package allows one to read Geospatial data formats as Spark Data Sources. It also provides a set of UDFS and utility functions that allows one to execute efficient geometric algorithms on this dataset.
 
@@ -7,7 +7,7 @@ This package allows one to read Geospatial data formats as Spark Data Sources. I
 You can link against this library using the following coordinates:
 
 	groupId: org.apache
-	artifactId: spark-spatialsdk_2.10
+	artifactId: magellan
 	version: 1.0.0
 
 # Requirements
@@ -25,6 +25,7 @@ The following data structures are parsed properly:
 	1. Point
 	2. NullShape
 	3. Polygon
+	4. PolyLine
 
 We will be adding support for other datastructures as necessary.
 
@@ -34,18 +35,24 @@ We will be adding support for other datastructures as necessary.
 
 You can read data as follows:
 
-	import org.apache.spatialsdk._
-	
-	val sqlCtx = new SQLContext(sc)
-	val df = sqlCtx.shapeFile(path)
-   	
-   	
-You can also use Datasource.load as follows:
 
-	val df = sqlCtx.load("com.hortonworks.spatialsdk", path)
+	val df = sqlCtx.load("org.apache.magellan", path)
 
 
-## Operations
+# Operations
+
+## Expressions
+
+### point
+
+### line
+
+### polygon
+
+### polyline
+
+
+## Predicates
 
 ### within
 
@@ -55,3 +62,8 @@ You can also use Datasource.load as follows:
 	
 	pdf.join(sdf).where($"pdf.point" within $"sdf.polygon")
 
+### intersects
+
+	val sdf = sqlCtx.shapeFile(polygonsPath).as("sdf")
+	val line = new Line(new Point(0.0), new Point(1.0, 1.0))
+	sdf.where(line within $"sdf.polygon")

@@ -19,22 +19,14 @@ package org.apache.magellan
 
 import org.scalatest.FunSuite
 
-class LineSuite extends FunSuite {
-
-  test("touches") {
-    val line1 = new Line(new Point(0.0, 0.0), new Point(1.0, 0.0))
-    val line2 = new Line(new Point(0.0, 0.0), new Point(0.0, 1.0))
-    assert(line1.touches(line2))
-    assert(line1.touches(new Point(0.0, 0.0)))
-    assert(new Point(0.0, 0.0).touches(line1))
-    assert(new Point(1.0, 0.0).touches(line1))
-    assert(line2.intersects(new Line(new Point(-0.5, 0.5), new Point(0.5, 0.5))))
-  }
+class PolyLineSuite extends FunSuite {
 
   test("intersects") {
-    val line1 = new Line(new Point(0.0, 0.0), new Point(1.0, 0.0))
-    val line2 = new Line(new Point(0.0, 0.0), new Point(0.0, 1.0))
-    assert(line1.intersects(line2, 3))
-    assert(line2.intersects(new Line(new Point(-0.5, 0.5), new Point(0.5, 0.5)), 3))
+    val polyline = new PolyLine(Array(0), Array(
+        new Point(0.0, 0.0), new Point(0.0, 1.0), new Point(1.0, 1.0)
+      ))
+
+    assert(polyline.intersects(new Line(new Point(-1.0, -1.0), new Point(2.0, 2.0))))
+    assert(polyline.intersects(new Line(new Point(-1.1, -1), new Point(1.9, 2.0))))
   }
 }

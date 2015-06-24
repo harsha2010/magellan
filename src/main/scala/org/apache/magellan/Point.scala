@@ -17,6 +17,7 @@
 
 package org.apache.magellan
 
+import com.esri.core.geometry.{Point => ESRIPoint}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
@@ -31,6 +32,13 @@ import org.apache.spark.sql.types._
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
 class Point(val x: Double, val y: Double) extends Shape {
+
+  override private[magellan] val delegate = {
+    val p = new ESRIPoint()
+    p.setX(x)
+    p.setY(y)
+    p
+  }
 
   override final val shapeType: Int = 1
 
@@ -53,21 +61,7 @@ class Point(val x: Double, val y: Double) extends Shape {
   }
 
 
-  override def toString = s"Point($shapeType, $x, $y)"
-
-  /**
-   *
-   * @param line
-   * @return number of times this shape intersects the given line.
-   */
-  def intersects(line: Line): Boolean = ???
-
-  /**
-   *
-   * @param point
-   * @return true if this shape envelops the given point
-   */
-  override def contains(point: Point): Boolean = this.equals(point)
+  override def toString = s"Point($x, $y)"
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -117,4 +111,13 @@ private[magellan] class PointUDT extends UserDefinedType[Point] {
 
   override def pyUDT: String = "magellan.types.PointUDT"
 
+}
+
+object Point {
+
+  private[magellan] def fromESRI(esriPoint: ESRIPoint): Point = {
+    new Point(esriPoint.getX(), esriPoint.getY())
+  }
+
+  def apply(x: Double, y: Double) = new Point(x, y)
 }

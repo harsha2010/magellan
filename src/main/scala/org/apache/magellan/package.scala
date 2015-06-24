@@ -14,7 +14,7 @@ package org.apache
  * limitations under the License.
  */
 
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{DataFrame, SQLContext}
 
 package object magellan {
 
@@ -23,11 +23,6 @@ package object magellan {
    */
   implicit class ShapefileContext(sqlContext: SQLContext) {
 
-    /**
-     *
-     * @param path path to the directory containing the shapefiles.
-     * @return
-     */
     def shapeFile(path: String) = {
 
       sqlContext.baseRelationToDataFrame(new ShapeFileRelation(path)(sqlContext))

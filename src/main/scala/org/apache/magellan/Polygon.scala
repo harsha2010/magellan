@@ -17,9 +17,12 @@
 
 package org.apache.magellan
 
+import com.esri.core.geometry.{Polygon => ESRIPolygon}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * A polygon consists of one or more rings. A ring is a connected sequence of four or more points
@@ -36,24 +39,43 @@ import org.apache.spark.sql.types._
  */
 @SQLUserDefinedType(udt = classOf[PolygonUDT])
 class Polygon(
-    override val indices: IndexedSeq[Int],
-    override val points: IndexedSeq[Point])
-  extends Multipath {
+    val indices: IndexedSeq[Int],
+    val points: IndexedSeq[Point])
+  extends Shape {
 
   override val shapeType: Int = 5
 
-  override def contains(point: Point): Boolean = {
-    // simple test: if the point is outside the bounding box, it cannot be in the polygon
-    if (!box.contains(point)) {
-      false
-    } else {
-      // pick a point q uniformly at random a distance epsilon away from the box
-      // the line segment between point and q should intersect the polygon
-      // an odd # of times if the point is within the polygon.
-      val q = box.away(0.1)
-      val line = new Line(point, q)
-      intersections(line) % 2 != 0
+  override private[magellan] val delegate = {
+    val p = new ESRIPolygon()
+    if (points.length > 0) {
+      var startIndex = 0
+      var endIndex = 1
+      val length = points.size
+      var currentRingIndex = 0
+      var start = points(startIndex)
+
+      p.startPath(start.delegate)
+
+      while (endIndex < length) {
+        val end = points(endIndex)
+        p.lineTo(end.delegate)
+        startIndex += 1
+        endIndex += 1
+        // if we reach a ring boundary skip it
+        val nextRingIndex = currentRingIndex + 1
+        if (nextRingIndex < indices.length) {
+          val nextRing = indices(nextRingIndex)
+          if (endIndex == nextRing) {
+            startIndex += 1
+            endIndex += 1
+            currentRingIndex = nextRingIndex
+            p.closePathWithLine()
+            start = points(startIndex)
+          }
+        }
+      }
     }
+    p
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
@@ -125,4 +147,32 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 
   override def pyUDT: String = "magellan.types.PolygonUDT"
 
+}
+
+private[magellan] object Polygon {
+
+  def fromESRI(esriPolygon: ESRIPolygon): Polygon = {
+    val length = esriPolygon.getPointCount
+    if (length == 0) {
+      new Polygon(Array[Int](), Array[Point]())
+    } else {
+      val indices = ArrayBuffer[Int]()
+      indices.+=(0)
+      val points = ArrayBuffer[Point]()
+      var currentRing = esriPolygon.getPoint(0)
+      points.+=(Point.fromESRI(currentRing))
+
+      for (i <- (1 until length)) {
+        val p = esriPolygon.getPoint(i)
+        if (p.getX == currentRing.getX && p.getY == currentRing.getY) {
+          if (i < length - 1) {
+            indices.+=(i)
+            currentRing = esriPolygon.getPoint(i + 1)
+          }
+        }
+        points.+=(Point.fromESRI(p))
+      }
+      new Polygon(indices.toIndexedSeq, points.toIndexedSeq)
+    }
+  }
 }
