@@ -28,7 +28,7 @@ __all__ = ['Point', 'Polygon']
 
 class ShapelyGeometry(object):
 
-    _shapeType = None
+    _shape_type = None
 
     def toShapely(self):
         raise NotImplementedError()
@@ -115,7 +115,7 @@ class Point(ShapelyGeometry):
     Point([1.0, 2.0])
     """
     def __init__(self, x, y):
-        self._shapeType = 1
+        self._shape_type = 1
         self.x = x
         self.y = y
 
@@ -226,7 +226,7 @@ class Polygon(ShapelyGeometry):
     """
 
     def __init__(self, indices = [], points = []):
-        self._shapeType = 5
+        self._shape_type = 5
         self.indices = indices
         self.points = points
 
@@ -338,7 +338,7 @@ class PolyLine(ShapelyGeometry):
     """
 
     def __init__(self, indices = [], points = []):
-        self._shapeType = 3
+        self._shape_type = 3
         self.indices = indices
         self.points = points
 

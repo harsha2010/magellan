@@ -16,7 +16,7 @@
 #
 
 from pyspark import SparkContext
-from pyspark.sql.column import Column
+from pyspark.sql.column import Column, _create_column_from_literal
 
 def _bin_op(name, doc="binary operator"):
     """ Create a method for given binary operator
@@ -50,7 +50,7 @@ def _unary_op(name, doc="unary operator"):
         expr_class = sc._jvm.java.lang.Object
         expr_array = sc._gateway.new_array(expr_class, 2)
         expr_array[0] = jcol.expr()
-        expr_array[1] = other
+        expr_array[1] = _create_column_from_literal(other)
         w = wclass.getConstructors()[0].newInstance(expr_array)
         wcol = sc._jvm.org.apache.spark.sql.Column(w)
         return Column(wcol)
