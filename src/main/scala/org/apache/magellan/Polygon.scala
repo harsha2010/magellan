@@ -135,7 +135,6 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
     datum match {
       case x: Polygon => x
       case r: Row => {
-        r.getInt(0)
         val indices = r.get(1).asInstanceOf[Seq[Int]]
         val points = r.get(2).asInstanceOf[Seq[_]]
         new Polygon(indices.toIndexedSeq, points.map(pointUDT.deserialize).toIndexedSeq)
