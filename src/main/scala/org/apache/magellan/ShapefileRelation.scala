@@ -14,6 +14,7 @@
 
 package org.apache.magellan
 
+import com.google.common.base.Objects
 import org.apache.hadoop.io.{MapWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.{Expression, Attribute, GenericMutableRow}
@@ -30,7 +31,7 @@ import scala.collection.JavaConversions._
  */
 case class ShapeFileRelation(path: String)
                             (@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan {
+  extends BaseRelation with CatalystScan {
 
   @transient val sc = sqlContext.sparkContext
 
@@ -43,8 +44,7 @@ case class ShapeFileRelation(path: String)
     ))
   }
 
-  override def buildScan(): RDD[Row] = {
-
+  override def buildScan(requiredColumns: Seq[Attribute], filters: Seq[Expression]): RDD[Row] = {
     val shapefileRdd = sqlContext.sparkContext.newAPIHadoopFile(
       path + "/*.shp",
       classOf[ShapeInputFormat],
@@ -59,7 +59,8 @@ case class ShapeFileRelation(path: String)
       classOf[MapWritable]
     )
 
-    val numFields = schema.fields.length
+    val indices = requiredColumns.map(attr => schema.fieldIndex(attr.name))
+    val numFields = indices.size
 
     val dataRdd = shapefileRdd.map { case (k, v) =>
       ((k.getFileNamePrefix(), k.getRecordIndex()), v.shape)
@@ -79,23 +80,20 @@ case class ShapeFileRelation(path: String)
       iter.flatMap { case ((filePrefix, recordIndex), (shape, meta)) =>
         // we are re-using rows. clear them before next call
         (0 until numFields).foreach(i => row.setNullAt(i))
-        row(3) = meta.fold(Map[String, String]())(identity)
-        row(4) = if (shape == NullShape) false else shape.isValid()
-        shape match {
-          case NullShape => None
-          case _: Point =>
-            row(0) = shape
-            Some(row)
-          case _: PolyLine =>
-            row(1) = shape
-            Some(row)
-          case _: Polygon =>
-            row(2) = shape
-            Some(row)
-          case _ => ???
+        indices.zipWithIndex.foreach { case (index, i) =>
+          val v = index match {
+            case 0 => if (shape.isInstanceOf[Point]) Some(shape) else None
+            case 1 => if (shape.isInstanceOf[PolyLine]) Some(shape) else None
+            case 2 => if (shape.isInstanceOf[Polygon]) Some(shape) else None
+            case 3 => Some(meta.fold(Map[String, String]())(identity))
+            case 4 => Some(shape.isValid())
+          }
+          v.foreach(x => row(i) = x)
         }
+        Some(row)
       }
     }
   }
 
+  override def hashCode(): Int = Objects.hashCode(path, schema)
 }
