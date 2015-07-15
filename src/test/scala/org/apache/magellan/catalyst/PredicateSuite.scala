@@ -17,6 +17,7 @@
 
 package org.apache.magellan.catalyst
 
+import org.apache.spark.sql.magellan.MagellanContext
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.apache.magellan.{Line, Point, Polygon, TestSparkContext}
@@ -43,7 +44,7 @@ class PredicateSuite extends FunSuite with TestSparkContext {
         PolygonExample(new Polygon(Array(0), ring))
       ))
 
-    val sqlContext = new SQLContext(sc)
+    val sqlContext = new MagellanContext(sc)
     import sqlContext.implicits._
 
     val pdf = points.toDF().as("pdf")
@@ -64,7 +65,7 @@ class PredicateSuite extends FunSuite with TestSparkContext {
       PolygonExample(new Polygon(Array(0), ring1))
     ))
 
-    val sqlContext = new SQLContext(sc)
+    val sqlContext = new MagellanContext(sc)
     import sqlContext.implicits._
 
     val pdf = polygons.toDF().as("pdf")
@@ -84,7 +85,7 @@ class PredicateSuite extends FunSuite with TestSparkContext {
       PolygonExample(new Polygon(Array(0), ring1))
     ))
 
-    val sqlContext = new SQLContext(sc)
+    val sqlContext = new MagellanContext(sc)
     import sqlContext.implicits._
 
     val pdf = polygons.toDF().as("pdf")
@@ -104,7 +105,7 @@ class PredicateSuite extends FunSuite with TestSparkContext {
       PolygonExample(new Polygon(Array(0), ring1))
     ))
 
-    val sqlContext = new SQLContext(sc)
+    val sqlContext = new MagellanContext(sc)
     import sqlContext.implicits._
 
     val pdf = polygons.toDF().as("pdf")
@@ -136,5 +137,19 @@ class PredicateSuite extends FunSuite with TestSparkContext {
     val scale: Point => Point = (p: Point) => {new Point(p.x * 2, p.y * 2)}
     val scaledDf = df.withColumn("scale", $"polygon" transform scale)
     assert(scaledDf.where(point(1.5, 1.5) within $"scale").count() == 1)
+  }
+
+  test("join") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0),
+      new Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(new Polygon(Array(0), ring1))
+    ))
+
+    val sqlContext = new MagellanContext(sc)
+    import sqlContext.implicits._
+    val df = polygons.toDF().as("pdf")
+    println(df.join(df.as("qdf")).explain())
   }
 }

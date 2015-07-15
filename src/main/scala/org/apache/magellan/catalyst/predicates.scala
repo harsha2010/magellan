@@ -49,6 +49,15 @@ case class Within(left: Expression, right: Expression)
 
   override def nullable: Boolean = left.nullable || right.nullable
 
+  protected def nullSafeEval(input1: Any, input2: Any): Any = {
+    val leftShape = Shape.deserialize(input1)
+    if (leftShape == null) {
+      null
+    } else {
+      val rightShape = Shape.deserialize(input2)
+      if (rightShape == null) null else rightShape.contains(leftShape)
+    }
+  }
 }
 
 /**
@@ -80,5 +89,15 @@ case class Intersects(left: Expression, right: Expression)
   }
 
   override def nullable: Boolean = left.nullable || right.nullable
+
+  protected def nullSafeEval(input1: Any, input2: Any): Any = {
+    val leftShape = Shape.deserialize(input1)
+    if (leftShape == null) {
+      null
+    } else {
+      val rightShape = Shape.deserialize(input2)
+      if (rightShape == null) null else rightShape.intersects(leftShape)
+    }
+  }
 
 }

@@ -38,4 +38,14 @@ case class Transformer(
 
   override def dataType: DataType = child.dataType
 
+  protected def nullSafeEval(input: Any): Any = {
+    if (input == null) {
+      null
+    } else {
+      val row = input.asInstanceOf[Row]
+      val shape = Shape.deserialize(row)
+      shape.transform(fn)
+    }
+  }
+
 }

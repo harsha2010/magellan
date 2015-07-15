@@ -17,6 +17,7 @@
 
 package org.apache.magellan
 
+import org.apache.spark.sql.magellan.MagellanContext
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.sources.{BaseRelation, SchemaRelationProvider, RelationProvider}
@@ -33,7 +34,7 @@ class DefaultSource extends RelationProvider
   override def createRelation(sqlContext: SQLContext,
     parameters: Map[String, String], schema: StructType): BaseRelation = {
     val path = parameters.getOrElse("path", sys.error("'path' must be specified for Shapefiles."))
-    new ShapeFileRelation(path)(sqlContext)
+    new ShapeFileRelation(path)(new MagellanContext(sqlContext.sparkContext))
   }
 
 }
