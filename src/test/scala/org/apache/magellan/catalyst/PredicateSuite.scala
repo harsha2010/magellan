@@ -137,4 +137,5 @@ class PredicateSuite extends FunSuite with TestSparkContext {
     val scaledDf = df.withColumn("scale", $"polygon" transform scale)
     assert(scaledDf.where(point(1.5, 1.5) within $"scale").count() == 1)
   }
+
 }
