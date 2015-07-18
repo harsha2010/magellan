@@ -179,4 +179,5 @@ class PredicateSuite extends FunSuite with TestSparkContext {
     assert(ldf.where($"line" intersects new Point(0.0, 0.0)).count() === 1)
     assert(ldf.where($"line" intersects new Point(-2.0, 0.0)).count() === 0)
   }
+
 }

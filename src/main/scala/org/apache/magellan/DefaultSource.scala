@@ -33,7 +33,12 @@ class DefaultSource extends RelationProvider
   override def createRelation(sqlContext: SQLContext,
     parameters: Map[String, String], schema: StructType): BaseRelation = {
     val path = parameters.getOrElse("path", sys.error("'path' must be specified for Shapefiles."))
-    new ShapeFileRelation(path)(sqlContext)
+    val t = parameters.getOrElse("type", "shapefile")
+    t match {
+      case "shapefile" => new ShapeFileRelation(path)(sqlContext)
+      case "geojson" => new GeoJSONRelation(path)(sqlContext)
+      case _ => ???
+    }
   }
 
 }
