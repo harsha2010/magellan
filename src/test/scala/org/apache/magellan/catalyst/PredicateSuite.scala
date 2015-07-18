@@ -24,6 +24,7 @@ import org.scalatest.FunSuite
 
 import scala.language.implicitConversions
 
+case class LineExample(line: Line)
 case class PointExample(point: Point)
 case class PolygonExample(polygon: Polygon)
 
@@ -32,9 +33,9 @@ class PredicateSuite extends FunSuite with TestSparkContext {
   test("within: Expression") {
 
     val points = sc.parallelize(Seq(
-      PointExample(new Point(0.0, 0.0)),
-      PointExample(new Point(2.0, 2.0))
-    ))
+        PointExample(new Point(0.0, 0.0)),
+        PointExample(new Point(2.0, 2.0))
+      ))
 
     val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
       new Point(-1.0, -1.0), new Point(-1.0, 1.0),
@@ -61,15 +62,15 @@ class PredicateSuite extends FunSuite with TestSparkContext {
       new Point(1.0, 1.0))
 
     val polygons = sc.parallelize(Seq(
-      PolygonExample(new Polygon(Array(0), ring1))
-    ))
+        PolygonExample(new Polygon(Array(0), ring1))
+      ))
 
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
 
     val pdf = polygons.toDF().as("pdf")
     def assertWithin(df: DataFrame, start: Point, end: Point, count: Int): Unit = {
-      assert(df.where(shape(new Line(start, end)) within $"polygon").count() == count)
+      assert(df.where(shape(new Line(start, end)) within $"polygon").count() === count)
     }
     assertWithin(pdf, new Point(0.0, 0.0), new Point(1.0, 1.0), 1)
     assertWithin(pdf, new Point(2.0, 0.0), new Point(3.0, 1.0), 0)
@@ -81,15 +82,15 @@ class PredicateSuite extends FunSuite with TestSparkContext {
       new Point(1.0, 1.0))
 
     val polygons = sc.parallelize(Seq(
-      PolygonExample(new Polygon(Array(0), ring1))
-    ))
+        PolygonExample(new Polygon(Array(0), ring1))
+      ))
 
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
 
     val pdf = polygons.toDF().as("pdf")
     def assertWithin(df: DataFrame, start: Point, end: Point, count: Int): Unit = {
-      assert(df.where($"polygon" >? shape(new Line(start, end))).count() == count)
+      assert(df.where($"polygon" >? shape(new Line(start, end))).count() === count)
     }
     assertWithin(pdf, new Point(0.0, 0.0), new Point(1.0, 1.0), 1)
     assertWithin(pdf, new Point(2.0, 0.0), new Point(3.0, 1.0), 0)
@@ -101,8 +102,8 @@ class PredicateSuite extends FunSuite with TestSparkContext {
       new Point(1.0, 1.0))
 
     val polygons = sc.parallelize(Seq(
-      PolygonExample(new Polygon(Array(0), ring1))
-    ))
+        PolygonExample(new Polygon(Array(0), ring1))
+      ))
 
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
@@ -116,11 +117,50 @@ class PredicateSuite extends FunSuite with TestSparkContext {
     // the intersection region must be the square (0,0), (1,0), (1, 1), (0, 1)
     val df = pdf.select(($"polygon" intersection shape(polygon2)).as("intersection"))
     assert(df.count() == 1)
-    assert(df.where($"intersection" >? new Point(0.5, 0.5)).count() == 1)
-    assert(df.where($"intersection" >? new Point(-0.5, 0.5)).count() == 0)
+    assert(df.where($"intersection" >? new Point(0.5, 0.5)).count() === 1)
+    assert(df.where($"intersection" >? new Point(-0.5, 0.5)).count() === 0)
   }
 
   test("transform") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0),
+      new Point(1.0, 1.0))
+
+    val polygons = sc.parallelize(Seq(
+        PolygonExample(new Polygon(Array(0), ring1))
+      ))
+
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+
+    val df = polygons.toDF().as("pdf")
+    val scale: Point => Point = (p: Point) => {new Point(p.x * 2, p.y * 2)}
+    val scaledDf = df.withColumn("scale", $"polygon" transform scale)
+    assert(scaledDf.where(point(1.5, 1.5) within $"scale").count() === 1)
+  }
+
+  test("point conversion") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0),
+      new Point(1.0, 1.0))
+
+    val polygons = sc.parallelize(Seq(
+        PolygonExample(new Polygon(Array(0), ring1))
+      ))
+
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+
+    val pdf = polygons.toDF().as("pdf")
+    val df = sc.parallelize(Seq((0.5, 0.5))).toDF("x", "y")
+    assert(df.join(pdf).where(point($"x", $"y") within $"polygon").count() === 1)
+  }
+
+  test("line queries") {
+    val lines = sc.parallelize(Seq(
+        LineExample(new Line(new Point(-1.0, -1.0), new Point(1.0, 1.0)))
+      ))
+
     val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
       new Point(-1.0, -1.0), new Point(-1.0, 1.0),
       new Point(1.0, 1.0))
@@ -132,9 +172,11 @@ class PredicateSuite extends FunSuite with TestSparkContext {
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
 
-    val df = polygons.toDF().as("pdf")
-    val scale: Point => Point = (p: Point) => {new Point(p.x * 2, p.y * 2)}
-    val scaledDf = df.withColumn("scale", $"polygon" transform scale)
-    assert(scaledDf.where(point(1.5, 1.5) within $"scale").count() == 1)
+    val ldf = lines.toDF()
+    val pdf = polygons.toDF()
+    assert(ldf.join(pdf).where($"line" intersects $"polygon").count() === 1)
+    assert(ldf.join(pdf).where($"line" within $"polygon").count() === 1)
+    assert(ldf.where($"line" intersects new Point(0.0, 0.0)).count() === 1)
+    assert(ldf.where($"line" intersects new Point(-2.0, 0.0)).count() === 0)
   }
 }
