@@ -30,20 +30,9 @@ import scala.collection.JavaConversions._
  */
 case class ShapeFileRelation(path: String)
                             (@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan {
+  extends SpatialRelation {
 
-  @transient val sc = sqlContext.sparkContext
-
-  override val schema = {
-    StructType(List(StructField("point", new PointUDT(), true),
-      StructField("polyline", new PolyLineUDT(), true),
-      StructField("polygon", new PolygonUDT(), true),
-      StructField("metadata", MapType(StringType, StringType, true), true),
-      StructField("valid", BooleanType, true)
-    ))
-  }
-
-  override def buildScan(): RDD[Row] = {
+  override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {
 
     val shapefileRdd = sqlContext.sparkContext.newAPIHadoopFile(
       path + "/*.shp",
@@ -59,8 +48,6 @@ case class ShapeFileRelation(path: String)
       classOf[MapWritable]
     )
 
-    val numFields = schema.fields.length
-
     val dataRdd = shapefileRdd.map { case (k, v) =>
       ((k.getFileNamePrefix(), k.getRecordIndex()), v.shape)
     }
@@ -74,28 +61,7 @@ case class ShapeFileRelation(path: String)
       ((k.getFileNamePrefix(), k.getRecordIndex()), meta)
     }
 
-    dataRdd.leftOuterJoin(metadataRdd).mapPartitions { iter =>
-      val row = new GenericMutableRow(numFields)
-      iter.flatMap { case ((filePrefix, recordIndex), (shape, meta)) =>
-        // we are re-using rows. clear them before next call
-        (0 until numFields).foreach(i => row.setNullAt(i))
-        row(3) = meta.fold(Map[String, String]())(identity)
-        row(4) = if (shape == NullShape) false else shape.isValid()
-        shape match {
-          case NullShape => None
-          case _: Point =>
-            row(0) = shape
-            Some(row)
-          case _: PolyLine =>
-            row(1) = shape
-            Some(row)
-          case _: Polygon =>
-            row(2) = shape
-            Some(row)
-          case _ => ???
-        }
-      }
-    }
+    dataRdd.leftOuterJoin(metadataRdd).map(f => f._2)
   }
 
 }

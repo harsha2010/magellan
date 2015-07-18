@@ -27,24 +27,24 @@ import org.apache.spark.sql.{Row, SQLContext}
 
 /**
  * A GeoJSON relation is the entry point for working with GeoJSON formats.
+ * GeoJSON is a format for encoding a variety of geographic data structures.
+ * A GeoJSON object may represent a geometry, a feature, or a collection of features.
+ * GeoJSON supports the following geometry types: Point, LineString, Polygon,
+ * MultiPoint, MultiLineString, MultiPolygon, and GeometryCollection.
+ * Features in GeoJSON contain a geometry object and additional properties,
+ * and a feature collection represents a list of features.
+ * A complete GeoJSON data structure is always an object (in JSON terms).
+ * In GeoJSON, an object consists of a collection of name/value pairs -- also called members.
+ * For each member, the name is always a string.
+ * Member values are either a string, number, object, array
+ * or one of the literals: true, false, and null.
+ * An array consists of elements where each element is a value as described above.
  */
 case class GeoJSONRelation(path: String)
                           (@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan {
+  extends SpatialRelation {
 
-  @transient val sc = sqlContext.sparkContext
-
-  override val schema = {
-    StructType(List(StructField("point", new PointUDT(), true),
-      StructField("polyline", new PolyLineUDT(), true),
-      StructField("polygon", new PolygonUDT(), true),
-      StructField("metadata", MapType(StringType, StringType, true), true),
-      StructField("valid", BooleanType, true)
-    ))
-  }
-
-  override def buildScan(): RDD[Row] = {
-    val numFields = schema.fields.length
+  override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {
     sc.newAPIHadoopFile(
       path,
       classOf[WholeFileInputFormat],
@@ -53,26 +53,6 @@ case class GeoJSONRelation(path: String)
     ).flatMap { case(k, v) =>
       val line = v.toString()
       parseShapeWithMeta(line)
-    }.mapPartitions { iter =>
-      val row = new GenericMutableRow(numFields)
-      iter.flatMap { case (shape: Shape, meta: Option[Map[String, String]]) =>
-        (0 until numFields).foreach(i => row.setNullAt(i))
-        row(3) = meta.fold(Map[String, String]())(identity)
-        row(4) = if (shape == NullShape) false else shape.isValid()
-        shape match {
-          case NullShape => None
-          case _: Point =>
-            row(0) = shape
-            Some(row)
-          case _: PolyLine =>
-            row(1) = shape
-            Some(row)
-          case _: Polygon =>
-            row(2) = shape
-            Some(row)
-          case _ => ???
-        }
-      }
     }
   }
 
@@ -84,7 +64,7 @@ case class GeoJSONRelation(path: String)
   }
 }
 
-case class Geometry(`type`: String, coordinates: JValue) {
+private case class Geometry(`type`: String, coordinates: JValue) {
   def extractPoints(p: List[JValue]) = {
     p.map { case (JArray(List(JDouble(x), JDouble(y)))) => new Point(x, y)}
   }
@@ -109,6 +89,12 @@ case class Geometry(`type`: String, coordinates: JValue) {
   }
 
 }
-case class Feature(`type`: String, properties: Option[Map[String, String]], geometry: Geometry)
-case class CRS(`type`: String, properties: Option[Map[String, String]])
-case class GeoJSON(`type`: String, crs: Option[CRS], features: List[Feature])
+
+private case class Feature(
+    `type`: String,
+    properties: Option[Map[String, String]],
+    geometry: Geometry)
+
+private case class CRS(`type`: String, properties: Option[Map[String, String]])
+
+private case class GeoJSON(`type`: String, crs: Option[CRS], features: List[Feature])
