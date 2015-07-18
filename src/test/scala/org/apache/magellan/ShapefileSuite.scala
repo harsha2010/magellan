@@ -31,7 +31,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   test("shapefile-relation: points") {
     val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testpoint/").getPath
-    val df = sqlCtx.shapeFile(path)
+    val df = sqlCtx.read.format("org.apache.magellan").load(path)
     import sqlCtx.implicits._
     assert(df.count() === 1)
     val point = df.select($"point").map {case Row(x: Point) => x}.first()
@@ -41,7 +41,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   test("shapefile-relation: polygons") {
     val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testpolygon/").getPath
-    val df = sqlCtx.shapeFile(path)
+    val df = sqlCtx.read.format("org.apache.magellan").load(path)
     import sqlCtx.implicits._
     assert(df.count() === 1)
     val polygon = df.select($"polygon").map {case Row(x: Polygon) => x}.first()
@@ -52,7 +52,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   test("shapefile-relation: Zillow Neighborhoods") {
     val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testzillow/").getPath
-    val df = sqlCtx.shapeFile(path)
+    val df = sqlCtx.read.format("org.apache.magellan").load(path)
     import sqlCtx.implicits._
     assert(df.count() === 1932)  // 34 + 948 + 689 + 261
 
@@ -72,7 +72,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   test("shapefile-relation: polylines") {
     val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
-    val df = sqlCtx.shapeFile(path)
+    val df = sqlCtx.read.format("org.apache.magellan").load(path)
     import sqlCtx.implicits._
     assert(df.count() === 14959)
     // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
@@ -84,7 +84,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   test("shapefile-relation: points and polygons") {
     val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testcomposite/").getPath
-    val df = sqlCtx.shapeFile(path)
+    val df = sqlCtx.read.format("org.apache.magellan").load(path)
     assert(df.count() === 2)
     // each row should either contain a point or a polygon but not both
     import sqlCtx.implicits._
@@ -95,7 +95,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
   test("shapefile-relation: valid") {
     val sqlCtx = new SQLContext(sc)
     val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
-    val df = sqlCtx.shapeFile(path)
+    val df = sqlCtx.read.format("org.apache.magellan").load(path)
     import sqlCtx.implicits._
     assert(df.filter($"valid").count() == 14959)
   }
