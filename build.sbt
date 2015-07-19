@@ -2,7 +2,7 @@ name := "magellan"
 
 version := "1.0.0"
 
-organization := "org.apache"
+organization := "org.apache.magellan"
 
 scalaVersion := "2.10.4"
 
@@ -57,7 +57,7 @@ pomExtra := (
     </developer>
   </developers>)
 
-spName := "harsha2010/magellan"
+spName := "org.apache.magellan/magellan"
 
 sparkVersion := "1.4.0"
 
