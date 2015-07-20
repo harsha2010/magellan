@@ -23,7 +23,7 @@ We leverage Catalyst’s pluggable optimizer to efficiently execute spatial join
 
 You can link against this library using the following coordinates:
 
-	groupId: org.apache
+	groupId: harsha2010
 	artifactId: magellan
 	version: 1.0.0
 
