@@ -1,12 +1,11 @@
 #
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
+# Copyright 2015 Ram Sriharsha
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -57,9 +56,9 @@ def _unary_op(name, doc="unary operator"):
     _.__doc__ = doc
     return _
 
-within = _bin_op("org.apache.magellan.catalyst.Within")
-intersects = _bin_op("org.apache.magellan.catalyst.Intersects")
-transform = _unary_op("org.apache.magellan.catalyst.Transformer")
+within = _bin_op("magellan.catalyst.Within")
+intersects = _bin_op("magellan.catalyst.Intersects")
+transform = _unary_op("magellan.catalyst.Transformer")
 Column.within = within
 Column.intersects = intersects
 Column.transform = transform

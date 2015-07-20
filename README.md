@@ -55,7 +55,7 @@ capabilities include:
 You can read data as follows:
 
 
-	val df = sqlCtx.load("org.apache.magellan", path)
+	val df = sqlCtx.load("magellan", path)
 	df.show()
 	
 	+-----+--------+--------------------+--------------------+-----+
