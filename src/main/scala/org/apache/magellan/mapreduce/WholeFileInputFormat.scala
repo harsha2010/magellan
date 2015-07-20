@@ -18,18 +18,17 @@
 package org.apache.magellan.mapreduce
 
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.mapreduce.lib.input._
+import org.apache.hadoop.io.{NullWritable, Text}
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
-import org.apache.magellan.io.{ShapeKey, ShapeWritable}
 
-private[magellan] class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
+class WholeFileInputFormat extends FileInputFormat[NullWritable, Text] {
 
   override def createRecordReader(inputSplit: InputSplit,
     taskAttemptContext: TaskAttemptContext) = {
-    new ShapefileReader
+    new WholeFileReader()
   }
 
-  // TODO: Use DBIndex to figure out how to efficiently split files.
   override def isSplitable(context: JobContext, filename: Path): Boolean = false
 
 }

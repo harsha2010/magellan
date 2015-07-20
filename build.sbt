@@ -2,7 +2,7 @@ name := "magellan"
 
 version := "1.0.0"
 
-organization := "org.apache"
+organization := "harsha2010"
 
 scalaVersion := "2.10.4"
 
@@ -37,7 +37,7 @@ publishTo := {
 }
 
 pomExtra := (
-  <url>https://github.com/databricks/spark-csv</url>
+  <url>https://github.com/harsha2010/magellan</url>
   <licenses>
     <license>
       <name>Apache License, Verision 2.0</name>
@@ -46,7 +46,7 @@ pomExtra := (
     </license>
   </licenses>
   <scm>
-    <url>git@github.com:harsha2010/spatialsdk.git</url>
+    <url>git@github.com:harsha2010/magellan.git</url>
     <connection>scm:git:git@github.com:harsha2010/magellan.git</connection>
   </scm>
   <developers>
@@ -57,7 +57,7 @@ pomExtra := (
     </developer>
   </developers>)
 
-spName := "org.apache/magellan"
+spName := "harsha2010/magellan"
 
 sparkVersion := "1.4.0"
 
@@ -66,3 +66,12 @@ sparkComponents += "sql"
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.9" % "test"
+
+ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
+  if (scalaBinaryVersion.value == "2.10") false
+  else false
+}
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
+
+licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0") 

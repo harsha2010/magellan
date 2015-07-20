@@ -1,0 +1,12 @@
+language: scala
+scala:
+  - 2.10.4
+jdk:
+  - openjdk7
+  - openjdk6
+sudo: false
+script:
+  - sbt -jvm-opts travis/jvmopts.compile compile
+  - sbt -jvm-opts travis/jvmopts.test coverage test
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

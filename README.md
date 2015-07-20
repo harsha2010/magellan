@@ -1,5 +1,9 @@
 # Magellan: Geospatial Analytics Using Spark
 
+[![Build Status](https://travis-ci.org/harsha2010/magellan.svg?branch=master)](https://travis-ci.org/harsha2010/magellan)
+[![codecov.io](http://codecov.io/github/harsha2010/magellan/coverage.svg?branch=master)](http://codecov.io/github/harsha2010/magellan?branch=maste)
+
+
 Geospatial data is pervasive, and spatial context is a very rich signal of user intent and relevance
 in search and targeted advertising and an important variable in many predictive analytics applications.
 For example when a user searches for “canyon hotels”, without location awareness the top result
@@ -19,7 +23,7 @@ We leverage Catalyst’s pluggable optimizer to efficiently execute spatial join
 
 You can link against this library using the following coordinates:
 
-	groupId: org.apache
+	groupId: harsha2010
 	artifactId: magellan
 	version: 1.0.0
 

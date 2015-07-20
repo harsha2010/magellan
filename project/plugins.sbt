@@ -23,6 +23,8 @@ addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.7.4")
 
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.6.0")
 
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.1.0")
+
 addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.1.6")
 
 addSbtPlugin("com.alpinenow" % "junit_xml_listener" % "0.5.1")

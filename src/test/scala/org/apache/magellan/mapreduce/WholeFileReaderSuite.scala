@@ -17,19 +17,20 @@
 
 package org.apache.magellan.mapreduce
 
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.mapreduce.lib.input._
-import org.apache.hadoop.mapreduce.{InputSplit, JobContext, TaskAttemptContext}
-import org.apache.magellan.io.{ShapeKey, ShapeWritable}
+import org.apache.hadoop.io.{NullWritable, Text}
+import org.apache.magellan.TestSparkContext
+import org.scalatest.FunSuite
 
-private[magellan] class ShapeInputFormat extends FileInputFormat[ShapeKey, ShapeWritable] {
+class WholeFileReaderSuite extends FunSuite with TestSparkContext {
 
-  override def createRecordReader(inputSplit: InputSplit,
-    taskAttemptContext: TaskAttemptContext) = {
-    new ShapefileReader
+  test("Read Whole File") {
+    val path = this.getClass.getClassLoader.getResource("geojson/linestring").getPath
+    val data = sc.newAPIHadoopFile(
+      path,
+      classOf[WholeFileInputFormat],
+      classOf[NullWritable],
+      classOf[Text]
+    )
+    assert(data.count() === 1)
   }
-
-  // TODO: Use DBIndex to figure out how to efficiently split files.
-  override def isSplitable(context: JobContext, filename: Path): Boolean = false
-
 }
