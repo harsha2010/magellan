@@ -109,22 +109,11 @@ class Polygon(
 
 private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 
-  private val pointUDT = new PointUDT()
-  private val pointDataType = pointUDT.sqlType
-
-  override def sqlType: DataType = {
-    StructType(Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("indices", ArrayType(IntegerType, containsNull = false), nullable = true),
-      StructField("points", ArrayType(pointDataType, containsNull = false), nullable = true)))
-  }
+  override def sqlType: DataType = Polygon.EMPTY
 
   override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(3)
-    val polygon = obj.asInstanceOf[Polygon]
-    row(0) = polygon.shapeType
-    row.update(1, polygon.indices.toSeq)
-    row.update(2, polygon.points.map(pointUDT.serialize).toSeq)
+    val row = new GenericMutableRow(1)
+    row(0) = obj.asInstanceOf[Polygon]
     row
   }
 
@@ -133,11 +122,7 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
   override def deserialize(datum: Any): Polygon = {
     datum match {
       case x: Polygon => x
-      case r: Row => {
-        val indices = r.get(1).asInstanceOf[Seq[Int]]
-        val points = r.get(2).asInstanceOf[Seq[_]]
-        new Polygon(indices.toIndexedSeq, points.map(pointUDT.deserialize).toIndexedSeq)
-      }
+      case r: Row => r(0).asInstanceOf[Polygon]
       case null => null
       case _ => ???
     }
@@ -148,6 +133,8 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 }
 
 private[magellan] object Polygon {
+
+  val EMPTY = new Polygon(Array[Int](), Array[Point]())
 
   def fromESRI(esriPolygon: ESRIPolygon): Polygon = {
     val length = esriPolygon.getPointCount

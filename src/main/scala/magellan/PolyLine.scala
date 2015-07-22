@@ -98,21 +98,12 @@ class PolyLine(
 
 private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
 
-  private val pointDataType = new PointUDT().sqlType
-
-  override def sqlType: DataType = {
-    StructType(Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("indices", ArrayType(IntegerType, containsNull = false), nullable = true),
-      StructField("points", ArrayType(pointDataType, containsNull = false), nullable = true)))
-  }
+  override def sqlType: DataType = PolyLine.EMPTY
 
   override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(7)
+    val row = new GenericMutableRow(1)
     val polyline = obj.asInstanceOf[PolyLine]
-    row(0) = polyline.shapeType
-    row(1) = polyline.indices
-    row(2) = polyline.points
+    row(0) = polyline
     row
   }
 
@@ -121,12 +112,7 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
   override def deserialize(datum: Any): PolyLine = {
     datum match {
       case x: PolyLine => x
-      case r: Row => {
-        r.getInt(0)
-        val indices = r.get(1).asInstanceOf[IndexedSeq[Int]]
-        val points = r.get(2).asInstanceOf[IndexedSeq[Point]]
-        new PolyLine(indices, points)
-      }
+      case r: Row => r(0).asInstanceOf[PolyLine]
       case null => null
       case _ => ???
     }
@@ -137,6 +123,8 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
 }
 
 private[magellan] object PolyLine {
+
+  val EMPTY = new PolyLine(Array[Int](), Array[Point]())
 
   def fromESRI(esriPolyline: ESRIPolyline): PolyLine = {
     val length = esriPolyline.getPointCount

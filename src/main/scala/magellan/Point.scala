@@ -74,17 +74,12 @@ class Point(val x: Double, val y: Double) extends Shape {
 
 private[magellan] class PointUDT extends UserDefinedType[Point] {
 
-  override def sqlType: DataType = {
-    StructType(Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("x", DoubleType, nullable = true),
-      StructField("y", DoubleType, nullable = true)))
-  }
+  override def sqlType: DataType = Point.EMPTY
 
   override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(3)
+    val row = new GenericMutableRow(1)
     obj match {
-      case p: Point => row(0) = p.shapeType; row(1) = p.x; row(2) = p.y
+      case p: Point => row(0) = p
       case _ => ???
     }
     row
@@ -95,11 +90,7 @@ private[magellan] class PointUDT extends UserDefinedType[Point] {
   override def deserialize(datum: Any): Point = {
     datum match {
       case row: Row => {
-        val t = row(0)
-        t match {
-          case 1 => new Point(row.getDouble(1), row.getDouble(2))
-          case _ => ???
-        }
+        row(0).asInstanceOf[Point]
       }
       // TODO: There is a bug in UDT serialization in Spark.This should never happen.
       case p: Point => p
@@ -113,6 +104,8 @@ private[magellan] class PointUDT extends UserDefinedType[Point] {
 }
 
 object Point {
+
+  val EMPTY = new Point(0.0, 0.0)
 
   private[magellan] def fromESRI(esriPoint: ESRIPoint): Point = {
     new Point(esriPoint.getX(), esriPoint.getY())

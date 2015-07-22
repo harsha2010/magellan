@@ -28,7 +28,7 @@ import org.apache.spark.sql.types._
  * @param end
  */
 @SQLUserDefinedType(udt = classOf[LineUDT])
-class Line(val start: Point, val end: Point) extends Serializable with Shape {
+class Line(val start: Point, val end: Point) extends Shape {
 
   override val shapeType: Int = 2
 
@@ -66,21 +66,12 @@ class Line(val start: Point, val end: Point) extends Serializable with Shape {
 
 class LineUDT extends UserDefinedType[Line] {
 
-  private val pointDataType = new PointUDT().sqlType
-
-  override def sqlType: DataType = {
-    StructType(Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("start", pointDataType, nullable = true),
-      StructField("end", pointDataType, nullable = true)))
-  }
+  override def sqlType: DataType = Line.EMPTY
 
   override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(7)
+    val row = new GenericMutableRow(1)
     val line = obj.asInstanceOf[Line]
-    row(0) = line.shapeType
-    row(1) = line.start
-    row(2) = line.end
+    row(0) = line
     row
   }
 
@@ -89,11 +80,7 @@ class LineUDT extends UserDefinedType[Line] {
   override def deserialize(datum: Any): Line = {
     datum match {
       case x: Line => x
-      case r: Row => {
-        val start = r(1).asInstanceOf[Point]
-        val end = r(2).asInstanceOf[Point]
-        new Line(start, end)
-      }
+      case r: Row => r(0).asInstanceOf[Line]
       case null => null
       case _ => ???
     }
@@ -104,6 +91,8 @@ class LineUDT extends UserDefinedType[Line] {
 }
 
 private[magellan] object Line {
+
+  val EMPTY = new Line(Point.EMPTY, Point.EMPTY)
 
   def fromESRI(esriLine: ESRILine): Line = {
     val start = Point.fromESRI(esriLine.getPoint(0))
