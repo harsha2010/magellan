@@ -16,14 +16,11 @@
 
 import sys
 
-from shapely.geometry import Point as SPoint
-from shapely.geometry import Polygon as SPolygon
-from shapely.geometry import LineString, MultiLineString
 from itertools import izip
 from pyspark.sql.types import UserDefinedType, StructField, StructType, \
     ArrayType, DoubleType, IntegerType
 
-__all__ = ['Point', 'Polygon']
+__all__ = ['Point', 'Polygon', 'PolyLine']
 
 class ShapelyGeometry(object):
 
@@ -113,6 +110,9 @@ class Point(ShapelyGeometry):
     >>> v = Point(1.0, 2.0)
     Point([1.0, 2.0])
     """
+
+    __UDT__ = PointUDT()
+
     def __init__(self, x, y):
         self._shape_type = 1
         self.x = x
@@ -131,6 +131,8 @@ class Point(ShapelyGeometry):
         return (Point, (self.x, self.y))
 
     def toShapely(self):
+        from shapely.geometry import Point as SPoint
+
         return SPoint(self.x, self.y)
 
 
@@ -224,6 +226,8 @@ class Polygon(ShapelyGeometry):
     Point([-1.0,-1.0, 1.0, 1.0], [0], Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 1.0))
     """
 
+    __UDT__ = PolygonUDT()
+
     def __init__(self, indices = [], points = []):
         self._shape_type = 5
         self.indices = indices
@@ -238,6 +242,8 @@ class Polygon(ShapelyGeometry):
         return self.__str__()
 
     def toShapely(self):
+        from shapely.geometry import Polygon as SPolygon
+
         l = []
         l.extend(self.indices)
         l.append(len(self.points))
@@ -336,6 +342,8 @@ class PolyLine(ShapelyGeometry):
     Point([0], Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 0.0))
     """
 
+    __UDT__ = PolyLineUDT()
+
     def __init__(self, indices = [], points = []):
         self._shape_type = 3
         self.indices = indices
@@ -350,6 +358,8 @@ class PolyLine(ShapelyGeometry):
         return self.__str__()
 
     def toShapely(self):
+        from shapely.geometry import LineString, MultiLineString
+
         l = []
         l.extend(self.indices)
         l.append(len(self.points))

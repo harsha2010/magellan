@@ -25,11 +25,11 @@ You can link against this library using the following coordinates:
 
 	groupId: harsha2010
 	artifactId: magellan
-	version: 1.0.0
+	version: 1.0.2-s_2.10
 
 # Requirements
 
-This library requires Spark 1.3+
+This library requires Spark 1.4+
 
 # Capabilities
 
@@ -48,14 +48,16 @@ capabilities include:
 **Scala and Python API**
 
 
-# Examples
 
-## Reading Data
+# Reading Data
 
-You can read data as follows:
+You can read Shapefile formatted data as follows:
 
 
-	val df = sqlCtx.load("magellan", path)
+	val df = sqlCtx.read.
+	  format("magellan").
+	  load(path)
+	  
 	df.show()
 	
 	+-----+--------+--------------------+--------------------+-----+
@@ -79,76 +81,79 @@ You can read data as follows:
 	+--------------------+
 	
 
+To read GeoJSON format pass in the type as geojson during load as follows:
 
-# Operations
+	val df = sqlCtx.read.
+	  format("magellan").
+	  option("type", "geojson").
+	  load(path)
+	  
 
-## Expressions
+# Scala API
 
-### point
+Magellan is hosted on [Spark Packages](http://spark-packages.org/package/harsha2010/magellan)
 
-This is a convenience function for creating a point from two expressions, or two literals as the case may be.
+When launching the Spark Shell, Magellan can be included like any other spark package using the --packages option:
 
-	from magellan.types import Point
-	from pyspark.sql import Row, SQLContext
+	> $SPARK_HOME/bin/spark-shell --packages harsha2010:magellan:1.0.2-s_2.10
 
-	Record = Row("id", "point")
-	df = sc.parallelize([(0, Point(1.0, 1.0)),
-                         (1, Point(1.0, 2.0)),
-                         (2, Point(-1.5, 1.5)),
-                         (3, Point(3.5, 0.0))]) \
-    .map(lambda x: Record(*x)).toDF()
-
-	df.show()
+A few common packages you might want to import within Magellan
 	
-	+---+----------+
-	| id|     point|
-	+---+----------+
-	|  0| [1.0,1.0]|
-	|  1| [1.0,2.0]|
-	|  2|[-1.5,1.5]|
-	|  3| [3.5,0.0]|
-	+---+----------+
+	import magellan.{Point, Polygon}
+	import org.apache.spark.sql.magellan.dsl.expressions._
+	import org.apache.spark.sql.types._
 
-Similar UDFs exist for line, polygon, polyline etc.
+## Data Structures
 
+### Point
+
+	val points = sc.parallelize(Seq((-1.0, -1.0), (-1.0, 1.0), (1.0, -1.0))).toDF("x", "y").select(point($"x", $"y").as("point"))
+	
+	points.show()
+	
+	+-----------------+
+	|            point|
+	+-----------------+
+	|Point(-1.0, -1.0)|
+	| Point(-1.0, 1.0)|
+	| Point(1.0, -1.0)|
+	+-----------------+
+	
+### Polygon
+
+	case class PolygonRecord(polygon: Polygon)
+	
+	val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0),
+      new Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+        PolygonRecord(new Polygon(Array(0), ring))
+      )).toDF()
+      
+    polygons.show()
+    
+    +--------------------+
+	|             polygon|
+	+--------------------+
+	|Polygon(5, Vector...|
+	+--------------------+
 
 ## Predicates
 
 ### within
 
-	
-	PointRecord = Row("id", "point")
-	pointdf = sc.parallelize([(0, Point(1.0, 1.0)),
-                     		   (1, Point(1.0, 2.0)),
-                     		   (2, Point(-1.5, 1.5)),
-                     		   (3, Point(3.5, 0.0))]) \
-    			.map(lambda x: PointRecord(*x)).toDF()
-	
-	PolygonRecord = Row("id", "polygon")
-	polygondf = sc.parallelize([
-					(0, Polygon([0], 	[Point(2.5, 2.5), Point(2.5, 2.75), Point(2.75, 2.75), Point(2.5, 2.5)])),
-                    (1, Polygon([0], [Point(0.5, 0.5), Point(0.5, 0.75), Point(0.75, 0.75), Point(0.5, 0.5)])),
-                    (2, Polygon([0], [Point(0.0, 0.0), Point(0.0, 1.0), Point(1.0, 1.0), Point(1.0, 0.0), Point(0.0, 0.0)]))]) \
-   					 .map(lambda x: PolygonRecord(*x)).toDF()
-    
-	from magellan.column import within
-	from pyspark.sql.functions import col
-												pointdf.join(polygondf).where(col("point").within(col("polygon"))).show()
-												
-	+--+-----+--+-------+
-	|id|point|id|polygon|
-	+--+-----+--+-------+
-	+--+-----+--+-------+
-
-This agrees with our expectation: The point 1,1 is on the boundary of one of the polygons, but that is not the same as being within the polygon.
-
+	polygons.select(point(0.5, 0.5) within $"polygon").count()
 
 ### intersects
 
-		pointdf.join(polygondf).where(col("point").intersects(col("polygon"))).show()
-		
-	+--+-----------+--+--------------------+
-	|id|      point|id|             polygon|
-	+--+-----------+--+--------------------+
-	| 0|[1,1.0,1.0]| 2|[5,ArrayBuffer(0)...|
-	+--+-----------+--+--------------------+
+	points.join(polygons).where($"point" intersects $"polygon").show()
+	
+	+-----------------+--------------------+
+	|            point|             polygon|
+	+-----------------+--------------------+
+	|Point(-1.0, -1.0)|Polygon(5, Vector...|
+	| Point(-1.0, 1.0)|Polygon(5, Vector...|
+	| Point(1.0, -1.0)|Polygon(5, Vector...|
+	+-----------------+--------------------+
+
+
