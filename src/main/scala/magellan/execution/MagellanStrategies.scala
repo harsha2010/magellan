@@ -36,12 +36,9 @@ trait MagellanStrategies {
           } else {
             joins.BuildLeft
           }
-        val j = joins.BroadcastCartesianJoin(
+        val broadcastCartesianJoin = joins.BroadcastCartesianJoin(
           planLater(left), planLater(right), buildSide, condition)
-        condition match {
-          case Some(c) => Filter(c, j) :: Nil
-          case None => j :: Nil
-        }
+        condition.map(Filter(_, broadcastCartesianJoin)).getOrElse(broadcastCartesianJoin) :: Nil
 
       case _ => Nil
     }
