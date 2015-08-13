@@ -16,10 +16,18 @@
 
 import sys
 
+from magellan.types import Point, Polygon, PolyLine
 from pyspark import SparkContext
+from pyspark.rdd import RDD
+from pyspark.serializers import PickleSerializer, AutoBatchedSerializer
 from pyspark.sql import SQLContext
+from pyspark.sql.types import _acceptable_types
 
 __all__ = ["MagellanContext"]
+
+_acceptable_types[type(Point())] =  (type(Point()),)
+_acceptable_types[type(Polygon())] = (type(Polygon()),)
+_acceptable_types[type(PolyLine())] = (type(PolyLine()),)
 
 class MagellanContext(SQLContext):
     """A variant of Spark SQL that integrates with spatial data.
@@ -46,7 +54,14 @@ class MagellanContext(SQLContext):
         wclass = loader.loadClass("org.apache.spark.sql.magellan.MagellanContext")
         expr_class = sc._jvm.java.lang.Object
         expr_array = sc._gateway.new_array(expr_class, 1)
-        expr_array[0] = self._jsc.sc()
-        w = wclass.getConstructors()[0].newInstance(expr_array)
+        expr_array[0] = self._jsc
+        c = None
+        for ctor in wclass.getConstructors():
+            if ctor.toString().__contains__("JavaSparkContext"):
+               c = ctor
+
+        w = c.newInstance(expr_array)
         return w
+
+
 

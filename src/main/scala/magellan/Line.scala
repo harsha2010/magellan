@@ -68,11 +68,8 @@ class LineUDT extends UserDefinedType[Line] {
 
   override def sqlType: DataType = Line.EMPTY
 
-  override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(1)
-    val line = obj.asInstanceOf[Line]
-    row(0) = line
-    row
+  override def serialize(obj: Any): Line = {
+    obj.asInstanceOf[Line]
   }
 
   override def userClass: Class[Line] = classOf[Line]

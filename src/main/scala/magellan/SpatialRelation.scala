@@ -16,6 +16,7 @@
 
 package magellan
 
+import org.apache.spark.sql.magellan.EvaluatePython
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.sources.{Filter, BaseRelation, PrunedFilteredScan}
@@ -26,9 +27,9 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
   @transient val sc = sqlContext.sparkContext
 
   override val schema = {
-    StructType(List(StructField("point", new PointUDT(), true),
-        StructField("polyline", new PolyLineUDT(), true),
-        StructField("polygon", new PolygonUDT(), true),
+    StructType(List(StructField("point", Point.EMPTY, true),
+        StructField("polyline", PolyLine.EMPTY, true),
+        StructField("polygon", Polygon.EMPTY, true),
         StructField("metadata", MapType(StringType, StringType, true), true),
         StructField("valid", BooleanType, true)
       ))
@@ -42,6 +43,7 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
     _buildScan().mapPartitions { iter =>
       val row = new GenericMutableRow(numFields)
       iter.flatMap { case (shape: Shape, meta: Option[Map[String, String]]) =>
+        EvaluatePython.registerPicklers()
         (0 until numFields).foreach(i => row.setNullAt(i))
         indices.zipWithIndex.foreach { case (index, i) =>
           val v = index match {

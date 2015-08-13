@@ -18,10 +18,8 @@ package org.apache.spark.sql.magellan
 
 import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.sql.execution.joins.BroadcastCartesianJoin
 import org.apache.spark.sql.sources.DataSourceStrategy
 import org.apache.spark.sql.{SQLConf, SQLContext, Strategy}
-import org.apache.spark.sql.magellan.execution.MagellanStrategies
 
 class MagellanContext(sc: SparkContext) extends SQLContext(sc) {
   self =>

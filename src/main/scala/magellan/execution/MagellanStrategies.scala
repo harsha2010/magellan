@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.apache.spark.sql.magellan.execution
+package org.apache.spark.sql.magellan
 
 import org.apache.spark.annotation.Experimental
-import org.apache.spark.sql.catalyst.plans.{Inner, logical}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.execution.{joins, SparkPlan, Filter}
+import org.apache.spark.sql.catalyst.plans.{Inner, logical}
+import org.apache.spark.sql.execution.{Filter, SparkPlan, joins}
 import org.apache.spark.sql.{SQLContext, Strategy}
 
 trait MagellanStrategies {

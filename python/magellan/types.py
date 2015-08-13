@@ -14,35 +14,36 @@
 # limitations under the License.
 #
 
+import json
 import sys
 
 from itertools import izip
-from pyspark.sql.types import UserDefinedType, StructField, StructType, \
+
+from pyspark import SparkContext
+from pyspark.sql.types import DataType, UserDefinedType, StructField, StructType, \
     ArrayType, DoubleType, IntegerType
 
-__all__ = ['Point', 'Polygon', 'PolyLine']
+__all__ = ['Point']
 
-class ShapelyGeometry(object):
 
-    _shape_type = None
+class Shape(DataType):
 
-    def toShapely(self):
-        raise NotImplementedError()
+    __initialized__ = False
 
-    def contains(self, other):
-        return self.toShapely().contains(other.toShapely())
+    def registerPicklers(self):
+        if Point.__initialized__ == False:
+            sc = SparkContext._active_spark_context
+            loader = sc._jvm.Thread.currentThread().getContextClassLoader()
+            wclass = loader.loadClass("org.apache.spark.sql.magellan.EvaluatePython")
+            wmethod = None
+            for mthd in wclass.getMethods():
+                if mthd.getName() == "registerPicklers":
+                    wmethod = mthd
 
-    def intersects(self, other):
-        return self.toShapely().intersects(other.toShapely())
-
-    def area(self):
-        return self.toShapely().area()
-
-    def distance(self, other):
-        return self.toShapely().distance(other.toShapely())
-
-    def convex_hull(self):
-        return self.toShapely().convex_hull()
+            expr_class = sc._jvm.java.lang.Object
+            java_args = sc._gateway.new_array(expr_class, 0)
+            wmethod.invoke(None, java_args)
+            Point.__initialized__ = True
 
 
 class PointUDT(UserDefinedType):
@@ -53,13 +54,7 @@ class PointUDT(UserDefinedType):
 
     @classmethod
     def sqlType(cls):
-        """
-        Underlying SQL storage type for this UDT.
-        """
-        return StructType([
-            StructField("type", IntegerType(), False),
-            StructField("x", DoubleType(), True),
-            StructField("y", DoubleType(), True)])
+        return Point()
 
     @classmethod
     def module(cls):
@@ -80,7 +75,7 @@ class PointUDT(UserDefinedType):
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, Point):
-            return (1, obj.x, obj.y)
+            return obj
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -88,17 +83,24 @@ class PointUDT(UserDefinedType):
         """
         Converts a SQL datum into a user-type object.
         """
-        assert len(datum) == 3, \
-            "PointUDT.deserialize given row with length %d but requires 3" % len(datum)
-        tpe = datum[0]
-        assert tpe == 1, "Point should have type = 1"
-        return Point(datum[1], datum[2])
+        if isinstance(datum, Point):
+            return datum
+        else:
+            assert len(datum) == 3, \
+                "PointUDT.deserialize given row with length %d but requires 3" % len(datum)
+            tpe = datum[0]
+            assert tpe == 1, "Point should have type = 1"
+            return Point(datum[1], datum[2])
 
     def simpleString(self):
         return 'point'
 
+    @classmethod
+    def fromJson(cls, json):
+        return Point(json['x'], json['y'])
 
-class Point(ShapelyGeometry):
+
+class Point(Shape):
     """
     A point is a zero dimensional shape.
     The coordinates of a point can be in linear units such as feet or meters,
@@ -113,7 +115,7 @@ class Point(ShapelyGeometry):
 
     __UDT__ = PointUDT()
 
-    def __init__(self, x, y):
+    def __init__(self, x = 0.0, y = 0.0):
         self._shape_type = 1
         self.x = x
         self.y = y
@@ -130,11 +132,19 @@ class Point(ShapelyGeometry):
     def __reduce__(self):
         return (Point, (self.x, self.y))
 
-    def toShapely(self):
-        from shapely.geometry import Point as SPoint
+    def __eq__(self, other):
+        return isinstance(other, Point) and self.x == other.x and self.y == other.y
 
-        return SPoint(self.x, self.y)
+    @classmethod
+    def fromJson(cls, json):
+        return Point(json['x'], json['y'])
 
+    def jsonValue(self):
+        self.registerPicklers()
+        return {"type": "udt",
+                "pyClass": "magellan.types.PointUDT",
+                "class": "magellan.PointUDT",
+                "sqlType": "magellan.Point"}
 
 
 class PolygonUDT(UserDefinedType):
@@ -149,11 +159,7 @@ class PolygonUDT(UserDefinedType):
         """
         Underlying SQL storage type for this UDT.
         """
-        return StructType([
-            StructField("type", IntegerType(), False),
-            StructField("indices", ArrayType(IntegerType(), False), True),
-            StructField("points", ArrayType(PointUDT(), False), True)])
-
+        return Polygon()
 
     @classmethod
     def module(cls):
@@ -174,9 +180,7 @@ class PolygonUDT(UserDefinedType):
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, Polygon):
-            indices = [int(index) for index in obj.indices]
-            points = [self.pointUDT.serialize(point) for point in obj.points]
-            return (5, indices, points)
+            return obj
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -184,34 +188,26 @@ class PolygonUDT(UserDefinedType):
         """
         Converts a SQL datum into a user-type object.
         """
-        assert len(datum) == 3, \
-            "PolygonUDT.deserialize given row with length %d but requires 4" % len(datum)
-        tpe = datum[0]
-        assert tpe == 5, "Polygon should have type = 5"
-        return Polygon(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
+        if isinstance(datum, Polygon):
+            return datum
+        else:
+            assert len(datum) == 3, \
+                "PolygonUDT.deserialize given row with length %d but requires 4" % len(datum)
+            tpe = datum[0]
+            assert tpe == 5, "Polygon should have type = 5"
+            return Polygon(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
 
     def simpleString(self):
         return 'polygon'
 
-    def __str__(self):
-        inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
-        pts = "[" + ",".join([str(v) for v in self.points]) + "]"
-        return "(" + ",".join((inds, pts)) + ")"
-
-    def __getitem__(self, index):
-        points = self.points
-        if not isinstance(index, int):
-            raise TypeError(
-                "Indices must be of type integer, got type %s" % type(index))
-        if index < 0:
-            index += self.size
-        if index >= self.size or index < 0:
-            raise ValueError("Index %d out of bounds." % index)
-
-        return points[index]
+    @classmethod
+    def fromJson(cls, json):
+        indices = json["indices"]
+        points = [PointUDT.fromJson(point) for point in json["points"]]
+        return Polygon(indices, points)
 
 
-class Polygon(ShapelyGeometry):
+class Polygon(Shape):
     """
     A polygon consists of one or more rings. A ring is a connected sequence of four or more points
     that form a closed, non-self-intersecting loop. A polygon may contain multiple outer rings.
@@ -221,7 +217,6 @@ class Polygon(ShapelyGeometry):
     Vertices of rings defining holes in polygons are in a counterclockwise direction.
     Vertices for a single, ringed polygon are, therefore, always in clockwise order.
     The rings of a polygon are referred to as its parts.
-
     >>> v = Polygon([0], [Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 1.0))
     Point([-1.0,-1.0, 1.0, 1.0], [0], Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 1.0))
     """
@@ -236,25 +231,26 @@ class Polygon(ShapelyGeometry):
     def __str__(self):
         inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
         pts = "[" + ",".join([str(v) for v in self.points]) + "]"
-        return "(" + ",".join((inds, pts)) + ")"
+        return "Polygon (" + ",".join((inds, pts)) + ")"
 
     def __repr__(self):
         return self.__str__()
 
-    def toShapely(self):
-        from shapely.geometry import Polygon as SPolygon
+    def __reduce__(self):
+        return (Polygon, (self.indices, self.points))
 
-        l = []
-        l.extend(self.indices)
-        l.append(len(self.points))
-        p = []
-        for i,j in zip(l, l[1:]):
-            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
-            p.append(spoints)
+    @classmethod
+    def fromJson(cls, json):
+        indices = json["indices"]
+        points = [PointUDT.fromJson(point) for point in json["points"]]
+        return Polygon(indices, points)
 
-        shell = p[0]
-        holes = p[1:]
-        return SPolygon(shell=shell, holes=holes)
+    def jsonValue(self):
+        self.registerPicklers()
+        return {"type": "udt",
+                "pyClass": "magellan.types.PolygonUDT",
+                "class": "magellan.Polygon",
+                "sqlType": "magellan.Polygon"}
 
 
 class PolyLineUDT(UserDefinedType):
@@ -262,6 +258,7 @@ class PolyLineUDT(UserDefinedType):
 
     .. note:: WARN: SpatialSDK Internal Use Only
     """
+
     pointUDT = PointUDT()
 
     @classmethod
@@ -269,11 +266,7 @@ class PolyLineUDT(UserDefinedType):
         """
         Underlying SQL storage type for this UDT.
         """
-        return StructType([
-            StructField("type", IntegerType(), False),
-            StructField("indices", ArrayType(IntegerType(), False), True),
-            StructField("points", ArrayType(PointUDT(), False), True)])
-
+        return PolyLine()
 
     @classmethod
     def module(cls):
@@ -294,9 +287,7 @@ class PolyLineUDT(UserDefinedType):
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, PolyLine):
-            indices = [int(index) for index in obj.indices]
-            points = [self.pointUDT.serialize(point) for point in obj.points]
-            return (3, indices, points)
+            return obj
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -304,40 +295,32 @@ class PolyLineUDT(UserDefinedType):
         """
         Converts a SQL datum into a user-type object.
         """
-        assert len(datum) == 3, \
-            "PolyLineUDT.deserialize given row with length %d but requires 4" % len(datum)
-        tpe = datum[0]
-        assert tpe == 3, "PolyLine should have type = 5"
-        return Polygon(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
+        if isinstance(datum, PolyLine):
+            return datum
+        else:
+            assert len(datum) == 3, \
+                "PolyLineUDT.deserialize given row with length %d but requires 4" % len(datum)
+            print datum
+            tpe = datum[0]
+            assert tpe == 3, "PolyLine should have type = 3"
+            return PolyLine(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
 
     def simpleString(self):
         return 'polyline'
 
-    def __str__(self):
-        inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
-        pts = "[" + ",".join([str(v) for v in self.points]) + "]"
-        return "(" + ",".join((inds, pts)) + ")"
-
-    def __getitem__(self, index):
-        points = self.points
-        if not isinstance(index, int):
-            raise TypeError(
-                "Indices must be of type integer, got type %s" % type(index))
-        if index < 0:
-            index += self.size
-        if index >= self.size or index < 0:
-            raise ValueError("Index %d out of bounds." % index)
-
-        return points[index]
+    @classmethod
+    def fromJson(cls, json):
+        indices = json["indices"]
+        points = [PointUDT.fromJson(point) for point in json["points"]]
+        return PolyLine(indices, points)
 
 
-class PolyLine(ShapelyGeometry):
+class PolyLine(Shape):
     """
     A PolyLine is an ordered set of vertices that consists of one or more parts.
     A part is a connected sequence of two or more points.
     Parts may or may not be connected to one another.
     Parts may or may not intersect one another
-
     >>> v = PolyLine([0], [Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 0.0))
     Point([0], Point(1.0, 1.0), Point(1.0, -1.0), Point(1.0, 0.0))
     """
@@ -352,20 +335,39 @@ class PolyLine(ShapelyGeometry):
     def __str__(self):
         inds = "[" + ",".join([str(i) for i in self.indices]) + "]"
         pts = "[" + ",".join([str(v) for v in self.points]) + "]"
-        return "(" + ",".join((inds, pts)) + ")"
+        return "Polygon (" + ",".join((inds, pts)) + ")"
 
     def __repr__(self):
         return self.__str__()
 
-    def toShapely(self):
-        from shapely.geometry import LineString, MultiLineString
+    def __reduce__(self):
+        return (PolyLine, (self.indices, self.points))
 
-        l = []
-        l.extend(self.indices)
-        l.append(len(self.points))
-        p = []
-        for i,j in zip(l, l[1:]):
-            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
-            p.append(LineString(spoints))
-        return MultiLineString(p)
+    @classmethod
+    def fromJson(cls, json):
+        indices = json["indices"]
+        points = [PointUDT.fromJson(point) for point in json["points"]]
+        return PolyLine(indices, points)
+
+    def jsonValue(self):
+        self.registerPicklers()
+        return {"type": "udt",
+                "pyClass": "magellan.types.PolyLineUDT",
+                "class": "magellan.PolyLine",
+                "sqlType": "magellan.PolyLine"}
+
+
+def _inbound_shape_converter(json_string):
+    j = json.loads(json_string)
+    shapeType = str(j["pyClass"])  # convert unicode to str
+    split = shapeType.rfind(".")
+    module = shapeType[:split]
+    shapeClass = shapeType[split+1:]
+    m = __import__(module, globals(), locals(), [shapeClass])
+    UDT = getattr(m, shapeClass)
+    return UDT.fromJson(j)
+
+# This is used to unpickle a Row from JVM
+def _create_row_inbound_converter(dataType):
+    return lambda *a: dataType.fromInternal(a)
 

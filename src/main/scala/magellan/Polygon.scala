@@ -16,11 +16,16 @@
 
 package magellan
 
+import java.util.{List => JList}
+
 import com.esri.core.geometry.{Polygon => ESRIPolygon}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+import org.json4s.JsonAST.{JArray, JInt, JValue}
+import org.json4s.JsonDSL._
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -105,16 +110,20 @@ class Polygon(
     new Polygon(indices, transformedPoints)
   }
 
+  override def jsonValue: JValue =
+    ("type" -> "udt") ~
+      ("class" -> this.getClass.getName) ~
+      ("pyClass" -> "magellan.types.PolygonUDT") ~
+      ("indices" -> JArray(indices.map(index => JInt(index)).toList)) ~
+      ("points" -> JArray(points.map(_.jsonValue).toList))
 }
 
 private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 
   override def sqlType: DataType = Polygon.EMPTY
 
-  override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(1)
-    row(0) = obj.asInstanceOf[Polygon]
-    row
+  override def serialize(obj: Any): Polygon = {
+    obj.asInstanceOf[Polygon]
   }
 
   override def userClass: Class[Polygon] = classOf[Polygon]
@@ -124,6 +133,9 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
       case x: Polygon => x
       case r: Row => r(0).asInstanceOf[Polygon]
       case null => null
+      case Array(t: Int, indices: JList[Int], points: JList[Point]) => {
+        new Polygon(indices.toIndexedSeq, points.toIndexedSeq)
+      }
       case _ => ???
     }
   }

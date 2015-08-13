@@ -20,6 +20,8 @@ import com.esri.core.geometry.{Polyline => ESRIPolyline}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+import org.json4s.JsonAST.{JInt, JArray, JValue}
+import org.json4s.JsonDSL._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -94,17 +96,21 @@ class PolyLine(
     new PolyLine(indices, transformedPoints)
   }
 
+  override def jsonValue: JValue =
+    ("type" -> "udt") ~
+      ("class" -> this.getClass.getName) ~
+      ("pyClass" -> "magellan.types.PolyLineUDT") ~
+      ("indices" -> JArray(indices.map(index => JInt(index)).toList)) ~
+      ("points" -> JArray(points.map(_.jsonValue).toList))
+
 }
 
 private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
 
   override def sqlType: DataType = PolyLine.EMPTY
 
-  override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(1)
-    val polyline = obj.asInstanceOf[PolyLine]
-    row(0) = polyline
-    row
+  override def serialize(obj: Any): PolyLine = {
+    obj.asInstanceOf[PolyLine]
   }
 
   override def userClass: Class[PolyLine] = classOf[PolyLine]
@@ -119,7 +125,6 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
   }
 
   override def pyUDT: String = "magellan.types.PolyLineUDT"
-
 }
 
 private[magellan] object PolyLine {

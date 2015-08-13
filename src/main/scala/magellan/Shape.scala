@@ -281,11 +281,4 @@ private[magellan] object Shape {
       case _ => ???
     }
   }
-
-  private def toInt(row: Row, index: Int): Int = {
-    row(index) match {
-      case i: Int => i
-      case i: Long => i.toInt
-    }
-  }
 }
