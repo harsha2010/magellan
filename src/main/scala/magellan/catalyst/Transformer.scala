@@ -29,8 +29,7 @@ case class Transformer(
   override type EvaluatedType = child.EvaluatedType
 
   override def eval(input: Row): EvaluatedType = {
-    val row = child.eval(input).asInstanceOf[Row]
-    val shape = Shape.deserialize(row)
+    val shape = child.eval(input).asInstanceOf[Shape]
     shape.transform(fn).asInstanceOf[EvaluatedType]
   }
 
@@ -42,8 +41,7 @@ case class Transformer(
     if (input == null) {
       null
     } else {
-      val row = input.asInstanceOf[Row]
-      val shape = Shape.deserialize(row)
+      val shape = input.asInstanceOf[Shape]
       shape.transform(fn)
     }
   }

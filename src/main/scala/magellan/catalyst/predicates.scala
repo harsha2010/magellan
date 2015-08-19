@@ -41,8 +41,8 @@ case class Within(left: Expression, right: Expression)
       null
     } else {
       val rightEval = right.eval(input)
-      val leftShape = Shape.deserialize(leftEval)
-      val rightShape = Shape.deserialize(rightEval)
+      val leftShape = leftEval.asInstanceOf[Shape]
+      val rightShape = rightEval.asInstanceOf[Shape]
       if (rightEval == null) null else rightShape.contains(leftShape)
     }
   }
@@ -50,11 +50,11 @@ case class Within(left: Expression, right: Expression)
   override def nullable: Boolean = left.nullable || right.nullable
 
   protected def nullSafeEval(input1: Any, input2: Any): Any = {
-    val leftShape = Shape.deserialize(input1)
+    val leftShape = input1.asInstanceOf[Shape]
     if (leftShape == null) {
       null
     } else {
-      val rightShape = Shape.deserialize(input2)
+      val rightShape = input2.asInstanceOf[Shape]
       if (rightShape == null) null else rightShape.contains(leftShape)
     }
   }
@@ -82,8 +82,8 @@ case class Intersects(left: Expression, right: Expression)
       false
     } else {
       val rightEval = right.eval(input)
-      val leftShape = Shape.deserialize(leftEval)
-      val rightShape = Shape.deserialize(rightEval)
+      val leftShape = leftEval.asInstanceOf[Shape]
+      val rightShape = rightEval.asInstanceOf[Shape]
       if (rightEval == null) false else leftShape.intersects(rightShape)
     }
   }
@@ -91,11 +91,11 @@ case class Intersects(left: Expression, right: Expression)
   override def nullable: Boolean = left.nullable || right.nullable
 
   protected def nullSafeEval(input1: Any, input2: Any): Any = {
-    val leftShape = Shape.deserialize(input1)
+    val leftShape = input1.asInstanceOf[Shape]
     if (leftShape == null) {
       null
     } else {
-      val rightShape = Shape.deserialize(input2)
+      val rightShape = input2.asInstanceOf[Shape]
       if (rightShape == null) null else rightShape.intersects(leftShape)
     }
   }

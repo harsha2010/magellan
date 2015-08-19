@@ -260,13 +260,6 @@ object NullShape extends Shape {
 
 private[magellan] object Shape {
 
-  def deserialize(obj: Any): Shape = {
-    obj match {
-      case s: Shape => s
-      case row: Row => row(0).asInstanceOf[Shape]
-    }
-  }
-
   def fromESRI(esriGeom: ESRIGeometry): Shape = {
     esriGeom match {
       case esriPoint: ESRIPoint => Point.fromESRI(esriPoint)
