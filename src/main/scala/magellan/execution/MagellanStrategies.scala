@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package org.apache.spark.sql.magellan.execution
+package org.apache.spark.sql.magellan
 
 import org.apache.spark.annotation.Experimental
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.catalyst.plans.{Inner, logical}
+import org.apache.spark.sql.execution.{Filter, SparkPlan, joins}
 import org.apache.spark.sql.{SQLContext, Strategy}
 
 trait MagellanStrategies {
@@ -26,9 +27,20 @@ trait MagellanStrategies {
   self: SQLContext#SparkPlanner =>
 
   @Experimental
-  object SpatialJoin extends Strategy {
+  object BroadcastCartesianJoin extends Strategy {
     override def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
-      case _ =>  Nil
+      case logical.Join(left, right, Inner, condition) =>
+        val buildSide =
+          if (right.statistics.sizeInBytes < left.statistics.sizeInBytes) {
+            joins.BuildRight
+          } else {
+            joins.BuildLeft
+          }
+        val broadcastCartesianJoin = joins.BroadcastCartesianJoin(
+          planLater(left), planLater(right), buildSide, condition)
+        condition.map(Filter(_, broadcastCartesianJoin)).getOrElse(broadcastCartesianJoin) :: Nil
+
+      case _ => Nil
     }
   }
 }

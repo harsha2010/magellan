@@ -16,11 +16,16 @@
 
 package magellan
 
+import java.util.{List => JList}
+
 import com.esri.core.geometry.{Polygon => ESRIPolygon}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+import org.json4s.JsonAST.{JArray, JInt, JValue}
+import org.json4s.JsonDSL._
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -105,27 +110,20 @@ class Polygon(
     new Polygon(indices, transformedPoints)
   }
 
+  override def jsonValue: JValue =
+    ("type" -> "udt") ~
+      ("class" -> this.getClass.getName) ~
+      ("pyClass" -> "magellan.types.PolygonUDT") ~
+      ("indices" -> JArray(indices.map(index => JInt(index)).toList)) ~
+      ("points" -> JArray(points.map(_.jsonValue).toList))
 }
 
 private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 
-  private val pointUDT = new PointUDT()
-  private val pointDataType = pointUDT.sqlType
+  override def sqlType: DataType = Polygon.EMPTY
 
-  override def sqlType: DataType = {
-    StructType(Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("indices", ArrayType(IntegerType, containsNull = false), nullable = true),
-      StructField("points", ArrayType(pointDataType, containsNull = false), nullable = true)))
-  }
-
-  override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(3)
-    val polygon = obj.asInstanceOf[Polygon]
-    row(0) = polygon.shapeType
-    row.update(1, polygon.indices.toSeq)
-    row.update(2, polygon.points.map(pointUDT.serialize).toSeq)
-    row
+  override def serialize(obj: Any): Polygon = {
+    obj.asInstanceOf[Polygon]
   }
 
   override def userClass: Class[Polygon] = classOf[Polygon]
@@ -133,12 +131,11 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
   override def deserialize(datum: Any): Polygon = {
     datum match {
       case x: Polygon => x
-      case r: Row => {
-        val indices = r.get(1).asInstanceOf[Seq[Int]]
-        val points = r.get(2).asInstanceOf[Seq[_]]
-        new Polygon(indices.toIndexedSeq, points.map(pointUDT.deserialize).toIndexedSeq)
-      }
+      case r: Row => r(0).asInstanceOf[Polygon]
       case null => null
+      case Array(t: Int, indices: JList[Int], points: JList[Point]) => {
+        new Polygon(indices.toIndexedSeq, points.toIndexedSeq)
+      }
       case _ => ???
     }
   }
@@ -148,6 +145,8 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 }
 
 private[magellan] object Polygon {
+
+  val EMPTY = new Polygon(Array[Int](), Array[Point]())
 
   def fromESRI(esriPolygon: ESRIPolygon): Polygon = {
     val length = esriPolygon.getPointCount

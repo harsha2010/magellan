@@ -26,12 +26,15 @@ import org.apache.spark.sql.types._
 /**
  * An abstraction for a geometric shape.
  */
-trait Shape extends Serializable {
+trait Shape extends DataType with Serializable {
 
   val shapeType: Int
 
   private[magellan] val delegate: ESRIGeometry
-  @transient private var factory = OperatorFactoryLocal.getInstance
+
+  override def defaultSize: Int = 4096
+
+  override def asNullable: DataType = this
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -92,6 +95,7 @@ trait Shape extends Serializable {
    * @see Shape#disjoint
    */
   def intersects(other: Shape, bitMask: Int): Boolean = {
+    val factory = OperatorFactoryLocal.getInstance
     val op = factory.getOperator(Operator.Type.Intersection).asInstanceOf[OperatorIntersection]
     val result_cursor = op.execute(new SimpleGeometryCursor(
       delegate), new SimpleGeometryCursor(other.delegate), null, null, bitMask)
@@ -187,6 +191,7 @@ trait Shape extends Serializable {
    * @return a Shape representing the point-set common to the two <code>Shape</code>s
    */
   def intersection(other: Shape): Shape = {
+    val factory = OperatorFactoryLocal.getInstance
     val op = factory.getOperator(Operator.Type.Intersection).asInstanceOf[OperatorIntersection]
     val result_cursor = op.execute(new SimpleGeometryCursor(
       delegate), new SimpleGeometryCursor(other.delegate), null, null, 7)
@@ -234,9 +239,6 @@ trait Shape extends Serializable {
     ???
   }
 
-  private def readObject(is: ObjectInputStream): Unit = {
-    factory = OperatorFactoryLocal.getInstance
-  }
 }
 
 /**
@@ -258,21 +260,6 @@ object NullShape extends Shape {
 
 private[magellan] object Shape {
 
-  val TYPES = Map[Int, UserDefinedType[_ <: Shape]](
-      1 -> new PointUDT,
-      2 -> new LineUDT,
-      3 -> new PolyLineUDT,
-      5 -> new PolygonUDT
-    )
-
-  def deserialize(obj: Any): Shape = {
-    obj match {
-      case s: Shape => s
-      case row: Row =>
-        TYPES.get(toInt(row, 0)).fold[Shape](NullShape)(_.deserialize(row))
-    }
-  }
-
   def fromESRI(esriGeom: ESRIGeometry): Shape = {
     esriGeom match {
       case esriPoint: ESRIPoint => Point.fromESRI(esriPoint)
@@ -285,13 +272,6 @@ private[magellan] object Shape {
         }
       }
       case _ => ???
-    }
-  }
-
-  private def toInt(row: Row, index: Int): Int = {
-    row(index) match {
-      case i: Int => i
-      case i: Long => i.toInt
     }
   }
 }

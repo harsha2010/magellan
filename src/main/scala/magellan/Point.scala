@@ -20,6 +20,8 @@ import com.esri.core.geometry.{Point => ESRIPoint}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonDSL._
 
 /**
  * A point is a zero dimensional shape.
@@ -31,6 +33,8 @@ import org.apache.spark.sql.types._
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
 class Point(val x: Double, val y: Double) extends Shape {
+
+  def this() {this(0.0, 0.0)}
 
   override private[magellan] val delegate = {
     val p = new ESRIPoint()
@@ -70,24 +74,24 @@ class Point(val x: Double, val y: Double) extends Shape {
    */
   override def transform(fn: (Point) => Point): Point = fn(this)
 
+  override def jsonValue: JValue =
+    ("type" -> "udt") ~
+      ("class" -> this.getClass.getName) ~
+      ("pyClass" -> "magellan.types.PointUDT") ~
+      ("x" -> x) ~
+      ("y" -> y)
 }
 
 private[magellan] class PointUDT extends UserDefinedType[Point] {
 
-  override def sqlType: DataType = {
-    StructType(Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("x", DoubleType, nullable = true),
-      StructField("y", DoubleType, nullable = true)))
-  }
+  override def sqlType: DataType = Point.EMPTY
 
-  override def serialize(obj: Any): Row = {
-    val row = new GenericMutableRow(3)
+  override def serialize(obj: Any): Point = {
     obj match {
-      case p: Point => row(0) = p.shapeType; row(1) = p.x; row(2) = p.y
+      case p: Point => p
+      case Array(t: Int, x: Double, y: Double) => new Point(x, y)
       case _ => ???
     }
-    row
   }
 
   override def userClass: Class[Point] = classOf[Point]
@@ -95,15 +99,12 @@ private[magellan] class PointUDT extends UserDefinedType[Point] {
   override def deserialize(datum: Any): Point = {
     datum match {
       case row: Row => {
-        val t = row(0)
-        t match {
-          case 1 => new Point(row.getDouble(1), row.getDouble(2))
-          case _ => ???
-        }
+        row(0).asInstanceOf[Point]
       }
       // TODO: There is a bug in UDT serialization in Spark.This should never happen.
       case p: Point => p
       case null => null
+      case Array(t: Int, x: Double, y: Double) => Point(x, y)
       case _ => ???
     }
   }
@@ -113,6 +114,8 @@ private[magellan] class PointUDT extends UserDefinedType[Point] {
 }
 
 object Point {
+
+  val EMPTY = new Point()
 
   private[magellan] def fromESRI(esriPoint: ESRIPoint): Point = {
     new Point(esriPoint.getX(), esriPoint.getY())

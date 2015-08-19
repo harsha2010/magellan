@@ -18,8 +18,8 @@ package org.apache.spark.sql.magellan
 
 import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
+import org.apache.spark.sql.sources.DataSourceStrategy
 import org.apache.spark.sql.{SQLConf, SQLContext, Strategy}
-import org.apache.spark.sql.magellan.execution.MagellanStrategies
 
 class MagellanContext(sc: SparkContext) extends SQLContext(sc) {
   self =>
@@ -30,7 +30,20 @@ class MagellanContext(sc: SparkContext) extends SQLContext(sc) {
 
   @transient
   private val magellanPlanner = new SparkPlanner with MagellanStrategies {
-    override val strategies: Seq[Strategy] = Seq(SpatialJoin) ++ super.strategies
+    override val strategies: Seq[Strategy] =
+      experimental.extraStrategies ++ (
+        DataSourceStrategy ::
+        DDLStrategy ::
+        TakeOrdered ::
+        HashAggregation ::
+        LeftSemiJoin ::
+        HashJoin ::
+        InMemoryScans ::
+        ParquetOperations ::
+        BasicOperators ::
+        BroadcastCartesianJoin ::
+        CartesianProduct ::
+        BroadcastNestedLoopJoin :: Nil)
   }
 
   @transient

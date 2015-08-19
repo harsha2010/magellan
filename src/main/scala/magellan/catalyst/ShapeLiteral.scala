@@ -31,6 +31,6 @@ case class ShapeLiteral(shape: Shape) extends LeafExpression {
 
   override def eval(input: Row): Shape = shape
 
-  override val dataType: DataType = Shape.TYPES(shape.shapeType)
+  override val dataType: DataType = shape
 
 }
