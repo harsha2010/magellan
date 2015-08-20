@@ -85,7 +85,8 @@ class NAD83(System):
 
         def _(point):
             # TODO: Fix BUG in Pyspark Serialization code that returns tuples here instead of Points
-            shape_type, long, lat = point
+            long = point.x
+            lat = point.y
             l = - long / NAD83.RAD
             f = lat / NAD83.RAD
             q = self.qqq(NAD83.E, math.sin(f))
@@ -93,7 +94,7 @@ class NAD83(System):
             gam = (cm - l) * sinfo
             n = rb + nb - (r * math.cos(gam))
             e = eo + (r * math.sin(gam))
-            return (shape_type, e, n)
+            return Point(e, n)
 
         return _
 
