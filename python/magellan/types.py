@@ -25,10 +25,28 @@ from pyspark.sql.types import DataType, UserDefinedType, StructField, StructType
 
 __all__ = ['Point']
 
+try:
+    from shapely.geometry import Point as SPoint
+    from shapely.geometry import Polygon as SPolygon
+    from shapely.geometry import LineString, MultiLineString
+    _have_shapely = True
+except:
+    # No Shapely in environment, but that's okay
+    _have_shapely = False
+
 
 class Shape(DataType):
 
     __initialized__ = False
+
+    def convert(self):
+        raise NotImplementedError()
+
+    def toShapely(self):
+        if _have_shapely:
+            return self.convert()
+        else:
+            raise TypeError("Cannot convert to Shapely type")
 
     def registerPicklers(self):
         if Point.__initialized__ == False:
@@ -146,6 +164,9 @@ class Point(Shape):
                 "class": "magellan.PointUDT",
                 "sqlType": "magellan.Point"}
 
+    def convert(self):
+        return SPoint(self.x, self.y)
+
 
 class PolygonUDT(UserDefinedType):
     """User-defined type (UDT).
@@ -252,6 +273,19 @@ class Polygon(Shape):
                 "class": "magellan.Polygon",
                 "sqlType": "magellan.Polygon"}
 
+    def convert(self):
+        l = []
+        l.extend(self.indices)
+        l.append(len(self.points))
+        p = []
+        for i,j in zip(l, l[1:]):
+            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
+            p.append(spoints)
+
+        shell = p[0]
+        holes = p[1:]
+        return SPolygon(shell=shell, holes=holes)
+
 
 class PolyLineUDT(UserDefinedType):
     """User-defined type (UDT).
@@ -355,6 +389,16 @@ class PolyLine(Shape):
                 "pyClass": "magellan.types.PolyLineUDT",
                 "class": "magellan.PolyLine",
                 "sqlType": "magellan.PolyLine"}
+
+    def convert(self):
+        l = []
+        l.extend(self.indices)
+        l.append(len(self.points))
+        p = []
+        for i,j in zip(l, l[1:]):
+            spoints = [(point.x, point.y) for point in self.points[i:j - 1]]
+            p.append(LineString(spoints))
+        return MultiLineString(p)
 
 
 def _inbound_shape_converter(json_string):
