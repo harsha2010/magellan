@@ -21,6 +21,7 @@ import java.io.DataInputStream
 import scala.collection.mutable.ListBuffer
 
 import org.apache.commons.io.EndianUtils
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
@@ -108,7 +109,7 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
       taskAttemptContext: TaskAttemptContext): Unit = {
 
     val split = inputSplit.asInstanceOf[FileSplit]
-    val job = taskAttemptContext.getConfiguration()
+    val job = MapReduceUtils.getConfigurationFromContext(taskAttemptContext)
     val start = split.getStart()
     val end = start + split.getLength()
     val file = split.getPath()

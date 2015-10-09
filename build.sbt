@@ -1,26 +1,41 @@
 name := "magellan"
 
-version := "1.0.3"
+version := "1.0.3-SNAPSHOT"
 
 organization := "harsha2010"
 
 scalaVersion := "2.10.4"
 
-parallelExecution in Test := false
+crossScalaVersions := Seq("2.10.5", "2.11.7")
 
-crossScalaVersions := Seq("2.10.4", "2.11.6")
+sparkVersion := "1.4.1"
 
-libraryDependencies += "commons-io" % "commons-io" % "2.4"
+val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
-libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.5" % "provided"
+testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion.value)
 
-libraryDependencies += "com.esri.geometry" % "esri-geometry-api" % "1.2.1"
+val testHadoopVersion = settingKey[String]("The version of Hadoop to test against.")
 
-resolvers ++= Seq(
-  "Apache Staging" at "https://repository.apache.org/content/repositories/staging/",
-  "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
-  "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
+testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.2.0")
+
+sparkComponents := Seq("core", "sql")
+
+libraryDependencies ++= Seq(
+  "commons-io" % "commons-io" % "2.4",
+  "org.slf4j" % "slf4j-api" % "1.7.5" % "provided",
+  "com.esri.geometry" % "esri-geometry-api" % "1.2.1",
+  "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
+
+libraryDependencies ++= Seq(
+  "org.apache.hadoop" % "hadoop-client" % testHadoopVersion.value % "test",
+  "org.apache.spark" %% "spark-core" % testSparkVersion.value % "test" exclude("org.apache.hadoop", "hadoop-client"),
+  "org.apache.spark" %% "spark-sql" % testSparkVersion.value % "test" exclude("org.apache.hadoop", "hadoop-client")
+)
+
+// This is necessary because of how we explicitly specify Spark dependencies
+// for tests rather than using the sbt-spark-package plugin to provide them.
+spIgnoreProvided := true
 
 publishMavenStyle := true
 
@@ -59,19 +74,13 @@ pomExtra := (
 
 spName := "harsha2010/magellan"
 
-sparkVersion := "1.4.0"
-
-sparkComponents += "sql"
-
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
-
-libraryDependencies += "com.novocode" % "junit-interface" % "0.9" % "test"
+parallelExecution in Test := false
 
 ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
   if (scalaBinaryVersion.value == "2.10") false
-  else false
+  else true
 }
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
 
-licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0") 
+licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
