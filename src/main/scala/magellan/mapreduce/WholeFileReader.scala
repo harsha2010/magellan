@@ -61,7 +61,7 @@ class WholeFileReader extends RecordReader[NullWritable, Text] {
   override def initialize(inputSplit: InputSplit,
     taskAttemptContext: TaskAttemptContext): Unit = {
     this.split = inputSplit.asInstanceOf[FileSplit]
-    this.conf = taskAttemptContext.getConfiguration
+    this.conf = MapReduceUtils.getConfigurationFromContext(taskAttemptContext)
   }
 
   override def getCurrentKey: NullWritable = key

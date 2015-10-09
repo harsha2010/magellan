@@ -59,7 +59,7 @@ private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWrit
 
   override def initialize(inputSplit: InputSplit, taskAttemptContext: TaskAttemptContext) {
     val split = inputSplit.asInstanceOf[FileSplit]
-    val job = taskAttemptContext.getConfiguration()
+    val job = MapReduceUtils.getConfigurationFromContext(taskAttemptContext)
     val start = split.getStart()
     val end = start + split.getLength()
     val file = split.getPath()
