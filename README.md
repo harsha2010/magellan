@@ -25,7 +25,7 @@ You can link against this library using the following coordinates:
 
 	groupId: harsha2010
 	artifactId: magellan
-	version: 1.0.2-s_2.10
+	version: 1.0.3-s_2.10
 
 # Requirements
 
@@ -33,17 +33,17 @@ This library requires Spark 1.4+
 
 # Capabilities
 
-The library currently supports the [ESRI](https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf) format files.
+The library currently supports the [ESRI](https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf) format files as well as [GeoJSON](http://geojson.org).
 
 We aim to support the full suite of [OpenGIS Simple Features for SQL ](http://www.opengeospatial.org/standards/sfs) spatial predicate functions and operators together with additional topological functions.
 
-capabilities include:
+capabilities we aim to support include (ones currently available are highlighted):
 
-**Geometries**: Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection
+**Geometries**: **Point**, **LineString**, **Polygon**, **MultiPoint**, MultiLineString, MultiPolygon, GeometryCollection
 	
-**Predicates**: Intersects, Touches, Disjoint, Crosses, Within, Contains, Overlaps, Equals, Covers
+**Predicates**: **Intersects**, Touches, Disjoint, Crosses, **Within**, **Contains**, Overlaps, Equals, Covers
 	
-**Operations**: Union, Distance, Intersection, Symmetric Difference, Convex Hull, Envelope, Buffer, Simplify, Valid, Area, Length
+**Operations**: Union, Distance, **Intersection**, Symmetric Difference, Convex Hull, Envelope, Buffer, Simplify, Valid, Area, Length
 	
 **Scala and Python API**
 
