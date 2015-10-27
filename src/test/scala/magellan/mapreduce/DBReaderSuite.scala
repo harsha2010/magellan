@@ -33,5 +33,4 @@ class DBReaderSuite extends FunSuite with TestSparkContext {
     )
     assert(baseRdd.count() == 948)
   }
-
 }
