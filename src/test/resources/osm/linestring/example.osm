@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="Overpass API">
+<note>The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.</note>
+<meta osm_base="2015-11-07T23:29:01Z"/>
+  <node id="830266858" lat="45.4191178" lon="-75.6378443" version="1" timestamp="2010-07-23T14:48:34Z" changeset="5296150" uid="186592" user="Johnwhelan"/>
+  <node id="830259964" lat="45.4188896" lon="-75.6362879" version="1" timestamp="2010-07-23T14:44:51Z" changeset="5296150" uid="186592" user="Johnwhelan">
+    <tag k="addr:city" v="City of Ottawa"/>
+    <tag k="addr:housenumber" v="492"/>
+    <tag k="addr:street" v="Tremblay Road"/>
+    <tag k="source" v="CanVec 6.0 - NRCan"/>
+  </node>
+  <node id="830266236" lat="45.4191290" lon="-75.6382141" version="1" timestamp="2010-07-23T14:48:01Z" changeset="5296150" uid="186592" user="Johnwhelan"/>
+  <node id="830263985" lat="45.4190782" lon="-75.6390858" version="1" timestamp="2010-07-23T14:46:31Z" changeset="5296150" uid="186592" user="Johnwhelan">
+    <tag k="addr:city" v="City of Ottawa"/>
+    <tag k="addr:housenumber" v="460"/>
+    <tag k="addr:street" v="Tremblay Road"/>
+    <tag k="source" v="CanVec 6.0 - NRCan"/>
+  </node>
+
+  <way id="69271156" version="2" timestamp="2011-06-01T00:47:36Z" changeset="8305875" uid="120468" user="Gone">
+    <nd ref="830259964"/>
+    <nd ref="830266858"/>
+    <nd ref="830266236"/>
+    <nd ref="830263985"/>
+    <tag k="addr:interpolation" v="even"/>
+    <tag k="source" v="CanVec 6.0 - NRCan; NRCan-CanVec-7.0"/>
+  </way>
+
+</osm>
