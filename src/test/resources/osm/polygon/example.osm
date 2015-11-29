@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="Overpass API">
+<note>The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.</note>
+<meta osm_base="2015-11-07T23:29:01Z"/>
+
+  <node id="153194530" lat="45.4200638" lon="-75.6419079" version="1" timestamp="2007-12-06T19:24:10Z" changeset="112076" uid="19854" user="username">
+    <tag k="foo" v="bar"/>
+  </node>
+  <node id="153194532" lat="45.4217868" lon="-75.6421911" version="1" timestamp="2007-12-06T19:24:10Z" changeset="112076" uid="19854" user="username" />
+  <node id="153194534" lat="45.4220880" lon="-75.6420795" version="1" timestamp="2007-12-06T19:24:10Z" changeset="112076" uid="19854" user="username" />
+  
+  <way id="15441830" version="2" timestamp="2007-12-06T19:24:10Z" changeset="112076" uid="19854" user="username">
+    <nd ref="153194530"/>
+    <nd ref="153194532"/>
+    <nd ref="153194534"/>
+    <nd ref="153194530"/>
+    <tag k="created_by" v="foo"/>
+    <tag k="landuse" v="retail"/>
+  </way>
+
+</osm>

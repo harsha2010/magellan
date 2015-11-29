@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="Overpass API">
+<note>The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.</note>
+<meta osm_base="2015-11-07T23:29:01Z"/>
+
+  <node id="3050807278" lat="45.4187480" lon="-75.6470109" version="1" timestamp="2014-08-30T18:42:15Z" changeset="25124209" uid="1679" user="username">
+    <tag k="crossing" v="traffic_signals"/>
+    <tag k="highway" v="crossing"/>
+  </node>
+
+</osm>
