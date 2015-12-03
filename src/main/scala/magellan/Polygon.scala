@@ -106,7 +106,7 @@ class Polygon(
    * @return
    */
   override def transform(fn: (Point) => Point): Polygon = {
-    val transformedPoints = points.map(fn)
+    val transformedPoints = points.map(point => point.transform(fn))
     new Polygon(indices, transformedPoints)
   }
 

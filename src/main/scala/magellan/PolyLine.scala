@@ -92,7 +92,7 @@ class PolyLine(
    * @return
    */
   override def transform(fn: (Point) => Point): PolyLine = {
-    val transformedPoints = points.map(fn)
+    val transformedPoints = points.map(point => point.transform(fn))
     new PolyLine(indices, transformedPoints)
   }
 
