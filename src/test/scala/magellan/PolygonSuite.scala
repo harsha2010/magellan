@@ -113,4 +113,14 @@ class PolygonSuite extends FunSuite {
     val polygon4 = Polygon.fromESRI(polygon3.delegate)
     assert(polygon3.equals(polygon4))
   }
+
+  test("transform") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+    val polygon1 = new Polygon(Array(0), ring1)
+    val polygon2 = polygon1.transform((x: Point) => new Point(3 * x.x, 3 * x.y))
+    assert(polygon2.points(0).equals(new Point(3.0, 3.0)))
+    assert(polygon2.points(1).equals(new Point(3.0, -3.0)))
+
+  }
 }

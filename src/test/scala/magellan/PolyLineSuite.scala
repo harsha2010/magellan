@@ -28,4 +28,14 @@ class PolyLineSuite extends FunSuite {
     assert(polyline.intersects(new Line(new Point(-1.0, -1.0), new Point(2.0, 2.0))))
     assert(polyline.intersects(new Line(new Point(-1.1, -1), new Point(1.9, 2.0))))
   }
+
+  test("transform") {
+    val polyline1 = new PolyLine(Array(0), Array(
+      new Point(0.0, 0.0), new Point(0.0, 1.0), new Point(1.0, 1.0)
+    ))
+    val polyline2 = polyline1.transform((p: Point) => new Point(3 * p.x, 3 * p.y))
+    assert(polyline2.points(0).equals(new Point(0.0, 0.0)))
+    assert(polyline2.points(2).equals(new Point(3.0, 3.0)))
+
+  }
 }
