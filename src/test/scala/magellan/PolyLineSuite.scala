@@ -38,4 +38,23 @@ class PolyLineSuite extends FunSuite {
     assert(polyline2.points(2).equals(new Point(3.0, 3.0)))
 
   }
+
+  test("difference") {
+    val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+    val polygon = new Polygon(Array(0), ring)
+
+    val polyline = new PolyLine(Array(0), Array(
+      new Point(2.0, 2.0), new Point(0.0, 0.0), new Point(-2.0, -2.0)
+    ))
+
+    val diff = polyline.difference(polygon)
+    assert(diff.isInstanceOf[PolyLine])
+    val p = diff.asInstanceOf[PolyLine]
+    assert(p.indices.diff(Array[Int](0)).isEmpty)
+    assert(p.points.size === 4)
+    assert(p.points.contains(new Point(-2.0, -2.0)))
+    assert(p.points.contains(new Point(2.0, 2.0)))
+    assert(!p.points.contains(new Point(0.0, 0.0)))
+  }
 }

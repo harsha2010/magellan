@@ -203,6 +203,22 @@ trait Shape extends DataType with Serializable {
   }
 
   /**
+   * Computes a <code>Shape</code> representing the difference between
+   * this <code>Shape</code> and the <code>other</code> Geometry.
+   * <p>
+   *
+   * @param  other the <code>Shape</code> with which to compute the difference
+   * @return a Shape representing the difference between to the two <code>Shape</code>s
+   */
+  def difference(other: Shape): Shape = {
+    val factory = OperatorFactoryLocal.getInstance
+    val op = factory.getOperator(Operator.Type.Difference).asInstanceOf[OperatorDifference]
+    val esriGeom = op.execute(delegate, other.delegate, null, null)
+
+    Shape.fromESRI(esriGeom)
+  }
+
+  /**
    * Tests whether the set of points covered by this <code>Shape</code> is
    * empty.
    *

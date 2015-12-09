@@ -123,4 +123,40 @@ class PolygonSuite extends FunSuite {
     assert(polygon2.points(1).equals(new Point(3.0, -3.0)))
 
   }
+
+  test("difference") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+    val polygon1 = new Polygon(Array(0), ring1)
+
+    val ring2 = Array(new Point(1.0, 0.0), new Point(1.0, -1.0),
+      new Point(0.0, -1.0), new Point(0.0, 0.0), new Point(1.0, 0.0))
+    val polygon2 = new Polygon(Array(0), ring2)
+
+    val p = polygon1.difference(polygon2)
+    assert(p.isInstanceOf[Polygon])
+    val polygon = p.asInstanceOf[Polygon]
+    assert(polygon.indices.diff(Array[Int](0)).isEmpty)
+    assert(polygon.points.size === 6)
+    assert(polygon.points.contains(new Point(0.0, 0.0)))
+  }
+
+  test("difference, polygon with hole") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+    val polygon1 = new Polygon(Array(0), ring1)
+
+    val ring2 = Array(new Point(0.5, 0.5), new Point(0.5, -0.5),
+      new Point(-0.5, -0.5), new Point(-0.5, 0.5), new Point(0.5, 0.5))
+    val polygon2 = new Polygon(Array(0), ring2)
+
+    val p = polygon1.difference(polygon2)
+    val polygon = p.asInstanceOf[Polygon]
+    assert(polygon.indices.diff(Array[Int](0)).isEmpty)
+    assert(polygon.points.size === 8)
+    assert(!polygon.points.contains(new Point(0.0, 0.0)))
+    assert(!new Point(0.0, 0.0).within(polygon))
+    assert(new Point(0.6, 0.6).within(polygon))
+
+  }
 }
