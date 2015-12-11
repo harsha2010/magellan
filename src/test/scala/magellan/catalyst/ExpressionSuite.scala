@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-package magellan
+package magellan.catalyst
+
+import magellan.{Point, TestSparkContext}
+import org.apache.spark.sql.magellan.MagellanContext
+import org.apache.spark.sql.magellan.dsl.expressions._
 
 import org.scalatest.FunSuite
 
-class PointSuite extends FunSuite {
-
-  test("touches") {
-    val point = new Point(0.0, 0.0)
-    assert(!point.touches(point))
-  }
-
-  test("intersects") {
-    val point = new Point(0.0, 0.0)
-    assert(point.intersects(point))
-  }
+class ExpressionSuite extends FunSuite with TestSparkContext {
 
   test("buffer") {
-    val point = new Point(0.0, 0.0)
-    assert(point.buffer(1.0).contains(new Point(0.5, 0.5)))
+    val sqlCtx = new MagellanContext(sc)
+    import sqlCtx.implicits._
+
+    val pointsdf = sc.parallelize(Seq(
+      PointExample(new Point(0.0, 0.0)),
+      PointExample(new Point(2.0, 2.0))
+    )).toDF()
+
+    val buffereddf = pointsdf.withColumn("polygon", $"point" buffer 0.5)
+    buffereddf.show()
   }
 }

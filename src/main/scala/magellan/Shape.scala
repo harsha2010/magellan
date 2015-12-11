@@ -255,6 +255,18 @@ trait Shape extends DataType with Serializable {
     ???
   }
 
+  /**
+   * Computes a buffer area around this <code>Shape</code> having the given width.
+   * The buffer of a <code>Shape</code> is the Minkowski sum or difference of the geometry
+   * with a disc of radius abs(distance).
+   *
+   * @param distance
+   * @return
+   */
+  def buffer(distance: Double): Polygon = {
+    val esriGeom = GeometryEngine.buffer(delegate, null, distance)
+    Shape.fromESRI(esriGeom).asInstanceOf[Polygon]
+  }
 }
 
 /**

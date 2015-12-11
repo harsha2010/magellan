@@ -62,3 +62,26 @@ case class Intersection(left: Expression, right: Expression)
   }
 
 }
+
+case class Buffer(left: Expression, right: Expression) extends BinaryExpression {
+
+  override type EvaluatedType = Shape
+
+  override def symbol: String = nodeName
+
+  override def toString: String = s"$nodeName($left, $right)"
+
+  override def dataType: DataType = Polygon.EMPTY
+
+  override def eval(input: Row): Shape = {
+    val leftEval = left.eval(input)
+    if (leftEval == null) {
+      NullShape
+    } else {
+      val rightEval = right.eval(input)
+      val shape = leftEval.asInstanceOf[Shape]
+      val distance = rightEval.asInstanceOf[Double]
+      if (shape == null) NullShape else shape.buffer(distance)
+    }
+  }
+}

@@ -159,4 +159,12 @@ class PolygonSuite extends FunSuite {
     assert(new Point(0.6, 0.6).within(polygon))
 
   }
+
+  test("buffer") {
+    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
+      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
+    val polygon1 = new Polygon(Array(0), ring1)
+    val polygon2 = polygon1.buffer(1.0).asInstanceOf[Polygon]
+    assert(polygon2.contains(new Point(1.5, 1.5)))
+  }
 }

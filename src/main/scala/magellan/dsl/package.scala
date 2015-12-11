@@ -54,6 +54,10 @@ package object dsl {
 
     def transform(fn: Point => Point) = Transformer(expr, fn)
 
+    def buffer(other: Expression): Expression = Buffer(expr, other)
+
+    def buffer(distance: Double): Column = Column(Buffer(expr, Literal(distance)))
+
   }
 
   trait ExpressionConversions {
@@ -90,6 +94,10 @@ package object dsl {
       def intersection(other: Expression): Column = Column(Intersection(c.expr, other))
 
       def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
+
+      def buffer(distance: Double): Column = Column(Buffer(c.expr, Literal(distance)))
+
+      def buffer(other: Expression): Column = Column(Buffer(c.expr, other))
 
     }
 
