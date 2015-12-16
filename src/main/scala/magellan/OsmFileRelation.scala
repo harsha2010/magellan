@@ -1,6 +1,7 @@
 package magellan
 
 import com.google.common.base.Objects
+import magellan.OsmInputType.OsmInputType
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.Partitioner
@@ -8,7 +9,12 @@ import org.apache.spark.Partitioner
 import magellan.io._
 import magellan.mapreduce._
 
-private[magellan] case class WayKey(val id: String, val index: Int)
+object OsmInputType extends Enumeration {
+  type OsmInputType = Value
+  val XML, PBF = Value
+}
+
+private[magellan] case class WayKey(id: String, index: Int)
 
 private[magellan] object WayKey {
   implicit def orderingByIdIndex[A <: WayKey]: Ordering[A] = {
@@ -29,36 +35,36 @@ private class WayPartitioner(partitions: Int) extends Partitioner {
   }
 }
 
-case class OsmFileRelation(path: String)(@transient val sqlContext: SQLContext)
+case class OsmFileRelation(path: String, inputType: OsmInputType)(@transient val sqlContext: SQLContext)
   extends SpatialRelation {
-  
+
   private def expandWayValues(way: OsmWay) : Seq[(String, WayValue)] = {
     way.nodeIds.zipWithIndex.map({
       case (nodeId, index) => (nodeId, WayValue(way.id, index, way.tags))
     })
   }
-  
+
   private def keyedPointsRdd(nodes: RDD[OsmNode]): RDD[(String, Point)] = {
     nodes.map({ node => (node.id, node.point) })
   }
-  
+
   private[magellan] def nodesRdd(osmRdd: RDD[(OsmKey, OsmShape)]): RDD[OsmNode] = {
     osmRdd
       .values
       .filter({ shape => shape.isInstanceOf[OsmNode] })
       .map({ shape => shape.asInstanceOf[OsmNode] })
   }
-  
+
   private[magellan] def waysRdd(osmRdd: RDD[(OsmKey, OsmShape)]): RDD[OsmWay] = {
     osmRdd
       .values
       .filter({ shape => shape.isInstanceOf[OsmWay] })
       .map({ shape => shape.asInstanceOf[OsmWay] })
   }
-  
+
   private[magellan] def joinedNodesWays(nodes: RDD[OsmNode], ways: RDD[OsmWay]) = {
     val wayValueTuples = ways.flatMap({ way => expandWayValues(way) })
-    
+
     wayValueTuples
       .join(keyedPointsRdd(nodes))
       .values
@@ -66,7 +72,7 @@ case class OsmFileRelation(path: String)(@transient val sqlContext: SQLContext)
         case (wayValue, point) => (new WayKey(wayValue.id, wayValue.index), (point, wayValue.tags))
       })
   }
-  
+
   private def wayShapeIsArea(head: Point, tail: Point, tags: Map[String, String]) : Boolean = {
     head == tail && {
       tags.getOrElse("area", "no") == "yes" ||
@@ -74,7 +80,7 @@ case class OsmFileRelation(path: String)(@transient val sqlContext: SQLContext)
         tags.contains("highway"))
     }
   }
-  
+
   private def createWayShape(currentPoints: List[Point], tags: Map[String, String]) : Shape = {
     if (currentPoints.length == 0) {
       NullShape
@@ -89,7 +95,7 @@ case class OsmFileRelation(path: String)(@transient val sqlContext: SQLContext)
       }
     }
   }
-  
+
   private def createWayShapes(
       i: Iterator[(WayKey, (Point, Map[String, String]))],
       currentId: String,
@@ -125,7 +131,10 @@ case class OsmFileRelation(path: String)(@transient val sqlContext: SQLContext)
 
     val osmRdd = sqlContext.sparkContext.newAPIHadoopFile(
       path,
-      classOf[OsmInputFormat],
+      inputType match {
+        case OsmInputType.XML => classOf[OsmInputFormat]
+        case OsmInputType.PBF => classOf[OsmPbfInputFormat]
+      },
       classOf[OsmKey],
       classOf[OsmShape]
     )
