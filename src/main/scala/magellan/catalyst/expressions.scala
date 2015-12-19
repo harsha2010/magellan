@@ -16,10 +16,11 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row}
-import org.apache.spark.sql.types._
-
 import magellan._
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{Expression, BinaryExpression}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.types._
 
 /**
  * A function that returns the intersection between the left and right shapes.
@@ -27,17 +28,13 @@ import magellan._
  * @param right
  */
 case class Intersection(left: Expression, right: Expression)
-  extends BinaryExpression {
-
-  override type EvaluatedType = Shape
-
-  override def symbol: String = nodeName
+  extends BinaryExpression with CodegenFallback {
 
   override def toString: String = s"$nodeName($left, $right)"
 
   override def dataType: DataType = left.dataType
 
-  override def eval(input: Row): Shape = {
+  override def eval(input: InternalRow): Shape = {
     val leftEval = left.eval(input)
     if (leftEval == null) {
       NullShape
@@ -50,30 +47,16 @@ case class Intersection(left: Expression, right: Expression)
   }
 
   override def nullable: Boolean = left.nullable || right.nullable
-
-  protected def nullSafeEval(input1: Any, input2: Any): Any = {
-    val leftShape = input1.asInstanceOf[Shape]
-    if (leftShape == null) {
-      null
-    } else {
-      val rightShape = input2.asInstanceOf[Shape]
-      if (rightShape == null) null else rightShape.intersection(leftShape)
-    }
-  }
-
 }
 
-case class Buffer(left: Expression, right: Expression) extends BinaryExpression {
-
-  override type EvaluatedType = Shape
-
-  override def symbol: String = nodeName
+case class Buffer(left: Expression, right: Expression)
+  extends BinaryExpression with CodegenFallback {
 
   override def toString: String = s"$nodeName($left, $right)"
 
   override def dataType: DataType = Polygon.EMPTY
 
-  override def eval(input: Row): Shape = {
+  override def eval(input: InternalRow): Shape = {
     val leftEval = left.eval(input)
     if (leftEval == null) {
       NullShape

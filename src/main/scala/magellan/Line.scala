@@ -87,7 +87,7 @@ class LineUDT extends UserDefinedType[Line] {
 
 }
 
-private[magellan] object Line {
+object Line {
 
   val EMPTY = new Line(Point.EMPTY, Point.EMPTY)
 

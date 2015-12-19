@@ -16,12 +16,13 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{LeafExpression, Row}
+import magellan.Shape
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.LeafExpression
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.types.DataType
 
-import magellan.Shape
-
-case class ShapeLiteral(shape: Shape) extends LeafExpression {
+case class ShapeLiteral(shape: Shape) extends LeafExpression with CodegenFallback {
 
   override def foldable: Boolean = true
 
@@ -29,7 +30,7 @@ case class ShapeLiteral(shape: Shape) extends LeafExpression {
 
   type EvaluatedType = Shape
 
-  override def eval(input: Row): Shape = shape
+  override def eval(input: InternalRow): Shape = shape
 
   override val dataType: DataType = shape
 

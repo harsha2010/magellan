@@ -118,7 +118,7 @@ class Polygon(
       ("points" -> JArray(points.map(_.jsonValue).toList))
 }
 
-private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
+class PolygonUDT extends UserDefinedType[Polygon] {
 
   override def sqlType: DataType = Polygon.EMPTY
 
@@ -144,7 +144,7 @@ private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
 
 }
 
-private[magellan] object Polygon {
+object Polygon {
 
   val EMPTY = new Polygon(Array[Int](), Array[Point]())
 

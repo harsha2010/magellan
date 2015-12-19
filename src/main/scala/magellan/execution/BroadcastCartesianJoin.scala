@@ -17,6 +17,7 @@
 package org.apache.spark.sql.execution.joins
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.{BinaryNode, SparkPlan}
 import org.apache.spark.util.collection.CompactBuffer
@@ -36,13 +37,13 @@ case class BroadcastCartesianJoin(
   @transient private lazy val boundCondition =
     newPredicate(condition.getOrElse(Literal(true)), left.output ++ right.output)
 
-  override protected def doExecute(): RDD[Row] = {
+  override protected def doExecute(): RDD[InternalRow] = {
     val bc = broadcast.execute()
     val broadcastedRelation = sparkContext.broadcast(bc.map(_.copy()).collect().toIndexedSeq)
 
     streamed.execute().mapPartitions { streamedIter =>
       val v = broadcastedRelation.value
-      val matchedRows = new CompactBuffer[Row]
+      val matchedRows = new CompactBuffer[InternalRow]
       val joinedRow = new JoinedRow
 
       streamedIter.foreach { streamedRow =>

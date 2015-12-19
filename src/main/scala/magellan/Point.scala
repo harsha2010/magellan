@@ -82,7 +82,7 @@ class Point(val x: Double, val y: Double) extends Shape {
       ("y" -> y)
 }
 
-private[magellan] class PointUDT extends UserDefinedType[Point] {
+class PointUDT extends UserDefinedType[Point] {
 
   override def sqlType: DataType = Point.EMPTY
 

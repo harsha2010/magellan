@@ -16,34 +16,23 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{Row, Expression, UnaryExpression}
-import org.apache.spark.sql.types.DataType
-
 import magellan._
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{Expression, UnaryExpression}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.types.DataType
 
 case class Transformer(
     override val child: Expression,
     fn: Point => Point)
-  extends UnaryExpression {
+  extends UnaryExpression with CodegenFallback {
 
-  override type EvaluatedType = child.EvaluatedType
-
-  override def eval(input: Row): EvaluatedType = {
+  override def eval(input: InternalRow): Shape = {
     val shape = child.eval(input).asInstanceOf[Shape]
-    shape.transform(fn).asInstanceOf[EvaluatedType]
+    shape.transform(fn)
   }
 
   override def nullable: Boolean = child.nullable
 
   override def dataType: DataType = child.dataType
-
-  protected def nullSafeEval(input: Any): Any = {
-    if (input == null) {
-      null
-    } else {
-      val shape = input.asInstanceOf[Shape]
-      shape.transform(fn)
-    }
-  }
-
 }

@@ -16,10 +16,11 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.types.DataType
-
 import magellan._
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{Expression, BinaryExpression}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.types.DataType
 
 /**
  * Convert x and y coordinates to a `Point`
@@ -28,20 +29,16 @@ import magellan._
  * @param right
  */
 case class PointConverter(override val left: Expression,
-    override val right: Expression) extends BinaryExpression {
+    override val right: Expression) extends BinaryExpression with CodegenFallback {
 
 
   override def nullable: Boolean = false
 
-  override def eval(input: Row): Point = {
+  override def eval(input: InternalRow): Point = {
     val x = left.eval(input).asInstanceOf[Double]
     val y = right.eval(input).asInstanceOf[Double]
     new Point(x, y)
   }
 
-  override type EvaluatedType = Point
-
   override val dataType: DataType = new PointUDT
-
-  override def symbol: String = "point"
 }

@@ -97,7 +97,7 @@ object EvaluatePython {
    */
   private class RowPickler extends IObjectPickler {
 
-    private val cls = classOf[GenericMutableRow]
+    private val cls = classOf[GenericRowWithSchema]
 
     // register this to Pickler and Unpickler
     def register(): Unit = {
@@ -112,7 +112,7 @@ object EvaluatePython {
       } else {
         // it will be memorized by Pickler to save some bytes
         pickler.save(this)
-        val row = obj.asInstanceOf[GenericMutableRow]
+        val row = obj.asInstanceOf[GenericRowWithSchema]
         // schema should always be same object for memoization
         pickler.save(row.schema)
         out.write(Opcodes.TUPLE1)

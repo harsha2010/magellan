@@ -16,26 +16,23 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row}
-import org.apache.spark.sql.types.{BooleanType, DataType}
-
 import magellan.Shape
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.types.{BooleanType, DataType}
 
 /**
  * A function that returns true if the shape `left` is within the shape `right`.
  */
 case class Within(left: Expression, right: Expression)
-  extends BinaryExpression {
-
-  override type EvaluatedType = Any
-
-  override def symbol: String = nodeName
+  extends BinaryExpression with CodegenFallback {
 
   override def toString: String = s"$nodeName($left, $right)"
 
   override def dataType: DataType = BooleanType
 
-  override def eval(input: Row): Any = {
+  override def eval(input: InternalRow): Any = {
     val leftEval = left.eval(input)
     if (leftEval == null) {
       null
@@ -48,16 +45,6 @@ case class Within(left: Expression, right: Expression)
   }
 
   override def nullable: Boolean = left.nullable || right.nullable
-
-  protected def nullSafeEval(input1: Any, input2: Any): Any = {
-    val leftShape = input1.asInstanceOf[Shape]
-    if (leftShape == null) {
-      null
-    } else {
-      val rightShape = input2.asInstanceOf[Shape]
-      if (rightShape == null) null else rightShape.contains(leftShape)
-    }
-  }
 }
 
 /**
@@ -66,17 +53,13 @@ case class Within(left: Expression, right: Expression)
  * @param right
  */
 case class Intersects(left: Expression, right: Expression)
-  extends BinaryExpression {
-
-  override type EvaluatedType = Boolean
-
-  override def symbol: String = nodeName
+  extends BinaryExpression with CodegenFallback {
 
   override def toString: String = s"$nodeName($left, $right)"
 
   override def dataType: DataType = BooleanType
 
-  override def eval(input: Row): Boolean = {
+  override def eval(input: InternalRow): Boolean = {
     val leftEval = left.eval(input)
     if (leftEval == null) {
       false
@@ -89,15 +72,4 @@ case class Intersects(left: Expression, right: Expression)
   }
 
   override def nullable: Boolean = left.nullable || right.nullable
-
-  protected def nullSafeEval(input1: Any, input2: Any): Any = {
-    val leftShape = input1.asInstanceOf[Shape]
-    if (leftShape == null) {
-      null
-    } else {
-      val rightShape = input2.asInstanceOf[Shape]
-      if (rightShape == null) null else rightShape.intersects(leftShape)
-    }
-  }
-
 }

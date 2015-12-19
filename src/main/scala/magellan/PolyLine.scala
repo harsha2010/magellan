@@ -105,7 +105,7 @@ class PolyLine(
 
 }
 
-private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
+class PolyLineUDT extends UserDefinedType[PolyLine] {
 
   override def sqlType: DataType = PolyLine.EMPTY
 
@@ -127,7 +127,7 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
   override def pyUDT: String = "magellan.types.PolyLineUDT"
 }
 
-private[magellan] object PolyLine {
+object PolyLine {
 
   val EMPTY = new PolyLine(Array[Int](), Array[Point]())
 

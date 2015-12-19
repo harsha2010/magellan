@@ -16,10 +16,10 @@
 
 package magellan
 
-import org.apache.spark.sql.magellan.EvaluatePython
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
-import org.apache.spark.sql.sources.{Filter, BaseRelation, PrunedFilteredScan}
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.magellan.EvaluatePython
+import org.apache.spark.sql.sources.{BaseRelation, Filter, PrunedFilteredScan}
 import org.apache.spark.sql.types._
 
 private[magellan] trait SpatialRelation extends BaseRelation with PrunedFilteredScan {
@@ -41,10 +41,11 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
     val indices = requiredColumns.map(attr => schema.fieldIndex(attr))
     val numFields = indices.size
     _buildScan().mapPartitions { iter =>
-      val row = new GenericMutableRow(numFields)
+      val row = new Array[Any](numFields)
       iter.flatMap { case (shape: Shape, meta: Option[Map[String, String]]) =>
         EvaluatePython.registerPicklers()
-        (0 until numFields).foreach(i => row.setNullAt(i))
+        (0 until numFields).foreach(i => row(i) = null)
+
         indices.zipWithIndex.foreach { case (index, i) =>
           val v = index match {
             case 0 => if (shape.isInstanceOf[Point]) Some(shape) else None
@@ -55,7 +56,7 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
           }
           v.foreach(x => row(i) = x)
           }
-        Some(row)
+        Some(Row.fromSeq(row))
       }
     }
   }

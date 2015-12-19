@@ -8,7 +8,7 @@ scalaVersion := "2.10.4"
 
 crossScalaVersions := Seq("2.10.5", "2.11.7")
 
-sparkVersion := "1.4.1"
+sparkVersion := "1.5.2"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 

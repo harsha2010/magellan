@@ -18,7 +18,7 @@ package org.apache.spark.sql.magellan
 
 import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.sql.sources.DataSourceStrategy
+import org.apache.spark.sql.execution.datasources.DataSourceStrategy
 import org.apache.spark.sql.{SQLConf, SQLContext, Strategy}
 
 class MagellanContext(sc: SparkContext) extends SQLContext(sc) {
@@ -34,12 +34,12 @@ class MagellanContext(sc: SparkContext) extends SQLContext(sc) {
       experimental.extraStrategies ++ (
         DataSourceStrategy ::
         DDLStrategy ::
-        TakeOrdered ::
+        TakeOrderedAndProject ::
         HashAggregation ::
+        Aggregation ::
         LeftSemiJoin ::
-        HashJoin ::
+        EquiJoinSelection ::
         InMemoryScans ::
-        ParquetOperations ::
         BasicOperators ::
         BroadcastCartesianJoin ::
         CartesianProduct ::

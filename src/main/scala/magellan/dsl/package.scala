@@ -16,12 +16,11 @@
 
 package org.apache.spark.sql.magellan
 
+import magellan._
+import magellan.catalyst._
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
-
-import magellan._
-import magellan.catalyst._
 
 package object dsl {
   trait ImplicitOperators {
