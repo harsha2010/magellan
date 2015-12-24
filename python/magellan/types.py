@@ -37,8 +37,6 @@ except:
 
 class Shape(DataType):
 
-    __initialized__ = False
-
     def convert(self):
         raise NotImplementedError()
 
@@ -47,21 +45,6 @@ class Shape(DataType):
             return self.convert()
         else:
             raise TypeError("Cannot convert to Shapely type")
-
-    def registerPicklers(self):
-        if Point.__initialized__ == False:
-            sc = SparkContext._active_spark_context
-            loader = sc._jvm.Thread.currentThread().getContextClassLoader()
-            wclass = loader.loadClass("org.apache.spark.sql.magellan.EvaluatePython")
-            wmethod = None
-            for mthd in wclass.getMethods():
-                if mthd.getName() == "registerPicklers":
-                    wmethod = mthd
-
-            expr_class = sc._jvm.java.lang.Object
-            java_args = sc._gateway.new_array(expr_class, 0)
-            wmethod.invoke(None, java_args)
-            Point.__initialized__ = True
 
 
 class PointUDT(UserDefinedType):
@@ -158,7 +141,6 @@ class Point(Shape):
         return Point(json['x'], json['y'])
 
     def jsonValue(self):
-        self.registerPicklers()
         return {"type": "udt",
                 "pyClass": "magellan.types.PointUDT",
                 "class": "magellan.PointUDT",
@@ -267,7 +249,6 @@ class Polygon(Shape):
         return Polygon(indices, points)
 
     def jsonValue(self):
-        self.registerPicklers()
         return {"type": "udt",
                 "pyClass": "magellan.types.PolygonUDT",
                 "class": "magellan.Polygon",
@@ -384,7 +365,6 @@ class PolyLine(Shape):
         return PolyLine(indices, points)
 
     def jsonValue(self):
-        self.registerPicklers()
         return {"type": "udt",
                 "pyClass": "magellan.types.PolyLineUDT",
                 "class": "magellan.PolyLine",

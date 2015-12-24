@@ -92,44 +92,6 @@ object EvaluatePython {
     }
   }
 
-  /**
-   * Pickler for InternalRow
-   */
-  private class RowPickler extends IObjectPickler {
-
-    private val cls = classOf[GenericRowWithSchema]
-
-    // register this to Pickler and Unpickler
-    def register(): Unit = {
-      Pickler.registerCustomPickler(this.getClass, this)
-      Pickler.registerCustomPickler(cls, this)
-    }
-
-    def pickle(obj: Object, out: OutputStream, pickler: Pickler): Unit = {
-      if (obj == this) {
-        out.write(Opcodes.GLOBAL)
-        out.write((magellanModule + "\n" + "_create_row_inbound_converter" + "\n").getBytes("utf-8"))
-      } else {
-        // it will be memorized by Pickler to save some bytes
-        pickler.save(this)
-        val row = obj.asInstanceOf[GenericRowWithSchema]
-        // schema should always be same object for memoization
-        pickler.save(row.schema)
-        out.write(Opcodes.TUPLE1)
-        out.write(Opcodes.REDUCE)
-        out.write(Opcodes.MARK)
-        var i = 0
-        while (i < row.size) {
-          val v = row.get(i)
-          pickler.save(v)
-          i += 1
-        }
-        out.write(Opcodes.TUPLE)
-        out.write(Opcodes.REDUCE)
-      }
-    }
-  }
-
   private[this] var registered = false
   /**
    * This should be called before trying to serialize any above classes un cluster mode,
@@ -139,7 +101,6 @@ object EvaluatePython {
     synchronized {
       if (!registered) {
         new ShapePickler().register()
-        new RowPickler().register()
         new PointUnpickler().register()
         new PolygonUnpickler().register()
         new PolyLineUnpickler().register()
