@@ -37,8 +37,6 @@ class PolyLine(
     val points: IndexedSeq[Point])
   extends Shape {
 
-  override val shapeType: Int = 3
-
   override private[magellan] val delegate = {
     val p = new ESRIPolyline()
     var startIndex = 0
@@ -72,18 +70,17 @@ class PolyLine(
   override def equals(other: Any): Boolean = other match {
     case that: PolyLine =>
       (that canEqual this) &&
-        shapeType == that.shapeType &&
         indices == that.indices &&
         points == that.points
     case _ => false
   }
 
   override def hashCode(): Int = {
-    val state = Seq(shapeType, indices, points)
+    val state = Seq(indices, points)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 
-  override def toString = s"PolyLine($shapeType, $indices, $points)"
+  override def toString = s"PolyLine($indices, $points)"
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.

@@ -30,8 +30,6 @@ import org.apache.spark.sql.types._
 @SQLUserDefinedType(udt = classOf[LineUDT])
 class Line(val start: Point, val end: Point) extends Shape {
 
-  override val shapeType: Int = 2
-
   override private[magellan] val delegate = {
     val l = new ESRILine()
     l.startPath(start.delegate)

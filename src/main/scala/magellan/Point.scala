@@ -43,8 +43,6 @@ class Point(val x: Double, val y: Double) extends Shape {
     p
   }
 
-  override final val shapeType: Int = 1
-
   def equalToTol(other: Point, eps: Double): Boolean = {
     math.abs(x - other.x) < eps && math.abs(y - other.y) < eps
   }

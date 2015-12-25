@@ -28,8 +28,6 @@ import org.apache.spark.sql.types._
  */
 trait Shape extends DataType with Serializable {
 
-  val shapeType: Int
-
   private[magellan] val delegate: ESRIGeometry
 
   override def defaultSize: Int = 4096
@@ -273,8 +271,6 @@ trait Shape extends DataType with Serializable {
  * A null shape indicates an absence of geometric data.
  */
 object NullShape extends Shape {
-
-  override final val shapeType: Int = 0
 
   override private[magellan] val delegate = null
 

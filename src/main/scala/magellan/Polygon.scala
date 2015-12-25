@@ -47,8 +47,6 @@ class Polygon(
     val points: IndexedSeq[Point])
   extends Shape {
 
-  override val shapeType: Int = 5
-
   override private[magellan] val delegate = {
     val p = new ESRIPolygon()
     if (points.length > 0) {
@@ -97,7 +95,7 @@ class Polygon(
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 
-  override def toString = s"Polygon($shapeType, $indices, $points)"
+  override def toString = s"Polygon($indices, $points)"
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.

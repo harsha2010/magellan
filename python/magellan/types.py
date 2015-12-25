@@ -87,11 +87,9 @@ class PointUDT(UserDefinedType):
         if isinstance(datum, Point):
             return datum
         else:
-            assert len(datum) == 3, \
-                "PointUDT.deserialize given row with length %d but requires 3" % len(datum)
-            tpe = datum[0]
-            assert tpe == 1, "Point should have type = 1"
-            return Point(datum[1], datum[2])
+            assert len(datum) == 2, \
+                "PointUDT.deserialize given row with length %d but requires 2" % len(datum)
+            return Point(datum[0], datum[1])
 
     def simpleString(self):
         return 'point'
@@ -117,7 +115,6 @@ class Point(Shape):
     __UDT__ = PointUDT()
 
     def __init__(self, x = 0.0, y = 0.0):
-        self._shape_type = 1
         self.x = x
         self.y = y
 
@@ -194,11 +191,9 @@ class PolygonUDT(UserDefinedType):
         if isinstance(datum, Polygon):
             return datum
         else:
-            assert len(datum) == 3, \
-                "PolygonUDT.deserialize given row with length %d but requires 4" % len(datum)
-            tpe = datum[0]
-            assert tpe == 5, "Polygon should have type = 5"
-            return Polygon(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
+            assert len(datum) == 2, \
+                "PolygonUDT.deserialize given row with length %d but requires 2" % len(datum)
+            return Polygon(datum[0], [self.pointUDT.deserialize(point) for point in datum[1]])
 
     def simpleString(self):
         return 'polygon'
@@ -227,7 +222,6 @@ class Polygon(Shape):
     __UDT__ = PolygonUDT()
 
     def __init__(self, indices = [], points = []):
-        self._shape_type = 5
         self.indices = indices
         self.points = points
 
@@ -313,12 +307,9 @@ class PolyLineUDT(UserDefinedType):
         if isinstance(datum, PolyLine):
             return datum
         else:
-            assert len(datum) == 3, \
-                "PolyLineUDT.deserialize given row with length %d but requires 4" % len(datum)
-            print datum
-            tpe = datum[0]
-            assert tpe == 3, "PolyLine should have type = 3"
-            return PolyLine(datum[1], [self.pointUDT.deserialize(point) for point in datum[2]])
+            assert len(datum) == 2, \
+                "PolyLineUDT.deserialize given row with length %d but requires 2" % len(datum)
+            return PolyLine(datum[0], [self.pointUDT.deserialize(point) for point in datum[1]])
 
     def simpleString(self):
         return 'polyline'
@@ -343,7 +334,6 @@ class PolyLine(Shape):
     __UDT__ = PolyLineUDT()
 
     def __init__(self, indices = [], points = []):
-        self._shape_type = 3
         self.indices = indices
         self.points = points
 
