@@ -1,0 +1,18 @@
+option optimize_for = LITE_RUNTIME;
+option java_package = "magellan.osmpbf";
+
+package OSMPBF;
+
+message Blob {
+   optional bytes raw = 1; // No compression
+   optional int32 raw_size = 2; // Only set when compressed, to the uncompressed size
+   optional bytes zlib_data = 3;
+   // optional bytes lzma_data = 4; // PROPOSED.
+   // optional bytes OBSOLETE_bzip2_data = 5; // Deprecated.
+ }
+
+message BlobHeader {
+  required string type = 1;
+  optional bytes indexdata = 2;
+  required int32 datasize = 3;
+}
