@@ -29,4 +29,10 @@ class PointSuite extends FunSuite {
     val point = new Point(0.0, 0.0)
     assert(point.intersects(point))
   }
+
+  test("distance between points") {
+    val point1 = new Point(0.0,0.0);
+    val point2 = new Point(1.0,1.0);
+    assert(point1.distance(point2).equals(Math.sqrt(2)))
+  }
 }

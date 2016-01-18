@@ -36,4 +36,10 @@ class LineSuite extends FunSuite {
     assert(line1.intersects(line2, 3))
     assert(line2.intersects(new Line(new Point(-0.5, 0.5), new Point(0.5, 0.5)), 3))
   }
+
+  test("distance point to line") {
+    val point = new Point(1.0,1.0)
+    val line = new Line(new Point(0.0, 0.0), new Point(0.0, 2.0))
+    assert(point.distance(line).equals(1.0))
+  }
 }
