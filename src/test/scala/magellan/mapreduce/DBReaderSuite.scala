@@ -33,4 +33,17 @@ class DBReaderSuite extends FunSuite with TestSparkContext {
     )
     assert(baseRdd.count() == 948)
   }
+
+  test("read dBase format with Floats") {
+    //val path = this.getClass.getClassLoader.getResource("testdbf/GBR_adm0.dbf").getPath
+    val path = this.getClass.getClassLoader.getResource("testdbf/dbf.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    )
+    System.out.println(baseRdd.map(x => x._2.values.size()).collect())
+    assert(baseRdd.count() == 1)
+  }
 }
