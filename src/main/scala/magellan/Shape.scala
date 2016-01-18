@@ -203,6 +203,13 @@ trait Shape extends DataType with Serializable {
   }
 
   /**
+   * Computes distance between two shapes
+   */
+  def distance(other: Shape): Double = {
+    GeometryEngine.distance(delegate, other.delegate, null)
+  }
+
+  /**
    * Tests whether the set of points covered by this <code>Shape</code> is
    * empty.
    *

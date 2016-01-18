@@ -28,4 +28,12 @@ class PolyLineSuite extends FunSuite {
     assert(polyline.intersects(new Line(new Point(-1.0, -1.0), new Point(2.0, 2.0))))
     assert(polyline.intersects(new Line(new Point(-1.1, -1), new Point(1.9, 2.0))))
   }
+
+  test("distance point to polyline") {
+    val point = new Point(1.0,1.0)
+    val line = new PolyLine(Array(0), Array(
+      new Point(0.0, 0.0), new Point(0.0, 2.0)
+    ))
+    assert(point.distance(line).equals(1.0))
+  }
 }
