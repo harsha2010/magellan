@@ -16,7 +16,8 @@
 
 package magellan.catalyst
 
-import magellan.TestSparkContext
+import magellan.{Point, TestSparkContext}
+import org.apache.spark.sql.Row
 import org.scalatest.FunSuite
 import org.apache.spark.sql.magellan.dsl.expressions._
 
@@ -26,6 +27,12 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
     val df = sc.parallelize(Seq((35.7, -122.3))).toDF("lat", "lon")
-    println(df.withColumn("point", point($"lon", $"lat")).show())
+    val p = df.withColumn("point", point($"lon", $"lat"))
+      .select('point)
+      .map { case Row(p: Point) => p}
+      .first()
+
+    assert(p.getX() === -122.3)
+    assert(p.getY() === 35.7)
   }
 }
