@@ -259,16 +259,3 @@ object NullShape extends Shape {
   override def transform(fn: (Point) => Point): Shape = this
 
 }
-
-object Shape {
-
-  private val pointUDT = new PointUDT
-
-  def apply(row: InternalRow): Shape = {
-    require(row.numFields > 1)
-    row.getInt(0) match {
-      case 1 => pointUDT.deserialize(row)
-      case _ => ???
-    }
-  }
-}

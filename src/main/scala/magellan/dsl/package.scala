@@ -43,20 +43,6 @@ package object dsl {
 
     def apply(other: Expression): Expression = GetMapValue(expr, other)
 
-    def intersects(other: Expression): Expression = Intersects(expr, other)
-
-    def intersects(other: Shape): Column = Column(Intersects(expr, ShapeLiteral(other)))
-
-    def intersection(other: Expression): Expression = Intersection(expr, other)
-
-    def intersection(other: Shape): Column = Column(Intersection(expr, ShapeLiteral(other)))
-
-    def transform(fn: Point => Point) = Transformer(expr, fn)
-
-    def buffer(other: Expression): Expression = Buffer(expr, other)
-
-    def buffer(distance: Double): Column = Column(Buffer(expr, Literal(distance)))
-
   }
 
   trait ExpressionConversions {
@@ -81,22 +67,6 @@ package object dsl {
       def apply(other: Any): Column = Column(GetMapValue(col.expr, lit(other).expr))
 
       def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
-
-      def intersects(other: Column): Column = Column(Intersects(c.expr, other.expr))
-
-      def intersects(other: Shape): Column = Column(Intersects(c.expr, ShapeLiteral(other)))
-
-      def intersection(other: Column): Column = Column(Intersection(c.expr, other.expr))
-
-      def intersection(other: Shape): Column = Column(Intersection(c.expr, ShapeLiteral(other)))
-
-      def intersection(other: Expression): Column = Column(Intersection(c.expr, other))
-
-      def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
-
-      def buffer(distance: Double): Column = Column(Buffer(c.expr, Literal(distance)))
-
-      def buffer(other: Expression): Column = Column(Buffer(c.expr, other))
 
     }
 

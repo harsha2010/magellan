@@ -92,6 +92,7 @@ class PointUDT extends UserDefinedType[Point] {
 
   override def sqlType: DataType = StructType(
     Seq(
+      StructField("type", IntegerType, nullable = false),
       StructField("x", DoubleType, nullable = false),
       StructField("y", DoubleType, nullable = false)
     ))

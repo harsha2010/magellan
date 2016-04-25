@@ -16,7 +16,7 @@
 
 package magellan.catalyst
 
-import magellan.Shape
+import magellan.{Point, Shape}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
@@ -32,44 +32,42 @@ case class Within(left: Expression, right: Expression)
 
   override def dataType: DataType = BooleanType
 
+  private var l: Shape = _
+  private var r: Shape = _
+
   override def eval(input: InternalRow): Any = {
     val leftEval = left.eval(input)
     if (leftEval == null) {
       null
     } else {
       val rightEval = right.eval(input)
-      val leftShape = Shape(leftEval.asInstanceOf[InternalRow])
-      val rightShape = Shape(rightEval.asInstanceOf[InternalRow])
-      if (rightEval == null) null else rightShape.contains(leftShape)
+      val lr = leftEval.asInstanceOf[InternalRow]
+      val rr = rightEval.asInstanceOf[InternalRow]
+      if (l == null) {
+        l = newInstance(None, lr)
+      } else {
+        l = newInstance(Some(l), lr)
+      }
+      if (r == null) {
+        r = newInstance(None, rr)
+      } else {
+        r = newInstance(Some(r), rr)
+      }
+      if (rightEval == null) null else l.contains(r)
     }
   }
 
   override def nullable: Boolean = left.nullable || right.nullable
-}
 
-/**
- * A function that returns the number of times the left shape intersects the right line.
- * @param left
- * @param right
- */
-case class Intersects(left: Expression, right: Expression)
-  extends BinaryExpression with CodegenFallback {
-
-  override def toString: String = s"$nodeName($left, $right)"
-
-  override def dataType: DataType = BooleanType
-
-  override def eval(input: InternalRow): Boolean = {
-    val leftEval = left.eval(input)
-    if (leftEval == null) {
-      false
-    } else {
-      val rightEval = right.eval(input)
-      val leftShape = leftEval.asInstanceOf[Shape]
-      val rightShape = rightEval.asInstanceOf[Shape]
-      if (rightEval == null) false else leftShape.intersects(rightShape)
+  def newInstance(prev: Option[Shape], row: InternalRow): Shape = {
+    def newInstance(row: InternalRow): Shape = row.getInt(0) match {
+      case 1 => new Point()
+      case _ => ???
+    }
+    prev.fold(newInstance(row)) { case p: Point =>
+        p.setX(row.getDouble(1))
+        p.setY(row.getDouble(2))
+        p
     }
   }
-
-  override def nullable: Boolean = left.nullable || right.nullable
 }

@@ -34,11 +34,11 @@ case class PointConverter(override val left: Expression,
 
   override def nullable: Boolean = false
 
-  override def eval(input: InternalRow): Point = {
+  override def eval(input: InternalRow): InternalRow = {
     val x = left.eval(input).asInstanceOf[Double]
     val y = right.eval(input).asInstanceOf[Double]
-    Point(x, y)
+    dataType.serialize(Point(x, y))
   }
 
-  override val dataType: DataType = new PointUDT
+  override val dataType: PointUDT = new PointUDT
 }
