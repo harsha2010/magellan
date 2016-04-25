@@ -37,7 +37,7 @@ case class PointConverter(override val left: Expression,
   override def eval(input: InternalRow): Point = {
     val x = left.eval(input).asInstanceOf[Double]
     val y = right.eval(input).asInstanceOf[Double]
-    new Point(x, y)
+    Point(x, y)
   }
 
   override val dataType: DataType = new PointUDT

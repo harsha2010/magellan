@@ -38,8 +38,8 @@ case class Within(left: Expression, right: Expression)
       null
     } else {
       val rightEval = right.eval(input)
-      val leftShape = leftEval.asInstanceOf[Shape]
-      val rightShape = rightEval.asInstanceOf[Shape]
+      val leftShape = Shape(leftEval.asInstanceOf[InternalRow])
+      val rightShape = Shape(rightEval.asInstanceOf[InternalRow])
       if (rightEval == null) null else rightShape.contains(leftShape)
     }
   }

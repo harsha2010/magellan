@@ -119,7 +119,7 @@ class NAD83(params: Map[String, Any]) extends System {
     val rb = k / StrictMath.exp(qb * sinfo)
 
     (point: Point) => {
-      val (long, lat) = (point.x, point.y)
+      val (long, lat) = (point.getX(), point.getY())
       val l = - long / RAD
       val f = lat / RAD
       val q = qqq(E, StrictMath.sin(f))
@@ -127,7 +127,7 @@ class NAD83(params: Map[String, Any]) extends System {
       val gam = (cm - l) * sinfo
       val n = rb + nb - (r * StrictMath.cos(gam))
       val e = eo + (r * StrictMath.sin(gam))
-      new Point(e, n)
+      Point(e, n)
     }
   }
 
@@ -159,8 +159,8 @@ class NAD83(params: Map[String, Any]) extends System {
     val k = ER * cosfs * StrictMath.exp(qs * sinfo) / (w1 * sinfo)
     val rb = k / StrictMath.exp(qb * sinfo)
     (point: Point) => {
-      val easting = point.x
-      val northing = point.y
+      val easting = point.getX()
+      val northing = point.getY()
       val npr = rb - northing + nb
       val epr = easting - eo
       val gam = StrictMath.atan(epr / npr)
@@ -176,7 +176,7 @@ class NAD83(params: Map[String, Any]) extends System {
         f2 = 1.toDouble / (1.toDouble - sine * sine) - ESQ / (1.toDouble - ESQ * sine * sine)
         sine -= (f1/ f2)
       }
-      new Point(StrictMath.toDegrees(lon) * -1, StrictMath.toDegrees(StrictMath.asin(sine)))
+      Point(StrictMath.toDegrees(lon) * -1, StrictMath.toDegrees(StrictMath.asin(sine)))
     }
   }
 
@@ -219,8 +219,8 @@ class NAD83(params: Map[String, Any]) extends System {
     val so = sf * r * omo
 
     (point: Point) => {
-      val easting = point.x
-      val northing = point.y
+      val easting = point.getX()
+      val northing = point.getY()
       // translated from TMGEOD subroutine
       val om = (northing - fn + so) / (r * sf)
       val cosom = StrictMath.cos(om)
@@ -244,7 +244,7 @@ class NAD83(params: Map[String, Any]) extends System {
       val lat = foot + b2 * qs * (1.0 + qs * (b4 + b6 * qs))
       val l = b1 * q * (1.0 + qs * (b3 + qs * (b5 + b7 * qs)))
       val lon = -l / cosf + cm
-      new Point(StrictMath.toDegrees(lon) * -1, StrictMath.toDegrees(lat))
+      Point(StrictMath.toDegrees(lon) * -1, StrictMath.toDegrees(lat))
     }
   }
 }

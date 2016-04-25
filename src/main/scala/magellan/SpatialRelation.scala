@@ -27,9 +27,7 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
   @transient val sc = sqlContext.sparkContext
 
   override val schema = {
-    StructType(List(StructField("point", Point.EMPTY, true),
-        StructField("polyline", PolyLine.EMPTY, true),
-        StructField("polygon", Polygon.EMPTY, true),
+    StructType(List(StructField("point", new PointUDT(), true),
         StructField("metadata", MapType(StringType, StringType, true), true),
         StructField("valid", BooleanType, true)
       ))
@@ -49,10 +47,9 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
         indices.zipWithIndex.foreach { case (index, i) =>
           val v = index match {
             case 0 => if (shape.isInstanceOf[Point]) Some(shape) else None
-            case 1 => if (shape.isInstanceOf[PolyLine]) Some(shape) else None
-            case 2 => if (shape.isInstanceOf[Polygon]) Some(shape) else None
             case 3 => Some(meta.fold(Map[String, String]())(identity))
             case 4 => Some(shape.isValid())
+            case _ => ???
           }
           v.foreach(x => row(i) = x)
           }

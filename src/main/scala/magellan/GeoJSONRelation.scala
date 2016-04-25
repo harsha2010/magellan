@@ -64,25 +64,15 @@ case class GeoJSONRelation(path: String)(@transient val sqlContext: SQLContext)
 
 private case class Geometry(`type`: String, coordinates: JValue) {
   def extractPoints(p: List[JValue]) = {
-    p.map { case (JArray(List(JDouble(x), JDouble(y)))) => new Point(x, y)}
+    p.map { case (JArray(List(JDouble(x), JDouble(y)))) => Point(x, y)}
   }
   val shape = {
     `type` match {
       case "Point" => {
         val JArray(List(JDouble(x), JDouble(y))) = coordinates
-        new Point(x, y)
+        Point(x, y)
       }
-      case "LineString" => {
-        val JArray(p) = coordinates.asInstanceOf[JArray]
-        val points = extractPoints(p)
-        new PolyLine(Array.fill(1)(0), points.toIndexedSeq)
-      }
-      case "Polygon" => {
-        val JArray(p) = coordinates.asInstanceOf[JArray]
-        val rings = p.map { case JArray(q) => extractPoints(q)}
-        val indices = rings.scanLeft(0)((running, current) => running + current.size).dropRight(1)
-        new Polygon(indices.toIndexedSeq, rings.flatten.toIndexedSeq)
-      }
+      case _ => ???
     }
   }
 

@@ -19,11 +19,8 @@ package org.apache.spark.sql.magellan
 import java.io.OutputStream
 import java.util.{List => JList}
 
-import scala.collection.JavaConversions._
-
-import magellan.{PolyLine, Point, Polygon, Shape}
+import magellan.{Point, Shape}
 import net.razorvine.pickle._
-import org.apache.spark.sql.catalyst.expressions._
 
 object EvaluatePython {
 
@@ -38,8 +35,6 @@ object EvaluatePython {
 
     def register(): Unit = {
       Pickler.registerCustomPickler(classOf[Point], this)
-      Pickler.registerCustomPickler(classOf[Polygon], this)
-      Pickler.registerCustomPickler(classOf[PolyLine], this)
     }
 
     def pickle(obj: Object, out: OutputStream, pickler: Pickler): Unit = {
@@ -62,33 +57,7 @@ object EvaluatePython {
       require(args.length == 2)
       val x = args(0).asInstanceOf[Double]
       val y = args(1).asInstanceOf[Double]
-      new Point(x, y)
-    }
-  }
-
-  private class PolygonUnpickler extends IObjectConstructor {
-
-    def register(): Unit = {
-      Unpickler.registerConstructor("magellan.types", "Polygon", this)
-    }
-
-    override def construct(args: Array[AnyRef]): AnyRef = {
-      val indices = args(0).asInstanceOf[JList[Int]]
-      val points = args(1).asInstanceOf[JList[Point]]
-      new Polygon(indices.toIndexedSeq, points.toIndexedSeq)
-    }
-  }
-
-  private class PolyLineUnpickler extends IObjectConstructor {
-
-    def register(): Unit = {
-      Unpickler.registerConstructor("magellan.types", "PolyLine", this)
-    }
-
-    override def construct(args: Array[AnyRef]): AnyRef = {
-      val indices = args(0).asInstanceOf[JList[Int]]
-      val points = args(1).asInstanceOf[JList[Point]]
-      new PolyLine(indices.toIndexedSeq, points.toIndexedSeq)
+      Point(x, y)
     }
   }
 
@@ -102,8 +71,6 @@ object EvaluatePython {
       if (!registered) {
         new ShapePickler().register()
         new PointUnpickler().register()
-        new PolygonUnpickler().register()
-        new PolyLineUnpickler().register()
         registered = true
       }
     }

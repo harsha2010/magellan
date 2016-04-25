@@ -100,7 +100,7 @@ package object dsl {
 
     }
 
-    implicit def point(x: Double, y: Double): Expression = ShapeLiteral(new Point(x, y))
+    implicit def point(x: Double, y: Double): Expression = ShapeLiteral(Point(x, y))
 
     implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
 

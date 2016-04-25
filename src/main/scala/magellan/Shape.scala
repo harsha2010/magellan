@@ -16,11 +16,7 @@
 
 package magellan
 
-import java.io.ObjectInputStream
-
-import com.esri.core.geometry.{Geometry => ESRIGeometry, Point => ESRIPoint,
-  Polygon => ESRIPolygon, Polyline => ESRIPolyline, _}
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 
 /**
@@ -28,11 +24,11 @@ import org.apache.spark.sql.types._
  */
 trait Shape extends DataType with Serializable {
 
-  private[magellan] val delegate: ESRIGeometry
-
   override def defaultSize: Int = 4096
 
   override def asNullable: DataType = this
+
+  def getType(): Int
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -93,15 +89,7 @@ trait Shape extends DataType with Serializable {
    * @see Shape#disjoint
    */
   def intersects(other: Shape, bitMask: Int): Boolean = {
-    val factory = OperatorFactoryLocal.getInstance
-    val op = factory.getOperator(Operator.Type.Intersection).asInstanceOf[OperatorIntersection]
-    val result_cursor = op.execute(new SimpleGeometryCursor(
-      delegate), new SimpleGeometryCursor(other.delegate), null, null, bitMask)
-    var esriGeom: ESRIGeometry = null
-    do {
-      esriGeom = result_cursor.next()
-    } while (esriGeom != null && esriGeom.isEmpty)
-    esriGeom != null && !esriGeom.isEmpty
+    ???
   }
 
   /**
@@ -122,7 +110,7 @@ trait Shape extends DataType with Serializable {
    *                Returns <code>false</code> if both <code>Shape</code>s are points
    */
   def touches(other: Shape): Boolean = {
-    GeometryEngine.touches(delegate, other.delegate, null)
+    ???
   }
 
   /**
@@ -147,7 +135,10 @@ trait Shape extends DataType with Serializable {
    * @return true if this shape contains the other.
    */
   def contains(other: Shape): Boolean = {
-    GeometryEngine.contains(delegate, other.delegate, null)
+    (this, other) match {
+      case (p: Point, q: Point) => p.equals(q)
+      case _ => ???
+    }
   }
 
   /**
@@ -189,15 +180,7 @@ trait Shape extends DataType with Serializable {
    * @return a Shape representing the point-set common to the two <code>Shape</code>s
    */
   def intersection(other: Shape): Shape = {
-    val factory = OperatorFactoryLocal.getInstance
-    val op = factory.getOperator(Operator.Type.Intersection).asInstanceOf[OperatorIntersection]
-    val result_cursor = op.execute(new SimpleGeometryCursor(
-      delegate), new SimpleGeometryCursor(other.delegate), null, null, 7)
-    var esriGeom: ESRIGeometry = null
-    do {
-      esriGeom = result_cursor.next()
-    } while (esriGeom != null && esriGeom.isEmpty)
-    Shape.fromESRI(esriGeom)
+   ???
   }
 
   /**
@@ -209,11 +192,7 @@ trait Shape extends DataType with Serializable {
    * @return a Shape representing the difference between to the two <code>Shape</code>s
    */
   def difference(other: Shape): Shape = {
-    val factory = OperatorFactoryLocal.getInstance
-    val op = factory.getOperator(Operator.Type.Difference).asInstanceOf[OperatorDifference]
-    val esriGeom = op.execute(delegate, other.delegate, null, null)
-
-    Shape.fromESRI(esriGeom)
+    ???
   }
 
   /**
@@ -222,7 +201,7 @@ trait Shape extends DataType with Serializable {
    *
    * @return <code>true</code> if this <code>Shape</code> does not cover any points
    */
-  def isEmpty(): Boolean = delegate.isEmpty
+  def isEmpty(): Boolean = ???
 
   /**
    * Computes the smallest convex <code>Polygon</code> that contains all the
@@ -261,9 +240,8 @@ trait Shape extends DataType with Serializable {
    * @param distance
    * @return
    */
-  def buffer(distance: Double): Polygon = {
-    val esriGeom = GeometryEngine.buffer(delegate, null, distance)
-    Shape.fromESRI(esriGeom).asInstanceOf[Polygon]
+  def buffer(distance: Double): Shape = {
+    ???
   }
 }
 
@@ -272,7 +250,7 @@ trait Shape extends DataType with Serializable {
  */
 object NullShape extends Shape {
 
-  override private[magellan] val delegate = null
+  override def getType() = 0
 
   override def intersects(shape: Shape): Boolean = false
 
@@ -282,19 +260,14 @@ object NullShape extends Shape {
 
 }
 
-private[magellan] object Shape {
+object Shape {
 
-  def fromESRI(esriGeom: ESRIGeometry): Shape = {
-    esriGeom match {
-      case esriPoint: ESRIPoint => Point.fromESRI(esriPoint)
-      case esriPolygon: ESRIPolygon => Polygon.fromESRI(esriPolygon)
-      case esriPolyline: ESRIPolyline => {
-        if (esriPolyline.getPointCount == 2) {
-          Line.fromESRI(esriPolyline)
-        } else {
-          PolyLine.fromESRI(esriPolyline)
-        }
-      }
+  private val pointUDT = new PointUDT
+
+  def apply(row: InternalRow): Shape = {
+    require(row.numFields > 1)
+    row.getInt(0) match {
+      case 1 => pointUDT.deserialize(row)
       case _ => ???
     }
   }

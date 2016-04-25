@@ -54,7 +54,7 @@ case class Buffer(left: Expression, right: Expression)
 
   override def toString: String = s"$nodeName($left, $right)"
 
-  override def dataType: DataType = Polygon.EMPTY
+  override def dataType: DataType = ???
 
   override def eval(input: InternalRow): Shape = {
     val leftEval = left.eval(input)
