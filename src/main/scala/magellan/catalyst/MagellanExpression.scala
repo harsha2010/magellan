@@ -16,22 +16,20 @@
 
 package magellan.catalyst
 
-import magellan.Shape
+import magellan.{NullShape, Shape, PolygonUDT, PointUDT}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.LeafExpression
-import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
-import org.apache.spark.sql.types.DataType
 
-case class ShapeLiteral(shape: Shape) extends LeafExpression with CodegenFallback {
+trait MagellanExpression {
 
-  override def foldable: Boolean = true
+  private val SERIALIZERS = Map(1 -> new PointUDT, 5 -> new PolygonUDT)
 
-  override def nullable: Boolean = false
+  def newInstance(row: InternalRow): Shape = {
+    SERIALIZERS.get(row.getInt(0)).fold(NullShape.asInstanceOf[Shape])(_.deserialize(row))
+  }
 
-  type EvaluatedType = Shape
-
-  override def eval(input: InternalRow): Shape = shape
-
-  override val dataType: DataType = shape
+  def serialize(shape: Shape): Any = {
+    SERIALIZERS.get(shape.getType()).get.serialize(shape)
+  }
 
 }
+

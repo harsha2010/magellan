@@ -4,9 +4,9 @@ version := "1.0.4-SNAPSHOT"
 
 organization := "harsha2010"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.10.5"
 
-crossScalaVersions := Seq("2.11.7")
+crossScalaVersions := Seq("2.10.5")
 
 sparkVersion := "1.6.1"
 

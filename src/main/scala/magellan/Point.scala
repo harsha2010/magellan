@@ -86,6 +86,7 @@ class Point extends Shape {
       ("pyClass" -> "magellan.types.PointUDT") ~
       ("x" -> x) ~
       ("y" -> y)
+
 }
 
 class PointUDT extends UserDefinedType[Point] {
@@ -98,31 +99,31 @@ class PointUDT extends UserDefinedType[Point] {
     ))
 
   override def serialize(obj: Any): InternalRow = {
-    obj match {
-      case p: Point => {
-        val row = new GenericMutableRow(3)
-        row.setInt(0, p.getType())
-        row.setDouble(1, p.getX())
-        row.setDouble(2, p.getY())
-        row
-      }
-      case _ => ???
-    }
+    val p = obj.asInstanceOf[Point]
+    val row = new GenericMutableRow(3)
+    row.setInt(0, p.getType())
+    row.setDouble(1, p.getX())
+    row.setDouble(2, p.getY())
+    row
   }
 
   override def userClass: Class[Point] = classOf[Point]
 
   override def deserialize(datum: Any): Point = {
-    datum match {
-      case row: InternalRow => {
-        require(row.numFields == 3)
-        Point(row.getDouble(1), row.getDouble(2))
-      }
-      case _ => ???
-    }
+    val row = datum.asInstanceOf[InternalRow]
+    require(row.numFields == 3)
+    Point(row.getDouble(1), row.getDouble(2))
   }
 
   override def pyUDT: String = "magellan.types.PointUDT"
+
+  def serialize(x: Double, y: Double): InternalRow = {
+    val row = new GenericMutableRow(3)
+    row.setInt(0, 1)
+    row.setDouble(1, x)
+    row.setDouble(2, y)
+    row
+  }
 
 }
 

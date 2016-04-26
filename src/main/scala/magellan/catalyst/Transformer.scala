@@ -25,11 +25,11 @@ import org.apache.spark.sql.types.DataType
 case class Transformer(
     override val child: Expression,
     fn: Point => Point)
-  extends UnaryExpression with CodegenFallback {
+  extends UnaryExpression with CodegenFallback with MagellanExpression {
 
-  override def eval(input: InternalRow): Shape = {
-    val shape = child.eval(input).asInstanceOf[Shape]
-    shape.transform(fn)
+  override def eval(input: InternalRow): Any = {
+    val shape = newInstance(child.eval(input).asInstanceOf[InternalRow])
+    serialize(shape.transform(fn))
   }
 
   override def nullable: Boolean = child.nullable

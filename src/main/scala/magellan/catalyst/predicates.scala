@@ -16,7 +16,7 @@
 
 package magellan.catalyst
 
-import magellan.{Point, Shape}
+import magellan._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
@@ -26,48 +26,20 @@ import org.apache.spark.sql.types.{BooleanType, DataType}
  * A function that returns true if the shape `left` is within the shape `right`.
  */
 case class Within(left: Expression, right: Expression)
-  extends BinaryExpression with CodegenFallback {
+  extends BinaryExpression with CodegenFallback with MagellanExpression {
 
   override def toString: String = s"$nodeName($left, $right)"
 
   override def dataType: DataType = BooleanType
 
-  private var l: Shape = _
-  private var r: Shape = _
+  override def nullSafeEval(leftEval: Any, rightEval: Any): Any = {
+    val leftShape = newInstance(leftEval.asInstanceOf[InternalRow])
+    val rightShape = newInstance(rightEval.asInstanceOf[InternalRow])
 
-  override def eval(input: InternalRow): Any = {
-    val leftEval = left.eval(input)
-    if (leftEval == null) {
-      null
-    } else {
-      val rightEval = right.eval(input)
-      val lr = leftEval.asInstanceOf[InternalRow]
-      val rr = rightEval.asInstanceOf[InternalRow]
-      if (l == null) {
-        l = newInstance(None, lr)
-      } else {
-        l = newInstance(Some(l), lr)
-      }
-      if (r == null) {
-        r = newInstance(None, rr)
-      } else {
-        r = newInstance(Some(r), rr)
-      }
-      if (rightEval == null) null else l.contains(r)
-    }
+    rightShape.contains(leftShape)
   }
 
   override def nullable: Boolean = left.nullable || right.nullable
 
-  def newInstance(prev: Option[Shape], row: InternalRow): Shape = {
-    def newInstance(row: InternalRow): Shape = row.getInt(0) match {
-      case 1 => new Point()
-      case _ => ???
-    }
-    prev.fold(newInstance(row)) { case p: Point =>
-        p.setX(row.getDouble(1))
-        p.setY(row.getDouble(2))
-        p
-    }
-  }
 }
+

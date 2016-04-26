@@ -28,9 +28,22 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
 
   override val schema = {
     StructType(List(StructField("point", new PointUDT(), true),
+        StructField("polygon", new PolygonUDT(), true),
         StructField("metadata", MapType(StringType, StringType, true), true),
         StructField("valid", BooleanType, true)
       ))
+  }
+
+  override lazy val sizeInBytes: Long = {
+    _buildScan().map { case (shape, meta) =>
+      val geometrySize = shape match {
+        case p: Point => 16
+        case p: Polygon => p.xcoordinates.size * 20
+        case _ => ???
+      }
+      val metadataSize = meta.fold(0)(_.map { case (k, v) => 2 * (k.size + v.size)}.sum)
+      geometrySize + metadataSize
+    }.sum().toLong
   }
 
   protected def _buildScan(): RDD[(Shape, Option[Map[String, String]])]
@@ -47,8 +60,9 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
         indices.zipWithIndex.foreach { case (index, i) =>
           val v = index match {
             case 0 => if (shape.isInstanceOf[Point]) Some(shape) else None
-            case 3 => Some(meta.fold(Map[String, String]())(identity))
-            case 4 => Some(shape.isValid())
+            case 1 => if (shape.isInstanceOf[Polygon]) Some(shape) else None
+            case 2 => Some(meta.fold(Map[String, String]())(identity))
+            case 3 => Some(shape.isValid())
             case _ => ???
           }
           v.foreach(x => row(i) = x)

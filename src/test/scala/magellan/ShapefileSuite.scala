@@ -18,6 +18,8 @@ package magellan
 
 import magellan.TestingUtils._
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StringType
 import org.scalatest.FunSuite
 import org.apache.spark.sql.magellan.dsl.expressions._
 
@@ -37,6 +39,36 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
 
     // query
     assert(df.filter($"point" within $"point").count() === 1)
+  }
+
+  test("shapefile-relation: polygons") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testpolygon/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
+    import sqlCtx.implicits._
+    assert(df.count() === 1)
+    val polygon = df.select($"polygon").map {case Row(x: Polygon) => x}.first()
+    assert(polygon.indices.size === 1)
+  }
+
+  test("shapefile-relation: Zillow Neighborhoods") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testzillow/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
+    import sqlCtx.implicits._
+    assert(df.count() === 1932)  // 34 + 948 + 689 + 261
+
+    // CA should have some metadata attached to it
+    val extractValue: (Map[String, String], String) => String =
+      (map: Map[String, String], key: String) => {
+        map.getOrElse(key, null)
+      }
+    val stateUdf = callUDF(extractValue, StringType, col("metadata"), lit("STATE"))
+    val dfwithmeta = df.withColumn("STATE", stateUdf)
+    assert(dfwithmeta.filter($"STATE" === "CA").count() === 948)
+
+    assert(df.select($"metadata"("STATE").as("state")).filter($"state" === "CA").count() === 948)
+    assert(df.select($"metadata"("STATE").as("state")).filter($"state" isNull).count() === 723)
   }
 }
 

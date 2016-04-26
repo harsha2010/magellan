@@ -31,17 +31,15 @@ package object dsl {
 
     def within(other: Column): Column = Column(Within(expr, other.expr))
 
-    def within(other: Shape): Column = Column(Within(expr, ShapeLiteral(other)))
-
     def >?(other: Expression): Expression = Within(other, expr)
-
-    def >?(other: Shape): Expression = Within(ShapeLiteral(other), expr)
 
     def >?(other: Column): Column = Column(Within(other.expr, expr))
 
     def apply(other: Any): Expression = GetMapValue(expr, lit(other).expr)
 
     def apply(other: Expression): Expression = GetMapValue(expr, other)
+
+    def transform(fn: Point => Point) = Transformer(expr, fn)
 
   }
 
@@ -56,10 +54,6 @@ package object dsl {
 
       def within(other: Column): Column = Column(Within(col.expr, other.expr))
 
-      def within(other: Shape): Column = Column(Within(col.expr, ShapeLiteral(other)))
-
-      def >?(other: Shape): Column = Column(Within(ShapeLiteral(other), col.expr))
-
       def >?(other: Column): Column = Column(Within(other.expr, col.expr))
 
       def >?(other: Expression): Column = Column(Within(other, col.expr))
@@ -68,15 +62,14 @@ package object dsl {
 
       def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
 
-    }
+      def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
 
-    implicit def point(x: Double, y: Double): Expression = ShapeLiteral(Point(x, y))
+    }
 
     implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
 
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
-    implicit def shape(shape: Shape) = ShapeLiteral(shape)
   }
 
 

@@ -72,6 +72,12 @@ private case class Geometry(`type`: String, coordinates: JValue) {
         val JArray(List(JDouble(x), JDouble(y))) = coordinates
         Point(x, y)
       }
+      case "Polygon" => {
+        val JArray(p) = coordinates.asInstanceOf[JArray]
+        val rings = p.map { case JArray(q) => extractPoints(q)}
+        val indices = rings.scanLeft(0)((running, current) => running + current.size).dropRight(1)
+        Polygon(indices.toArray, rings.flatten.toArray)
+      }
       case _ => ???
     }
   }

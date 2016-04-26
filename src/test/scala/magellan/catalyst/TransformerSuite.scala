@@ -16,24 +16,26 @@
 
 package magellan.catalyst
 
-import magellan.{Point, TestSparkContext}
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
+import magellan.{Point, TestSparkContext}
+import magellan.TestingUtils._
+import org.apache.spark.sql.magellan.dsl.expressions._
 
-class ExpressionSuite extends FunSuite with TestSparkContext {
 
-  test("Point Converter") {
+class TransformerSuite extends FunSuite with TestSparkContext {
+
+  test("transform") {
     val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testpoint/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
     import sqlCtx.implicits._
-    val df = sc.parallelize(Seq((35.7, -122.3))).toDF("lat", "lon")
-    val p = df.withColumn("point", point($"lon", $"lat"))
-      .select('point)
-      .map { case Row(p: Point) => p}
+    val dbl = (x: Point) => Point(2 * x.getX(), 2 * x.getY())
+    val point = df.withColumn("transformed", $"point".transform(dbl))
+      .select($"transformed")
+      .map {case Row(p: Point) => p}
       .first()
 
-    assert(p.getX() === -122.3)
-    assert(p.getY() === 35.7)
+    assert(point.getX() ~== -199.0 absTol 1.0)
   }
-
 }

@@ -24,6 +24,8 @@ import org.apache.spark.sql.types._
  */
 trait Shape extends DataType with Serializable {
 
+  type BoundingBox = Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
+
   override def defaultSize: Int = 4096
 
   override def asNullable: DataType = this
@@ -137,6 +139,8 @@ trait Shape extends DataType with Serializable {
   def contains(other: Shape): Boolean = {
     (this, other) match {
       case (p: Point, q: Point) => p.equals(q)
+      case (p: Point, q: Polygon) => false
+      case (p: Polygon, q: Point) => p.contains(q)
       case _ => ???
     }
   }
