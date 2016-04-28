@@ -16,10 +16,13 @@
 
 package magellan.catalyst
 
-import magellan.{Point, TestSparkContext}
+import magellan.{Polygon, Point, TestSparkContext}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
+
+case class PointExample(point: Point)
+case class PolygonExample(polygon: Polygon)
 
 class ExpressionSuite extends FunSuite with TestSparkContext {
 
@@ -34,6 +37,46 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
     assert(p.getX() === -122.3)
     assert(p.getY() === 35.7)
+  }
+
+  test("Within") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(Polygon(Array(0), ring))
+    )).toDF()
+
+    val points = sc.parallelize(Seq(
+      PointExample(Point(0.0, 0.0)),
+      PointExample(Point(2.0, 2.0))
+    )).toDF()
+
+    val joined = points.join(polygons).where($"point" within $"polygon")
+    assert(joined.count() === 1)
+
+  }
+
+  test("Contains") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(Polygon(Array(0), ring))
+    )).toDF()
+
+    val points = sc.parallelize(Seq(
+      PointExample(Point(0.0, 0.0)),
+      PointExample(Point(2.0, 2.0))
+    )).toDF()
+
+    val joined = points.join(polygons).where($"polygon" >? $"point")
+    assert(joined.count() === 1)
+
   }
 
 }

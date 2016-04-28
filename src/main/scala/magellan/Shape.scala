@@ -137,13 +137,24 @@ trait Shape extends DataType with Serializable {
    * @return true if this shape contains the other.
    */
   def contains(other: Shape): Boolean = {
-    (this, other) match {
-      case (p: Point, q: Point) => p.equals(q)
-      case (p: Point, q: Polygon) => false
-      case (p: Polygon, q: Point) => p.contains(q)
-      case _ => ???
+    // check if the bounding box encompasses other's bounding box.
+    // if not, no need to check further
+    val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
+    val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
+    if (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax) {
+      (this, other) match {
+        case (p: Point, q: Point) => p.equals(q)
+        case (p: Point, q: Polygon) => false
+        case (p: Polygon, q: Point) => p.contains(q)
+        case _ => ???
+      }
+    } else  {
+      false
     }
+
   }
+
+  def boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
 
   /**
    * Tests whether this shape is within the
@@ -262,4 +273,8 @@ object NullShape extends Shape {
 
   override def transform(fn: (Point) => Point): Shape = this
 
+  override def boundingBox: ((Double, Double), (Double, Double)) = (
+      (Int.MinValue, Int.MinValue),
+      (Int.MaxValue, Int.MaxValue)
+    )
 }

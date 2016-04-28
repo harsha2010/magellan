@@ -18,7 +18,6 @@ package magellan
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.magellan.EvaluatePython
 import org.apache.spark.sql.sources.{BaseRelation, Filter, PrunedFilteredScan}
 import org.apache.spark.sql.types._
 
@@ -54,7 +53,6 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
     _buildScan().mapPartitions { iter =>
       val row = new Array[Any](numFields)
       iter.flatMap { case (shape: Shape, meta: Option[Map[String, String]]) =>
-        EvaluatePython.registerPicklers()
         (0 until numFields).foreach(i => row(i) = null)
 
         indices.zipWithIndex.foreach { case (index, i) =>

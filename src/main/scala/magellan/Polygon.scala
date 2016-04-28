@@ -36,7 +36,7 @@ class Polygon(
     val indices: Array[Int],
     val xcoordinates: Array[Double],
     val ycoordinates: Array[Double],
-    val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
+    override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
 
   private [magellan] def contains(point: Point): Boolean = {
     var startIndex = 0
@@ -83,11 +83,28 @@ class Polygon(
    */
   override def transform(fn: (Point) => Point): Shape = ???
 
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Polygon =>
+      (that canEqual this) &&
+        indices.deep == that.indices.deep &&
+        xcoordinates.deep == that.xcoordinates.deep &&
+        ycoordinates.deep == that.ycoordinates.deep
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(indices, xcoordinates, ycoordinates)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
 }
 
 class PolygonUDT extends UserDefinedType[Polygon] {
 
-  override def sqlType: DataType = StructType(Seq(
+  override val sqlType: DataType = StructType(Seq(
     StructField("type", IntegerType, nullable = false),
     StructField("xmin", DoubleType, nullable = false),
     StructField("ymin", DoubleType, nullable = false),
@@ -107,13 +124,13 @@ class PolygonUDT extends UserDefinedType[Polygon] {
     row.update(2, ymin)
     row.update(3, xmax)
     row.update(4, ymax)
-    row.update(5, new GenericArrayData(polygon.indices))
-    row.update(6, new GenericArrayData(polygon.xcoordinates))
-    row.update(7, new GenericArrayData(polygon.ycoordinates))
+    row.update(5, new IntegerArrayData(polygon.indices))
+    row.update(6, new DoubleArrayData(polygon.xcoordinates))
+    row.update(7, new DoubleArrayData(polygon.ycoordinates))
     row
   }
 
-  override def userClass: Class[Polygon] = ???
+  override def userClass: Class[Polygon] = classOf[Polygon]
 
   override def deserialize(datum: Any): Polygon = {
     val row = datum.asInstanceOf[InternalRow]
