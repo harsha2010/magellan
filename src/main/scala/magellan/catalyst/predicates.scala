@@ -19,14 +19,16 @@ package magellan.catalyst
 import magellan._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
-import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
-import org.apache.spark.sql.types.{BooleanType, DataType}
+import org.apache.spark.sql.catalyst.expressions.codegen.{GeneratedExpressionCode, CodeGenContext, CodegenFallback}
+import org.apache.spark.sql.types.{UserDefinedType, BooleanType, DataType}
+
+import scala.collection.immutable.HashMap
 
 /**
  * A function that returns true if the shape `left` is within the shape `right`.
  */
 case class Within(left: Expression, right: Expression)
-  extends BinaryExpression with CodegenFallback with MagellanExpression {
+  extends BinaryExpression with MagellanExpression {
 
   override def toString: String = s"$nodeName($left, $right)"
 
@@ -59,5 +61,38 @@ case class Within(left: Expression, right: Expression)
 
   override def nullable: Boolean = left.nullable || right.nullable
 
+  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = {
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+      "serializers.put(1, new magellan.PointUDT());" +
+      "serializers.put(5, new magellan.PolygonUDT());" +
+      "")
+
+    nullSafeCodeGen(ctx, ev, (c1, c2) => {
+        s"" +
+        s"Double lxmin = $c1.getDouble(1);" +
+        s"Double lymin = $c1.getDouble(2);" +
+        s"Double lxmax = $c1.getDouble(3);" +
+        s"Double lymax = $c1.getDouble(4);" +
+        s"Double rxmin = $c2.getDouble(1);" +
+        s"Double rymin = $c2.getDouble(2);" +
+        s"Double rxmax = $c2.getDouble(3);" +
+        s"Double rymax = $c2.getDouble(4);" +
+        s"Boolean within = false;" +
+        s"if (rxmin <= lxmin && rymin <= lymin && rxmax >= lxmax && rymax >= lymax) {" +
+        s"Integer ltype = $c1.getInt(0);" +
+        s"Integer rtype = $c2.getInt(0);" +
+        s"magellan.Shape leftShape = (magellan.Shape)" +
+          s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+          s"serializers.get(ltype)).deserialize($c1);" +
+        s"magellan.Shape rightShape = (magellan.Shape)" +
+          s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+          s"serializers.get(rtype)).deserialize($c2);" +
+        s"within = rightShape.contains(leftShape);" +
+        s"}" +
+        s"${ev.value} = within;"
+      })
+
+  }
 }
 
