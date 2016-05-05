@@ -73,6 +73,38 @@ class Polygon(
     intersections % 2 != 0
   }
 
+  private [magellan] def intersects(line: Line): Boolean = {
+    // Check if any edge intersects this line
+    var i = 0
+    val length = xcoordinates.length
+    var found = false
+    var start:Point = null
+    var end:Point = new Point()
+    val edge = new Line()
+
+    while (i < length && !found) {
+      if (start == null) {
+        start = new Point()
+        start.setX(xcoordinates(i))
+        start.setY(ycoordinates(i))
+      } else {
+        start = end
+        end = new Point()
+        end.setX(xcoordinates(i))
+        end.setY(ycoordinates(i))
+        edge.setStart(start)
+        edge.setEnd(end)
+        found = edge.intersects(line)
+      }
+      i += 1
+    }
+    found
+  }
+
+  private [magellan] def contains(line: Line): Boolean = {
+    !this.intersects(line) && this.contains(line.getStart()) && this.contains(line.getEnd())
+  }
+
   override def getType(): Int = 5
 
   /**

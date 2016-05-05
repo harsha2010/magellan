@@ -19,7 +19,7 @@ package magellan.catalyst
 import magellan._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Expression, UnaryExpression}
-import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.catalyst.expressions.codegen.{GeneratedExpressionCode, CodeGenContext, CodegenFallback}
 import org.apache.spark.sql.types.DataType
 
 case class Transformer(
@@ -27,12 +27,13 @@ case class Transformer(
     fn: Point => Point)
   extends UnaryExpression with CodegenFallback with MagellanExpression {
 
-  override def eval(input: InternalRow): Any = {
-    val shape = newInstance(child.eval(input).asInstanceOf[InternalRow])
+  protected override def nullSafeEval(input: Any): Any = {
+    val shape = newInstance(input.asInstanceOf[InternalRow])
     serialize(shape.transform(fn))
   }
 
   override def nullable: Boolean = child.nullable
 
   override def dataType: DataType = child.dataType
+
 }
