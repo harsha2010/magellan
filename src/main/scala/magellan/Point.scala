@@ -87,7 +87,7 @@ class Point extends Shape {
       ("x" -> x) ~
       ("y" -> y)
 
-  override def boundingBox: ((Double, Double), (Double, Double)) = ((x, y), (x, y))
+  override def boundingBox = BoundingBox(x, y, x, y)
 
 }
 

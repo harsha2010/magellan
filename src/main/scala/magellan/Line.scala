@@ -34,6 +34,14 @@ class Line extends Shape {
   def getStart() = start
   def getEnd() = end
 
+  private [magellan] def ccw(a: Point, b: Point, c: Point) = {
+    area(a, b, c) > 0.0
+  }
+
+  private [magellan] def area(a: Point, b: Point, c: Point) = {
+    (c.getY() - a.getY()) * (b.getX() - a.getX()) - (b.getY() - a.getY()) * (c.getX() - a.getX())
+  }
+
   private [magellan] def intersects(other: Line): Boolean = {
     // test for degeneracy
     if (start == other.start ||
@@ -42,11 +50,17 @@ class Line extends Shape {
       end == other.start) {
       true
     } else {
-      def ccw(a: Point, b: Point, c: Point) = {
-        (c.getY() - a.getY()) * (b.getX() - a.getX()) > (b.getY() - a.getY()) * (c.getX() - a.getX())
-      }
       ccw(start, other.start, other.end) != ccw(end, other.start, other.end) &&
         ccw(start, end, other.start) != ccw(start, end, other.end)
+    }
+  }
+
+  private [magellan] def contains(point: Point): Boolean = {
+    // test for degeneracy
+    if (start == point || end == point) {
+      true
+    } else {
+      area(start, point, end) == 0.0
     }
   }
 
@@ -60,7 +74,7 @@ class Line extends Shape {
    */
   override def transform(fn: (Point) => Point): Shape = ???
 
-  override def boundingBox: ((Double, Double), (Double, Double)) = {
+  override def boundingBox = {
     val (xmin, xmax) = if (start.getX() < end.getX()) {
       (start.getX(), end.getX())
     } else {
@@ -71,7 +85,7 @@ class Line extends Shape {
     } else {
       (end.getY(), start.getY())
     }
-    ((xmin, ymin), (xmax, ymax))
+    BoundingBox(xmin, ymin, xmax, ymax)
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Line]
@@ -109,7 +123,7 @@ class LineUDT extends UserDefinedType[Line] {
     val row = new GenericMutableRow(9)
     val line = obj.asInstanceOf[Line]
     row.setInt(0, 2)
-    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = line.boundingBox
     row.setDouble(1, xmin)
     row.setDouble(2, ymin)
     row.setDouble(3, xmax)
@@ -149,4 +163,5 @@ object Line {
     line.setEnd(end)
     line
   }
+
 }

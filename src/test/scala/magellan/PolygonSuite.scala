@@ -23,7 +23,7 @@ class PolygonSuite extends FunSuite {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
     val polygon = Polygon(Array(0), ring)
-    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = polygon.boundingBox
     assert(xmin === -1.0)
     assert(ymin === -1.0)
     assert(xmax === 1.0)
@@ -57,6 +57,15 @@ class PolygonSuite extends FunSuite {
     assert(polygon.contains(line))
   }
 
+  test("line intersects polygon") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    assert(polygon.intersects(Line(Point(0.0, 0.0), Point(1.5, 1.5))))
+    assert(polygon.intersects(Line(Point(0.0, 0.0), Point(1.5, 0.0))))
+    assert(polygon.intersects(Line(Point(0.0, 0.0), Point(0.0, 1.5))))
+  }
+
   test("line in polygon: 2 rings") {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
@@ -72,7 +81,7 @@ class PolygonSuite extends FunSuite {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
     val polygon = Polygon(Array(0), ring)
-    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = polygon.boundingBox
 
     val polygonUDT = new PolygonUDT
     val row = polygonUDT.serialize(polygon)
@@ -81,5 +90,36 @@ class PolygonSuite extends FunSuite {
     assert(row.getDouble(2) === ymin)
     assert(row.getDouble(3) === xmax)
     assert(row.getDouble(4) === ymax)
+  }
+
+  test("contains box") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    val box1 = BoundingBox(0.1, 0.1, 0.5, 0.5)
+    assert(polygon.contains(box1))
+    val box2 = BoundingBox(0.1, 0.1, 1.5, 1.5)
+    assert(!polygon.contains(box2))
+  }
+
+  test("intersects box") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    val box1 = BoundingBox(0.0, 0.0, 1.5, 1.5)
+    assert(!polygon.contains(box1))
+    assert(polygon.intersects(box1))
+
+    val box2 = BoundingBox(1.0, 1.0, 1.5, 1.5)
+    assert(polygon.intersects(box2))
+  }
+
+  test("intersects box - more complex") {
+    val ring = Array(Point(0.0, 0.0), Point(2.0, 0.0),
+      Point(1.5, 1.0), Point(1.0, 0.5), Point(0.5, 1.0), Point(0.0, 0.0))
+    val polygon = Polygon(Array(0), ring)
+    val box1 = BoundingBox(0.5, 0.25, 1.5, 0.75)
+    assert(!polygon.contains(box1))
+    assert(polygon.intersects(box1))
   }
 }

@@ -36,7 +36,7 @@ class Polygon(
     val indices: Array[Int],
     val xcoordinates: Array[Double],
     val ycoordinates: Array[Double],
-    override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
+    override val boundingBox: BoundingBox) extends Shape {
 
   private [magellan] def contains(point: Point): Boolean = {
     var startIndex = 0
@@ -105,6 +105,56 @@ class Polygon(
     !this.intersects(line) && this.contains(line.getStart()) && this.contains(line.getEnd())
   }
 
+  private [magellan] def contains(box: BoundingBox): Boolean = {
+    val BoundingBox(xmin, ymin, xmax, ymax) = box
+    val lines = Array(
+      Line(Point(xmin, ymin), Point(xmax, ymin)),
+      Line(Point(xmin, ymin), Point(xmin, ymax)),
+      Line(Point(xmax, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymax)))
+
+    !(lines exists (!contains(_)))
+  }
+
+  private [magellan] def intersects(box: BoundingBox): Boolean = {
+    val BoundingBox(xmin, ymin, xmax, ymax) = box
+    val lines = Array(
+      Line(Point(xmin, ymin), Point(xmax, ymin)),
+      Line(Point(xmin, ymin), Point(xmin, ymax)),
+      Line(Point(xmax, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymax)))
+
+    lines exists (intersects(_))
+  }
+
+  private [magellan] def intersects(point: Point): Boolean = {
+    // Check if any edge intersects this line
+    var i = 0
+    val length = xcoordinates.length
+    var found = false
+    var start:Point = null
+    var end:Point = new Point()
+    val edge = new Line()
+
+    while (i < length && !found) {
+      if (start == null) {
+        start = new Point()
+        start.setX(xcoordinates(i))
+        start.setY(ycoordinates(i))
+      } else {
+        start = end
+        end = new Point()
+        end.setX(xcoordinates(i))
+        end.setY(ycoordinates(i))
+        edge.setStart(start)
+        edge.setEnd(end)
+        found = edge.contains(point)
+      }
+      i += 1
+    }
+    found
+  }
+
   override def getType(): Int = 5
 
   /**
@@ -150,7 +200,7 @@ class PolygonUDT extends UserDefinedType[Polygon] {
   override def serialize(obj: Any): InternalRow = {
     val row = new GenericMutableRow(8)
     val polygon = obj.asInstanceOf[Polygon]
-    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = polygon.boundingBox
     row.update(0, polygon.getType())
     row.update(1, xmin)
     row.update(2, ymin)
@@ -170,7 +220,7 @@ class PolygonUDT extends UserDefinedType[Polygon] {
         row.getArray(5).toIntArray(),
         row.getArray(6).toDoubleArray(),
         row.getArray(7).toDoubleArray(),
-        ((row.getDouble(1), row.getDouble(2)), (row.getDouble(3), row.getDouble(4)))
+        BoundingBox(row.getDouble(1), row.getDouble(2), row.getDouble(3), row.getDouble(4))
       )
 
     polygon
@@ -209,7 +259,7 @@ object Polygon {
         indices,
         points.map(_.getX()),
         points.map(_.getY()),
-        ((xmin, ymin), (xmax, ymax))
+        BoundingBox(xmin, ymin, xmax, ymax)
       )
   }
 }
