@@ -16,10 +16,11 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.types.DataType
-
 import magellan._
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{Expression, BinaryExpression}
+import org.apache.spark.sql.catalyst.expressions.codegen.{GeneratedExpressionCode, CodeGenContext, CodegenFallback}
+import org.apache.spark.sql.types.DataType
 
 /**
  * Convert x and y coordinates to a `Point`
@@ -33,15 +34,16 @@ case class PointConverter(override val left: Expression,
 
   override def nullable: Boolean = false
 
-  override def eval(input: Row): Point = {
-    val x = left.eval(input).asInstanceOf[Double]
-    val y = right.eval(input).asInstanceOf[Double]
-    new Point(x, y)
+  override val dataType = new PointUDT
+
+  override def nullSafeEval(leftEval: Any, rightEval: Any): Any = {
+    val x = leftEval.asInstanceOf[Double]
+    val y = rightEval.asInstanceOf[Double]
+    dataType.serialize(x, y)
   }
 
-  override type EvaluatedType = Point
-
-  override val dataType: DataType = new PointUDT
-
-  override def symbol: String = "point"
+  override def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = {
+    ctx.addMutableState(classOf[PointUDT].getName, "pointUDT", "pointUDT = new magellan.PointUDT();")
+    defineCodeGen(ctx, ev, (c1, c2) => s"pointUDT.serialize($c1, $c2)")
+  }
 }

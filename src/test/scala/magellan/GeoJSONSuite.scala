@@ -31,22 +31,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     assert(df.count() === 1)
     import sqlCtx.implicits._
     val p = df.select($"point").map { case Row(p: Point) => p}.first()
-    assert(p.equals(new Point(102.0, 0.5)))
-  }
-
-  test("Read Line String") {
-    val sqlCtx = new SQLContext(sc)
-    val path = this.getClass.getClassLoader.getResource("geojson/linestring").getPath
-    val df = sqlCtx.read
-      .format("magellan")
-      .option("type", "geojson")
-      .load(path)
-    assert(df.count() === 1018)
-    import sqlCtx.implicits._
-    val p = df.select($"polyline").map { case Row(p: PolyLine) => p}.first()
-    // [ -122.04864044239585, 37.408617050391001 ], [ -122.047741818556602, 37.408915362324983 ]
-    assert(p.points.size === 2)
-    assert(p.points.last.equals(new Point(-122.047741818556602, 37.408915362324983)))
+    assert(p.equals(Point(102.0, 0.5)))
   }
 
   test("Read Polygon") {
@@ -62,8 +47,5 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     val indices = p.indices
     assert(indices(0) === 0)
     assert(indices(1) === 5)
-    val points = p.points
-    assert(points(0).equals(new Point(100.0, 0.0)))
-    assert(points(5).equals(new Point(100.2, 0.2)))
   }
 }

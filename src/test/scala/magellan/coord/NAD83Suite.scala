@@ -24,24 +24,25 @@ import TestingUtils._
 
 class NAD83Suite extends FunSuite {
 
-  test("to") {
-    def assertUptoTol(coords: Tuple2[Double, Double],
-      zone: Int,
-      expected: Tuple2[Double, Double]): Unit = {
+  test("to and from, Lambert Conic") {
+    def assertUptoTol(
+        coords: Tuple2[Double, Double],
+        zone: Int,
+        expected: Tuple2[Double, Double]): Unit = {
 
-      val originalPoint = new Point(coords._1, coords._2)
+      val originalPoint = Point(coords._1, coords._2)
       val nad83 = new NAD83(Map("zone" -> zone))
       val to = nad83.to()
       val toPoint = originalPoint.transform(to)
-      assert(toPoint.x ~== expected._1 absTol 0.01)
-      assert(toPoint.y ~== expected._2 absTol 0.01)
+      assert(toPoint.getX() ~== expected._1 absTol 0.01)
+      assert(toPoint.getY() ~== expected._2 absTol 0.01)
 
-      val expectedPoint = new Point(expected._1, expected._2)
+      val expectedPoint = Point(expected._1, expected._2)
       val from = nad83.from()
       val fromPoint = expectedPoint.transform(from)
 
-      assert(fromPoint.x ~== coords._1 absTol 1000.0)
-      assert(fromPoint.y ~== coords._2 absTol 1000.0)
+      assert(fromPoint.getX() ~== coords._1 absTol 1000.0)
+      assert(fromPoint.getY() ~== coords._2 absTol 1000.0)
     }
 
     // San Francisco

@@ -23,7 +23,7 @@ import org.scalatest.FunSuite
 class WholeFileReaderSuite extends FunSuite with TestSparkContext {
 
   test("Read Whole File") {
-    val path = this.getClass.getClassLoader.getResource("geojson/linestring").getPath
+    val path = this.getClass.getClassLoader.getResource("geojson/point").getPath
     val data = sc.newAPIHadoopFile(
       path,
       classOf[WholeFileInputFormat],

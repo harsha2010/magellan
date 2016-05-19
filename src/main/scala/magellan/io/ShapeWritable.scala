@@ -16,12 +16,11 @@
 
 package magellan.io
 
-import java.io.{DataOutput, DataInput}
-
-import org.apache.commons.io.EndianUtils
-import org.apache.hadoop.io.Writable
+import java.io.{DataInput, DataOutput}
 
 import magellan.Shape
+import org.apache.commons.io.EndianUtils
+import org.apache.hadoop.io.Writable
 
 private[magellan] class ShapeWritable(shapeType: Int) extends Writable {
 
@@ -38,9 +37,7 @@ private[magellan] class ShapeWritable(shapeType: Int) extends Writable {
     val h = shapeType match {
       case 0 => new NullShapeReader()
       case 1 => new PointReader()
-      case 3 => new PolyLineReader()
       case 5 => new PolygonReader()
-      case 13 => new PolyLineZReader()
       case _ => ???
     }
     shape = h.readFields(dataInput)

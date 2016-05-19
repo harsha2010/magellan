@@ -1,14 +1,14 @@
 name := "magellan"
 
-version := "1.0.3-SNAPSHOT"
+version := "1.0.4-SNAPSHOT"
 
 organization := "harsha2010"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.10.5"
 
-crossScalaVersions := Seq("2.10.5", "2.11.7")
+crossScalaVersions := Seq("2.10.5")
 
-sparkVersion := "1.4.1"
+sparkVersion := "1.6.1"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
@@ -23,7 +23,6 @@ sparkComponents := Seq("core", "sql")
 libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.4",
   "org.slf4j" % "slf4j-api" % "1.7.5" % "provided",
-  "com.esri.geometry" % "esri-geometry-api" % "1.2.1",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 

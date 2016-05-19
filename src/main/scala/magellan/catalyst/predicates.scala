@@ -16,88 +16,83 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Row}
-import org.apache.spark.sql.types.{BooleanType, DataType}
+import magellan._
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
+import org.apache.spark.sql.catalyst.expressions.codegen.{GeneratedExpressionCode, CodeGenContext, CodegenFallback}
+import org.apache.spark.sql.types.{UserDefinedType, BooleanType, DataType}
 
-import magellan.Shape
+import scala.collection.immutable.HashMap
 
 /**
  * A function that returns true if the shape `left` is within the shape `right`.
  */
 case class Within(left: Expression, right: Expression)
-  extends BinaryExpression {
-
-  override type EvaluatedType = Any
-
-  override def symbol: String = nodeName
+  extends BinaryExpression with MagellanExpression {
 
   override def toString: String = s"$nodeName($left, $right)"
 
   override def dataType: DataType = BooleanType
 
-  override def eval(input: Row): Any = {
-    val leftEval = left.eval(input)
-    if (leftEval == null) {
-      null
+  override def nullSafeEval(leftEval: Any, rightEval: Any): Any = {
+    val leftRow = leftEval.asInstanceOf[InternalRow]
+    val rightRow = rightEval.asInstanceOf[InternalRow]
+
+    // check if the right bounding box contains left bounding box.
+    val ((lxmin, lymin), (lxmax, lymax)) = (
+        (leftRow.getDouble(1), leftRow.getDouble(2)),
+        (leftRow.getDouble(3), leftRow.getDouble(4))
+      )
+
+    val ((rxmin, rymin), (rxmax, rymax)) = (
+      (rightRow.getDouble(1), rightRow.getDouble(2)),
+      (rightRow.getDouble(3), rightRow.getDouble(4))
+      )
+
+    if (rxmin <= lxmin && rymin <= lymin && rxmax >= lxmax && rymax >= lymax) {
+      val leftShape = newInstance(leftRow)
+      val rightShape = newInstance(rightRow)
+      rightShape.contains(leftShape)
     } else {
-      val rightEval = right.eval(input)
-      val leftShape = leftEval.asInstanceOf[Shape]
-      val rightShape = rightEval.asInstanceOf[Shape]
-      if (rightEval == null) null else rightShape.contains(leftShape)
-    }
-  }
-
-  override def nullable: Boolean = left.nullable || right.nullable
-
-  protected def nullSafeEval(input1: Any, input2: Any): Any = {
-    val leftShape = input1.asInstanceOf[Shape]
-    if (leftShape == null) {
-      null
-    } else {
-      val rightShape = input2.asInstanceOf[Shape]
-      if (rightShape == null) null else rightShape.contains(leftShape)
-    }
-  }
-}
-
-/**
- * A function that returns the number of times the left shape intersects the right line.
- * @param left
- * @param right
- */
-case class Intersects(left: Expression, right: Expression)
-  extends BinaryExpression {
-
-  override type EvaluatedType = Boolean
-
-  override def symbol: String = nodeName
-
-  override def toString: String = s"$nodeName($left, $right)"
-
-  override def dataType: DataType = BooleanType
-
-  override def eval(input: Row): Boolean = {
-    val leftEval = left.eval(input)
-    if (leftEval == null) {
       false
-    } else {
-      val rightEval = right.eval(input)
-      val leftShape = leftEval.asInstanceOf[Shape]
-      val rightShape = rightEval.asInstanceOf[Shape]
-      if (rightEval == null) false else leftShape.intersects(rightShape)
     }
+
   }
 
   override def nullable: Boolean = left.nullable || right.nullable
 
-  protected def nullSafeEval(input1: Any, input2: Any): Any = {
-    val leftShape = input1.asInstanceOf[Shape]
-    if (leftShape == null) {
-      null
-    } else {
-      val rightShape = input2.asInstanceOf[Shape]
-      if (rightShape == null) null else rightShape.intersects(leftShape)
-    }
-  }
+  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = {
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+      "serializers.put(1, new magellan.PointUDT());" +
+      "serializers.put(5, new magellan.PolygonUDT());" +
+      "")
 
+    nullSafeCodeGen(ctx, ev, (c1, c2) => {
+        s"" +
+        s"Double lxmin = $c1.getDouble(1);" +
+        s"Double lymin = $c1.getDouble(2);" +
+        s"Double lxmax = $c1.getDouble(3);" +
+        s"Double lymax = $c1.getDouble(4);" +
+        s"Double rxmin = $c2.getDouble(1);" +
+        s"Double rymin = $c2.getDouble(2);" +
+        s"Double rxmax = $c2.getDouble(3);" +
+        s"Double rymax = $c2.getDouble(4);" +
+        s"Boolean within = false;" +
+        s"if (rxmin <= lxmin && rymin <= lymin && rxmax >= lxmax && rymax >= lymax) {" +
+        s"Integer ltype = $c1.getInt(0);" +
+        s"Integer rtype = $c2.getInt(0);" +
+        s"magellan.Shape leftShape = (magellan.Shape)" +
+          s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+          s"serializers.get(ltype)).deserialize($c1);" +
+        s"magellan.Shape rightShape = (magellan.Shape)" +
+          s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+          s"serializers.get(rtype)).deserialize($c2);" +
+        s"within = rightShape.contains(leftShape);" +
+        s"}" +
+        s"${ev.value} = within;"
+      })
+
+  }
 }
+

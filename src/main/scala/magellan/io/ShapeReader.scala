@@ -41,22 +41,19 @@ private[magellan] class PointReader extends ShapeReader {
   override def readFields(dataInput: DataInput): Shape = {
     val x = EndianUtils.swapDouble(dataInput.readDouble())
     val y = EndianUtils.swapDouble(dataInput.readDouble())
-    new Point(x, y)
+    Point(x, y)
   }
 
 }
 
-private[magellan] class PolygonReader extends PolyLineReader {
+private[magellan] class PolygonReader extends ShapeReader {
 
   override def readFields(dataInput: DataInput): Shape = {
     val (indices, points) = extract(dataInput)
-    new Polygon(indices, points)
+    Polygon(indices, points)
   }
-}
 
-private[magellan] class PolyLineReader extends ShapeReader {
-
-  def extract(dataInput: DataInput): (IndexedSeq[Int], IndexedSeq[Point]) = {
+  def extract(dataInput: DataInput): (Array[Int], Array[Point]) = {
     // extract bounding box.
     (0 until 4).foreach { _ => EndianUtils.swapDouble(dataInput.readDouble())}
 
@@ -83,25 +80,9 @@ private[magellan] class PolyLineReader extends ShapeReader {
       points.+= {
         val x = EndianUtils.swapDouble(dataInput.readDouble())
         val y = EndianUtils.swapDouble(dataInput.readDouble())
-        new Point(x, y)
+        Point(x, y)
       }
     }
-    (indices, points)
-  }
-
-  override def readFields(dataInput: DataInput): Shape = {
-    val (indices, points) = extract(dataInput)
-    new PolyLine(indices, points)
-  }
-}
-
-private[magellan] class PolyLineZReader extends PolyLineReader {
-
-  override def readFields(dataInput: DataInput): Shape = {
-    val (indices, points) = extract(dataInput)
-    // throw away the Z and M values
-    val size = points.length
-    (0 until (4 + 2 * size)).foreach(_ => dataInput.readDouble())
-    new PolyLine(indices, points)
+    (indices, points.toArray)
   }
 }

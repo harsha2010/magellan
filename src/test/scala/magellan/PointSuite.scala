@@ -13,25 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package magellan
 
 import org.scalatest.FunSuite
 
-class PointSuite extends FunSuite {
+class PointSuite extends FunSuite with TestSparkContext {
 
-  test("touches") {
-    val point = new Point(0.0, 0.0)
-    assert(!point.touches(point))
+  test("bounding box") {
+    val point = Point(1.0, 1.0)
+    val ((xmin, ymin), (xmax, ymax)) = point.boundingBox
+    assert(xmin === 1.0)
+    assert(ymin === 1.0)
+    assert(xmax === 1.0)
+    assert(ymax === 1.0)
   }
 
-  test("intersects") {
-    val point = new Point(0.0, 0.0)
-    assert(point.intersects(point))
-  }
-
-  test("buffer") {
-    val point = new Point(0.0, 0.0)
-    assert(point.buffer(1.0).contains(new Point(0.5, 0.5)))
+  test("serialization") {
+    val point = Point(1.0, 1.0)
+    val pointUDT = new PointUDT
+    val ((xmin, ymin), (xmax, ymax)) = point.boundingBox
+    val row = pointUDT.serialize(point)
+    assert(row.getInt(0) === point.getType())
+    assert(row.getDouble(1) === xmin)
+    assert(row.getDouble(2) === ymin)
+    assert(row.getDouble(3) === xmax)
+    assert(row.getDouble(4) === ymax)
+    val serializedPoint = pointUDT.deserialize(row)
+    assert(point.equals(serializedPoint))
   }
 }

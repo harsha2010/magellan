@@ -29,6 +29,18 @@ _acceptable_types[type(Point())] =  (type(Point()),)
 _acceptable_types[type(Polygon())] = (type(Polygon()),)
 _acceptable_types[type(PolyLine())] = (type(PolyLine()),)
 
+sc = SparkContext._active_spark_context
+loader = sc._jvm.Thread.currentThread().getContextClassLoader()
+wclass = loader.loadClass("org.apache.spark.sql.magellan.EvaluatePython")
+wmethod = None
+for mthd in wclass.getMethods():
+    if mthd.getName() == "registerPicklers":
+        wmethod = mthd
+
+expr_class = sc._jvm.java.lang.Object
+java_args = sc._gateway.new_array(expr_class, 0)
+wmethod.invoke(None, java_args)
+
 class MagellanContext(SQLContext):
     """A variant of Spark SQL that integrates with spatial data.
 
@@ -46,6 +58,7 @@ class MagellanContext(SQLContext):
     def _ssql_ctx(self):
         if not hasattr(self, '_scala_MagellanContext'):
             self._scala_MagellanContext = self._get_magellan_ctx()
+
         return self._scala_MagellanContext
 
     def _get_magellan_ctx(self):

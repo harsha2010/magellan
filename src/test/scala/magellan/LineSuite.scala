@@ -13,27 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package magellan
 
 import org.scalatest.FunSuite
 
-class LineSuite extends FunSuite {
+class LineSuite extends FunSuite with TestSparkContext {
 
-  test("touches") {
-    val line1 = new Line(new Point(0.0, 0.0), new Point(1.0, 0.0))
-    val line2 = new Line(new Point(0.0, 0.0), new Point(0.0, 1.0))
-    assert(line1.touches(line2))
-    assert(line1.touches(new Point(0.0, 0.0)))
-    assert(new Point(0.0, 0.0).touches(line1))
-    assert(new Point(1.0, 0.0).touches(line1))
-    assert(line2.intersects(new Line(new Point(-0.5, 0.5), new Point(0.5, 0.5))))
+  test("bounding box") {
+    val line = Line(Point(0.0, 1.0), Point(1.0, 0.5))
+    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
+    assert(xmin === 0.0)
+    assert(ymin === 0.5)
+    assert(xmax === 1.0)
+    assert(ymax === 1.0)
   }
 
   test("intersects") {
-    val line1 = new Line(new Point(0.0, 0.0), new Point(1.0, 0.0))
-    val line2 = new Line(new Point(0.0, 0.0), new Point(0.0, 1.0))
-    assert(line1.intersects(line2, 3))
-    assert(line2.intersects(new Line(new Point(-0.5, 0.5), new Point(0.5, 0.5)), 3))
+    val x = Line(Point(0.0, 0.0), Point(1.0, 1.0))
+    val y = Line(Point(1.0, 0.0), Point(0.0, 0.1))
+    val z = Line(Point(0.5, 0.0), Point(1.0, 0.5))
+    assert(x.intersects(y))
+    assert(!x.intersects(z))
+  }
+
+  test("serialization") {
+    val lineUDT = new LineUDT
+    val line = Line(Point(0.0, 1.0), Point(1.0, 0.5))
+    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
+    val row = lineUDT.serialize(line)
+    assert(row.getInt(0) === line.getType())
+    assert(row.getDouble(1) === xmin)
+    assert(row.getDouble(2) === ymin)
+    assert(row.getDouble(3) === xmax)
+    assert(row.getDouble(4) === ymax)
+    val serializedLine = lineUDT.deserialize(row)
+    assert(line.equals(serializedLine))
   }
 }
