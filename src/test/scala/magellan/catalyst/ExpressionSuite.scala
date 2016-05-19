@@ -16,7 +16,7 @@
 
 package magellan.catalyst
 
-import magellan.{Polygon, Point, TestSparkContext}
+import magellan._
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
@@ -79,4 +79,33 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
   }
 
+  test("PolyLine intersects Line") {
+
+    val line = Line(Point(0,0), Point(2,2))
+
+    val polyline1 = PolyLine(Array(0), Array(
+      Point(0.0, 0.0), Point(2.0, 2.0), Point(-2.0, -2.0)
+    ))
+
+    val polyline2 = PolyLine(Array(0), Array(
+      Point(0.0, 3.0), Point(3.0, 1.0), Point(-2.0, -2.0)
+    ))
+
+    val polyline3 = PolyLine(Array(0), Array(
+              Point(3.0, 3.0), Point(3.0, 11.0), Point(5.0, 0.0)
+            ))
+
+    assert(polyline1.intersects(line) === true)
+    assert(polyline2.intersects(line) === true)
+    assert(polyline3.intersects(line) === false)
+  }
+
+  test("PolyLine contains Point") {
+
+    val polyline = PolyLine(Array(0), Array(
+      Point(0.0, 0.0), Point(3.0, 3.0), Point(-2.0, -2.0)
+    ))
+    assert(polyline.contains(Point(1.0, 1.0)) === true)
+    assert(polyline.contains(Point(2.0, 1.0)) === false)
+  }
 }
