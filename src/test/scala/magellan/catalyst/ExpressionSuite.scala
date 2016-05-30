@@ -83,15 +83,15 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
     val line = Line(Point(0,0), Point(2,2))
 
-    val polyline1 = PolyLine(Array(0), Array(
+    val polyline1 = PolyLine(new Array[Int](3), Array(
       Point(0.0, 0.0), Point(2.0, 2.0), Point(-2.0, -2.0)
     ))
 
-    val polyline2 = PolyLine(Array(0), Array(
+    val polyline2 = PolyLine(new Array[Int](3), Array(
       Point(0.0, 3.0), Point(3.0, 1.0), Point(-2.0, -2.0)
     ))
 
-    val polyline3 = PolyLine(Array(0), Array(
+    val polyline3 = PolyLine(new Array[Int](3), Array(
               Point(3.0, 3.0), Point(3.0, 11.0), Point(5.0, 0.0)
             ))
 
@@ -102,7 +102,7 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
   test("PolyLine contains Point") {
 
-    val polyline = PolyLine(Array(0), Array(
+    val polyline = PolyLine(new Array[Int](3), Array(
       Point(0.0, 0.0), Point(3.0, 3.0), Point(-2.0, -2.0)
     ))
     assert(polyline.contains(Point(1.0, 1.0)) === true)

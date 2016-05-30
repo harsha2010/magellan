@@ -37,6 +37,7 @@ private[magellan] class ShapeWritable(shapeType: Int) extends Writable {
     val h = shapeType match {
       case 0 => new NullShapeReader()
       case 1 => new PointReader()
+      case 3 => new PolyLineReader()
       case 5 => new PolygonReader()
       case _ => ???
     }

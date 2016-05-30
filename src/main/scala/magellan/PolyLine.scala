@@ -149,16 +149,16 @@ private[magellan] class PolyLineUDT extends UserDefinedType[PolyLine] {
 
   override def serialize(obj: Any): InternalRow = {
     val row = new GenericMutableRow(8)
-    val polygon = obj.asInstanceOf[Polygon]
-    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
-    row.update(0, polygon.getType())
+    val polyLine = obj.asInstanceOf[PolyLine]
+    val ((xmin, ymin), (xmax, ymax)) = polyLine.boundingBox
+    row.update(0, polyLine.getType())
     row.update(1, xmin)
     row.update(2, ymin)
     row.update(3, xmax)
     row.update(4, ymax)
-    row.update(5, new IntegerArrayData(polygon.indices))
-    row.update(6, new DoubleArrayData(polygon.xcoordinates))
-    row.update(7, new DoubleArrayData(polygon.ycoordinates))
+    row.update(5, new IntegerArrayData(polyLine.indices))
+    row.update(6, new DoubleArrayData(polyLine.xcoordinates))
+    row.update(7, new DoubleArrayData(polyLine.ycoordinates))
     row
   }
 
@@ -203,6 +203,7 @@ private[magellan] object PolyLine {
       if (ymax < y) {
         ymax = y
       }
+      indices(i) = i
       i += 1
     }
     new PolyLine(
