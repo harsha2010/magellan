@@ -17,13 +17,54 @@
 package magellan.catalyst
 
 import magellan._
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
-import org.apache.spark.sql.catalyst.expressions.codegen.{GeneratedExpressionCode, CodeGenContext, CodegenFallback}
-import org.apache.spark.sql.types.{UserDefinedType, BooleanType, DataType}
+import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenContext, CodegenFallback, GeneratedExpressionCode}
+import org.apache.spark.sql.types.{BooleanType, DataType, UserDefinedType}
 
 import scala.collection.immutable.HashMap
 
+
+/**
+  * A function that returns the intersection between the left and right shapes.
+  * @param left
+  * @param right
+  */
+case class Intersects(left: Expression, right: Expression)
+  extends BinaryExpression with MagellanExpression {
+
+  override def toString: String = s"$nodeName($left, $right)"
+
+  override def dataType: DataType = left.dataType
+
+  override def nullable: Boolean = left.nullable || right.nullable
+
+  /*override def eval(input: InternalRow): Boolean = {
+    val leftEval = left.eval(input)
+    if (leftEval == null) {
+      false
+    } else {
+      val rightEval = right.eval(input)
+      val leftShape = leftEval.asInstanceOf[Shape]
+      val rightShape = rightEval.asInstanceOf[Shape]
+      if (rightEval == null) false else leftShape.intersects(rightShape)
+    }
+  }*/
+
+  override protected def nullSafeEval(input1: Any, input2: Any): Any = {
+
+    val leftShape = input1.asInstanceOf[Shape]
+    if (leftShape == null) {
+      null
+    } else {
+      val rightShape = input2.asInstanceOf[Shape]
+      if (rightShape == null) null else rightShape.intersects(leftShape)
+    }
+  }
+
+  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = ???
+}
 /**
  * A function that returns true if the shape `left` is within the shape `right`.
  */

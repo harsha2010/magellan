@@ -31,6 +31,10 @@ package object dsl {
 
     def within(other: Column): Column = Column(Within(expr, other.expr))
 
+    def intersects(other: Expression): Expression = Intersects(expr, other)
+
+    def intersects(other: Shape): Column = Column(Intersects(expr, ShapeLiteral(other)))
+
     def >?(other: Expression): Expression = Within(other, expr)
 
     def >?(other: Column): Column = Column(Within(other.expr, expr))
@@ -53,6 +57,10 @@ package object dsl {
       def col: Column = c
 
       def within(other: Column): Column = Column(Within(col.expr, other.expr))
+
+      def intersects(other: Column): Column = Column(Intersects(c.expr, other.expr))
+
+      def intersects(other: Shape): Column = Column(Intersects(c.expr, ShapeLiteral(other)))
 
       def >?(other: Column): Column = Column(Within(other.expr, col.expr))
 

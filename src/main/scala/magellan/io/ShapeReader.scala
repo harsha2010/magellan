@@ -127,3 +127,17 @@ private[magellan] class PolyLineReader extends ShapeReader {
     PolyLine(indices, points)
   }
 }
+
+private[magellan] class PolyLineZReader extends PolyLineReader {
+
+  override def readFields(dataInput: DataInput): Shape = {
+    val (indices, points) = extract(dataInput)
+    // throw away the Z and M values
+    val size = points.length
+    (0 until (4 + 2 * size)).foreach(_ => dataInput.readDouble())
+    if(indices.size != points.size)
+      PolyLine( new Array[Int](points.size), points)
+    else
+      PolyLine(indices, points)
+  }
+}

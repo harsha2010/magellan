@@ -85,7 +85,7 @@ case class OsmFileRelation(path: String)(@transient val sqlContext: SQLContext)
       if (wayShapeIsArea(reversedPoints.head, currentPoints.head, tags)) {
         Polygon(Array(), reversedPoints.toArray)
       } else {
-        ???
+        PolyLine(new Array[Int](reversedPoints.toArray.size), reversedPoints.toArray)
       }
     }
   }

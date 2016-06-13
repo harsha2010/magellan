@@ -39,6 +39,7 @@ private[magellan] class ShapeWritable(shapeType: Int) extends Writable {
       case 1 => new PointReader()
       case 3 => new PolyLineReader()
       case 5 => new PolygonReader()
+      case 13 => new PolyLineZReader()
       case _ => ???
     }
     shape = h.readFields(dataInput)

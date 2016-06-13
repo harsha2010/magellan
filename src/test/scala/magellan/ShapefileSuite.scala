@@ -70,5 +70,36 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     assert(df.select($"metadata"("STATE").as("state")).filter($"state" === "CA").count() === 948)
     assert(df.select($"metadata"("STATE").as("state")).filter($"state" isNull).count() === 723)
   }
+
+  test("shapefile-relation: polylines") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
+    import sqlCtx.implicits._
+    assert(df.count() === 14959)
+    // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
+    val start = Point(5989880.123683602, 2107393.125753522)
+    val end = Point(5988698.112268105, 2107728.9863022715)
+    assert(df.filter($"polyline" intersects Line(start, end)).count() > 0)
+  }
+
+  test("shapefile-relation: points and polygons") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testcomposite/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
+    assert(df.count() === 2)
+    // each row should either contain a point or a polygon but not both
+    import sqlCtx.implicits._
+    assert(df.filter($"point" isNull).count() === 1)
+    assert(df.filter($"polygon" isNull).count() === 1)
+  }
+
+  test("shapefile-relation: valid") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
+    import sqlCtx.implicits._
+    assert(df.filter($"valid").count() == 14959)
+  }
 }
 

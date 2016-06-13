@@ -101,7 +101,7 @@ class PolyLine(
     case that: PolyLine =>
       (that canEqual this) &&
         getType() == that.getType() &&
-        indices == that.indices &&
+        indices.deep == that.indices.deep &&
         xcoordinates.deep == that.xcoordinates.deep &&
         ycoordinates.deep == that.ycoordinates.deep
 
