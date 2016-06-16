@@ -93,7 +93,8 @@ trait Shape extends DataType with Serializable {
   def intersects(other: Shape, bitMask: Int): Boolean = {
     val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
     val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
-    if (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax) {
+    if ((xmin <= otherxmin && xmax >= otherxmin && ymin <= otherymin && ymax >= otherymin) ||
+      (otherxmin <= xmin && otherxmax >= xmin && otherymin <= ymin && otherymax >= ymin)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
         case (p: Point, q: Polygon) => false
@@ -101,7 +102,7 @@ trait Shape extends DataType with Serializable {
         case (p: Polygon, q: Line) => p.intersects(q)
         case (p: Polygon, q: PolyLine) => p.intersects(q)
         case (p: PolyLine, q: Line) => p.intersects(q)
-        case (p: Line, q: PolyLine) => p.intersects(q)
+        case (p: Line, q: PolyLine) => q.intersects(p)
         case _ => ???
       }
     } else  {

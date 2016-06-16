@@ -36,35 +36,74 @@ case class Intersects(left: Expression, right: Expression)
 
   override def toString: String = s"$nodeName($left, $right)"
 
-  override def dataType: DataType = left.dataType
+  override def dataType: DataType = BooleanType
 
   override def nullable: Boolean = left.nullable || right.nullable
 
-  /*override def eval(input: InternalRow): Boolean = {
-    val leftEval = left.eval(input)
-    if (leftEval == null) {
+  override protected def nullSafeEval(leftEval: Any, rightEval: Any): Any = {
+
+    val leftRow = leftEval.asInstanceOf[InternalRow]
+    val rightRow = rightEval.asInstanceOf[InternalRow]
+
+    // check if the right bounding box intersects left bounding box.
+    val ((lxmin, lymin), (lxmax, lymax)) = (
+      (leftRow.getDouble(1), leftRow.getDouble(2)),
+      (leftRow.getDouble(3), leftRow.getDouble(4))
+      )
+
+    val ((rxmin, rymin), (rxmax, rymax)) = (
+      (rightRow.getDouble(1), rightRow.getDouble(2)),
+      (rightRow.getDouble(3), rightRow.getDouble(4))
+      )
+
+    if (
+        (lxmin <= rxmin && lxmax >= rxmin && lymin <= rymin && lymax >= rymin) ||
+        (rxmin <= lxmin && rxmax >= lxmin && rymin <= lymin && rymax >= lymin)) {
+      val leftShape = newInstance(leftRow)
+      val rightShape = newInstance(rightRow)
+      rightShape.intersects(leftShape)
+    } else {
       false
-    } else {
-      val rightEval = right.eval(input)
-      val leftShape = leftEval.asInstanceOf[Shape]
-      val rightShape = rightEval.asInstanceOf[Shape]
-      if (rightEval == null) false else leftShape.intersects(rightShape)
-    }
-  }*/
-
-  override protected def nullSafeEval(input1: Any, input2: Any): Any = {
-
-    val leftShape = input1.asInstanceOf[Shape]
-    if (leftShape == null) {
-      null
-    } else {
-      val rightShape = input2.asInstanceOf[Shape]
-      if (rightShape == null) null else rightShape.intersects(leftShape)
     }
   }
 
-  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = ???
+  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = {
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        "serializers.put(1, new magellan.PointUDT());" +
+        "serializers.put(2, new magellan.LineUDT());" +
+        "serializers.put(3, new magellan.PolyLineUDT());" +
+        "serializers.put(5, new magellan.PolygonUDT());" +
+        "")
+
+    nullSafeCodeGen(ctx, ev, (c1, c2) => {
+      s"" +
+        s"Double lxmin = $c1.getDouble(1);" +
+        s"Double lymin = $c1.getDouble(2);" +
+        s"Double lxmax = $c1.getDouble(3);" +
+        s"Double lymax = $c1.getDouble(4);" +
+        s"Double rxmin = $c2.getDouble(1);" +
+        s"Double rymin = $c2.getDouble(2);" +
+        s"Double rxmax = $c2.getDouble(3);" +
+        s"Double rymax = $c2.getDouble(4);" +
+        s"Boolean intersects = false;" +
+        s"if ((lxmin <= rxmin && lxmax >= rxmin && lymin <= rymin && lymax >= rymin) ||" +
+        s"(rxmin <= lxmin && rxmax >= lxmin && rymin <= lymin && rymax >= lymin)) {" +
+        s"Integer ltype = $c1.getInt(0);" +
+        s"Integer rtype = $c2.getInt(0);" +
+        s"magellan.Shape leftShape = (magellan.Shape)" +
+        s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+        s"serializers.get(ltype)).deserialize($c1);" +
+        s"magellan.Shape rightShape = (magellan.Shape)" +
+        s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+        s"serializers.get(rtype)).deserialize($c2);" +
+        s"intersects = rightShape.intersects(leftShape);" +
+        s"}" +
+        s"${ev.value} = intersects;"
+    })
+  }
 }
+
 /**
  * A function that returns true if the shape `left` is within the shape `right`.
  */
@@ -105,8 +144,9 @@ case class Within(left: Expression, right: Expression)
   override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = {
     ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
       "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-      "serializers.put(1, new magellan.PointUDT());" +
-      "serializers.put(5, new magellan.PolygonUDT());" +
+        "serializers.put(1, new magellan.PointUDT());" +
+        "serializers.put(3, new magellan.PolyLineUDT());" +
+        "serializers.put(5, new magellan.PolygonUDT());" +
       "")
 
     nullSafeCodeGen(ctx, ev, (c1, c2) => {

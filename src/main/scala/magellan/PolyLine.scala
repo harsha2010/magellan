@@ -29,10 +29,10 @@ import scala.util.control.Breaks._
   */
 @SQLUserDefinedType(udt = classOf[PolyLineUDT])
 class PolyLine(
-                val indices: Array[Int],
-                val xcoordinates: Array[Double],
-                val ycoordinates: Array[Double],
-                override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
+    val indices: Array[Int],
+    val xcoordinates: Array[Double],
+    val ycoordinates: Array[Double],
+    override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
 
   override def getType(): Int = 3
 
@@ -83,7 +83,7 @@ class PolyLine(
         val startY = ycoordinates(startIndex)
         val endX = xcoordinates(endIndex)
         val endY = ycoordinates(endIndex)
-        // check if each segment intersects incoming line
+        // check if any segment intersects incoming line
         if(line.intersects(Line(Point(startX, startY), Point(endX, endY)))) {
           intersects = true
           break
