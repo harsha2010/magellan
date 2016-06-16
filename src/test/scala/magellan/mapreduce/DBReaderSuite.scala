@@ -16,9 +16,11 @@
 
 package magellan.mapreduce
 
-import magellan.TestSparkContext
+import scala.collection.JavaConversions._
+import magellan.{TestingUtils, TestSparkContext}
 import magellan.io.ShapeKey
-import org.apache.hadoop.io.MapWritable
+import TestingUtils._
+import org.apache.hadoop.io.{Text, MapWritable}
 import org.scalatest.FunSuite
 
 class DBReaderSuite extends FunSuite with TestSparkContext {
@@ -32,5 +34,25 @@ class DBReaderSuite extends FunSuite with TestSparkContext {
       classOf[MapWritable]
     )
     assert(baseRdd.count() == 948)
+  }
+
+  test("bug: Landtracs DBF") {
+    val path = this.getClass.getClassLoader.getResource("landtracs/landtrac_units.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    ).map { case (s: ShapeKey, v: MapWritable) =>
+      v.entrySet().map { kv =>
+        val k = kv.getKey.asInstanceOf[Text].toString
+        val v = kv.getValue.asInstanceOf[Text].toString
+        (k, v)
+      }.toMap
+    }
+    assert(baseRdd.count() == 231)
+    // what does the first row look like?
+    val area = baseRdd.first()("SHAPE_area")
+    assert(area.toDouble ~== 426442.116396 absTol 1.0)
   }
 }
