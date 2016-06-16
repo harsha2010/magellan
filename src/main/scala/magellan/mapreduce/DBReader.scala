@@ -77,22 +77,15 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
           fld.append(b, 0, length)
           fld
         }
-        case 'N' => {
-          if (decimalCount == 0) {
-            val b = Array.fill[Byte](length)(0)
-            dis.readFully(b)
-            val fld = new Text()
-            fld.set(new String(b))
-            fld
-          } else {
-            val b = Array.fill[Byte](length)(0)
-            dis.readFully(b)
-            val fld = new Text()
-            fld.clear()
-            fld.set(new String(b))
-            fld
-          }
+        case 'N' | 'F' => {
+          val b = Array.fill[Byte](length)(0)
+          dis.readFully(b)
+          val fld = new Text()
+          fld.clear()
+          fld.set(new String(b))
+          fld
         }
+
         case _ => ???
       }
       value.put(fieldName, v)
