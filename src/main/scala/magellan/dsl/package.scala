@@ -78,6 +78,8 @@ package object dsl {
 
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
+    implicit def shape(x: Shape) = Column(ShapeLiteral(x))
+
   }
 
 

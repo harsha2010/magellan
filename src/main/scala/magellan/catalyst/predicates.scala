@@ -145,6 +145,7 @@ case class Within(left: Expression, right: Expression)
     ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
       "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
         "serializers.put(1, new magellan.PointUDT());" +
+        "serializers.put(2, new magellan.LineUDT());" +
         "serializers.put(3, new magellan.PolyLineUDT());" +
         "serializers.put(5, new magellan.PolygonUDT());" +
       "")
