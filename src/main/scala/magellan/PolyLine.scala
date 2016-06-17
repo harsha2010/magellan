@@ -203,7 +203,6 @@ private[magellan] object PolyLine {
       if (ymax < y) {
         ymax = y
       }
-      indices(i) = i
       i += 1
     }
     new PolyLine(
