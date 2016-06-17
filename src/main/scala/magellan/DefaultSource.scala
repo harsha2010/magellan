@@ -36,7 +36,8 @@ class DefaultSource extends RelationProvider
     t match {
       case "shapefile" => new ShapeFileRelation(path)(sqlContext)
       case "geojson" => new GeoJSONRelation(path)(sqlContext)
-      case "osm" => new OsmFileRelation(path)(sqlContext)
+      case "osm" => new OsmFileRelation(path, OsmInputType.XML)(sqlContext)
+      case "pbf" => new OsmFileRelation(path, OsmInputType.PBF)(sqlContext)
       case _ => ???
     }
   }

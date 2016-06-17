@@ -24,6 +24,7 @@ libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.4",
   "org.slf4j" % "slf4j-api" % "1.7.5" % "provided",
   "com.esri.geometry" % "esri-geometry-api" % "1.2.1",
+  "org.openstreetmap.osmosis" % "osmosis-pbf" % "0.44.1",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
