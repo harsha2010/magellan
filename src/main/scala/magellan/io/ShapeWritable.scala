@@ -16,12 +16,11 @@
 
 package magellan.io
 
-import java.io.{DataOutput, DataInput}
-
-import org.apache.commons.io.EndianUtils
-import org.apache.hadoop.io.Writable
+import java.io.{DataInput, DataOutput}
 
 import magellan.Shape
+import org.apache.commons.io.EndianUtils
+import org.apache.hadoop.io.Writable
 
 private[magellan] class ShapeWritable(shapeType: Int) extends Writable {
 

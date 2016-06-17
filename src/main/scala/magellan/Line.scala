@@ -13,36 +13,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package magellan
 
-import com.esri.core.geometry.{Polyline => ESRILine}
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
 
 /**
  * Line segment between two points.
- *
- * @param start
- * @param end
  */
 @SQLUserDefinedType(udt = classOf[LineUDT])
-class Line(val start: Point, val end: Point) extends Shape {
+class Line extends Shape {
 
-  override val shapeType: Int = 2
+  private var start: Point = _
+  private var end: Point = _
 
-  override private[magellan] val delegate = {
-    val l = new ESRILine()
-    l.startPath(start.delegate)
-    l.lineTo(end.delegate)
-    l
+  def setStart(start: Point) { this.start = start }
+  def setEnd(end: Point) { this.end = end }
+
+  def getStart() = start
+  def getEnd() = end
+
+  private [magellan] def intersects(other: Line): Boolean = {
+    // test for degeneracy
+    if (start == other.start ||
+      end == other.end ||
+      start == other.end ||
+      end == other.start) {
+      true
+    } else {
+      def ccw(a: Point, b: Point, c: Point) = {
+        (c.getY() - a.getY()) * (b.getX() - a.getX()) > (b.getY() - a.getY()) * (c.getX() - a.getX())
+      }
+      ccw(start, other.start, other.end) != ccw(end, other.start, other.end) &&
+        ccw(start, end, other.start) != ccw(start, end, other.end)
+    }
   }
 
-  override def transform(fn: (Point) => Point): Line = {
-    new Line(start.transform(fn), end.transform(fn))
-  }
+  override def getType(): Int = 2
 
+  /**
+   * Applies an arbitrary point wise transformation to a given shape.
+   *
+   * @param fn
+   * @return
+   */
+  override def transform(fn: (Point) => Point): Shape = ???
+
+  override def boundingBox: ((Double, Double), (Double, Double)) = {
+    val (xmin, xmax) = if (start.getX() < end.getX()) {
+      (start.getX(), end.getX())
+    } else {
+      (end.getX(), start.getX())
+    }
+    val (ymin, ymax) = if (start.getY() < end.getY()) {
+      (start.getY(), end.getY())
+    } else {
+      (end.getY(), start.getY())
+    }
+    ((xmin, ymin), (xmax, ymax))
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Line]
 
@@ -58,42 +88,65 @@ class Line(val start: Point, val end: Point) extends Shape {
     val state = Seq(start, end)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
-
-
-  override def toString = s"Line($start, $end)"
-
 }
 
 class LineUDT extends UserDefinedType[Line] {
 
-  override def sqlType: DataType = Line.EMPTY
+  override def sqlType: DataType = StructType(
+    Seq(
+      StructField("type", IntegerType, nullable = false),
+      StructField("xmin", DoubleType, nullable = false),
+      StructField("ymin", DoubleType, nullable = false),
+      StructField("xmax", DoubleType, nullable = false),
+      StructField("ymax", DoubleType, nullable = false),
+      StructField("startX", DoubleType, nullable = false),
+      StructField("startY", DoubleType, nullable = false),
+      StructField("endX", DoubleType, nullable = false),
+      StructField("endY", DoubleType, nullable = false)
+    ))
 
-  override def serialize(obj: Any): Line = {
-    obj.asInstanceOf[Line]
+  override def serialize(obj: Any): InternalRow = {
+    val row = new GenericMutableRow(9)
+    val line = obj.asInstanceOf[Line]
+    row.setInt(0, 2)
+    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
+    row.setDouble(1, xmin)
+    row.setDouble(2, ymin)
+    row.setDouble(3, xmax)
+    row.setDouble(4, ymax)
+    row.setDouble(5, line.getStart().getX())
+    row.setDouble(6, line.getStart().getY())
+    row.setDouble(7, line.getEnd().getX())
+    row.setDouble(8, line.getEnd().getY())
+    row
   }
 
   override def userClass: Class[Line] = classOf[Line]
 
   override def deserialize(datum: Any): Line = {
-    datum match {
-      case x: Line => x
-      case r: Row => r(0).asInstanceOf[Line]
-      case null => null
-      case _ => ???
-    }
+    val row = datum.asInstanceOf[InternalRow]
+    val startX = row.getDouble(5)
+    val startY = row.getDouble(6)
+    val endX = row.getDouble(7)
+    val endY = row.getDouble(8)
+    val line = new Line()
+    val start = Point(startX, startY)
+    val end = Point(endX, endY)
+    line.setStart(start)
+    line.setEnd(end)
+    line
   }
 
   override def pyUDT: String = "magellan.types.LineUDT"
 
 }
 
-private[magellan] object Line {
+object Line {
 
-  val EMPTY = new Line(Point.EMPTY, Point.EMPTY)
-
-  def fromESRI(esriLine: ESRILine): Line = {
-    val start = Point.fromESRI(esriLine.getPoint(0))
-    val end = Point.fromESRI(esriLine.getPoint(1))
-    new Line(start, end)
+  def apply(start: Point, end: Point): Line = {
+    val line = new Line()
+    line.setStart(start)
+    line.setEnd(end)
+    line
   }
 }

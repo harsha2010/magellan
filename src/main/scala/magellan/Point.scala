@@ -16,8 +16,8 @@
 
 package magellan
 
-import com.esri.core.geometry.{Point => ESRIPoint}
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
 import org.json4s.JsonAST.JValue
@@ -32,18 +32,10 @@ import org.json4s.JsonDSL._
  * and the y-coordinate is the latitude.
  */
 @SQLUserDefinedType(udt = classOf[PointUDT])
-class Point(val x: Double, val y: Double) extends Shape {
+class Point extends Shape {
 
-  def this() {this(0.0, 0.0)}
-
-  override private[magellan] val delegate = {
-    val p = new ESRIPoint()
-    p.setX(x)
-    p.setY(y)
-    p
-  }
-
-  override final val shapeType: Int = 1
+  private var x: Double = _
+  private var y: Double = _
 
   def equalToTol(other: Point, eps: Double): Boolean = {
     math.abs(x - other.x) < eps && math.abs(y - other.y) < eps
@@ -66,6 +58,18 @@ class Point(val x: Double, val y: Double) extends Shape {
 
   override def toString = s"Point($x, $y)"
 
+  def setX(x: Double): Unit = {
+    this.x = x
+  }
+
+  def setY(y: Double): Unit = {
+    this.y = y
+  }
+
+  def getX(): Double = x
+
+  def getY(): Double = y
+
   /**
    * Applies an arbitrary point wise transformation to a given shape.
    *
@@ -74,52 +78,76 @@ class Point(val x: Double, val y: Double) extends Shape {
    */
   override def transform(fn: (Point) => Point): Point = fn(this)
 
+  override def getType(): Int = 1
+
   override def jsonValue: JValue =
     ("type" -> "udt") ~
       ("class" -> this.getClass.getName) ~
       ("pyClass" -> "magellan.types.PointUDT") ~
       ("x" -> x) ~
       ("y" -> y)
+
+  override def boundingBox: ((Double, Double), (Double, Double)) = ((x, y), (x, y))
+
 }
 
-private[magellan] class PointUDT extends UserDefinedType[Point] {
+class PointUDT extends UserDefinedType[Point] {
 
-  override def sqlType: DataType = Point.EMPTY
+  override val sqlType: DataType = StructType(
+    Seq(
+      StructField("type", IntegerType, nullable = false),
+      StructField("xmin", DoubleType, nullable = false),
+      StructField("ymin", DoubleType, nullable = false),
+      StructField("xmax", DoubleType, nullable = false),
+      StructField("ymax", DoubleType, nullable = false),
+      StructField("x", DoubleType, nullable = false),
+      StructField("y", DoubleType, nullable = false)
+    ))
 
-  override def serialize(obj: Any): Point = {
-    obj match {
-      case p: Point => p
-      case Array(t: Int, x: Double, y: Double) => new Point(x, y)
-      case _ => ???
-    }
+  override def serialize(obj: Any): InternalRow = {
+    val p = obj.asInstanceOf[Point]
+    val row = new GenericMutableRow(7)
+    row.setInt(0, p.getType())
+    row.setDouble(1, p.getX())
+    row.setDouble(2, p.getY())
+    row.setDouble(3, p.getX())
+    row.setDouble(4, p.getY())
+    row.setDouble(5, p.getX())
+    row.setDouble(6, p.getY())
+    row
   }
 
   override def userClass: Class[Point] = classOf[Point]
 
   override def deserialize(datum: Any): Point = {
-    datum match {
-      case row: Row => {
-        row(0).asInstanceOf[Point]
-      }
-      // TODO: There is a bug in UDT serialization in Spark.This should never happen.
-      case p: Point => p
-      case null => null
-      case Array(t: Int, x: Double, y: Double) => Point(x, y)
-      case _ => ???
-    }
+    val row = datum.asInstanceOf[InternalRow]
+    require(row.numFields == 7)
+    Point(row.getDouble(5), row.getDouble(6))
   }
 
   override def pyUDT: String = "magellan.types.PointUDT"
+
+  def serialize(x: Double, y: Double): InternalRow = {
+    val row = new GenericMutableRow(7)
+    row.setInt(0, 1)
+    row.setDouble(1, x)
+    row.setDouble(2, y)
+    row.setDouble(3, x)
+    row.setDouble(4, y)
+    row.setDouble(5, x)
+    row.setDouble(6, y)
+    row
+  }
 
 }
 
 object Point {
 
-  val EMPTY = new Point()
-
-  private[magellan] def fromESRI(esriPoint: ESRIPoint): Point = {
-    new Point(esriPoint.getX(), esriPoint.getY())
+  def apply(x: Double, y: Double) = {
+    val p = new Point()
+    p.setX(x)
+    p.setY(y)
+    p
   }
-
-  def apply(x: Double, y: Double) = new Point(x, y)
 }
+

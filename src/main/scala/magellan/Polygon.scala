@@ -16,17 +16,9 @@
 
 package magellan
 
-import java.util.{List => JList}
-
-import com.esri.core.geometry.{Polygon => ESRIPolygon}
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
-import org.json4s.JsonAST.{JArray, JInt, JValue}
-import org.json4s.JsonDSL._
-
-import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * A polygon consists of one or more rings. A ring is a connected sequence of four or more points
@@ -38,66 +30,82 @@ import scala.collection.mutable.ArrayBuffer
  * Vertices for a single, ringed polygon are, therefore, always in clockwise order.
  * The rings of a polygon are referred to as its parts.
  *
- * @param indices
- * @param points
  */
 @SQLUserDefinedType(udt = classOf[PolygonUDT])
 class Polygon(
-    val indices: IndexedSeq[Int],
-    val points: IndexedSeq[Point])
-  extends Shape {
+    val indices: Array[Int],
+    val xcoordinates: Array[Double],
+    val ycoordinates: Array[Double],
+    override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
 
-  override val shapeType: Int = 5
+  private [magellan] def contains(point: Point): Boolean = {
+    var startIndex = 0
+    var endIndex = 1
+    val length = xcoordinates.length
+    var intersections = 0
+    var currentRingIndex = 0
+    val start = new Point
+    val end = new Point
+    while (endIndex < length) {
 
-  override private[magellan] val delegate = {
-    val p = new ESRIPolygon()
-    if (points.length > 0) {
-      var startIndex = 0
-      var endIndex = 1
-      val length = points.size
-      var currentRingIndex = 0
-      var start = points(startIndex)
-
-      p.startPath(start.delegate)
-
-      while (endIndex < length) {
-        val end = points(endIndex)
-        p.lineTo(end.delegate)
-        startIndex += 1
-        endIndex += 1
-        // if we reach a ring boundary skip it
-        val nextRingIndex = currentRingIndex + 1
-        if (nextRingIndex < indices.length) {
-          val nextRing = indices(nextRingIndex)
-          if (endIndex == nextRing) {
-            startIndex += 1
-            endIndex += 1
-            currentRingIndex = nextRingIndex
-            p.closePathWithLine()
-            start = points(startIndex)
-          }
+      start.setX(xcoordinates(startIndex))
+      start.setY(ycoordinates(startIndex))
+      end.setX(xcoordinates(endIndex))
+      end.setY(ycoordinates(endIndex))
+      val slope = (end.getY() - start.getY())/ (end.getX() - start.getX())
+      val cond1 = (start.getX() <= point.getX()) && (point.getX() < end.getX())
+      val cond2 = (end.getX() <= point.getX()) && (point.getX() < start.getX())
+      val above = (point.getY() < slope * (point.getX() - start.getX()) + start.getY())
+      if ((cond1 || cond2) && above ) intersections+= 1
+      startIndex += 1
+      endIndex += 1
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
         }
       }
     }
-    p
+    intersections % 2 != 0
   }
 
-  def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
+  private [magellan] def intersects(line: Line): Boolean = {
+    // Check if any edge intersects this line
+    var i = 0
+    val length = xcoordinates.length
+    var found = false
+    var start:Point = null
+    var end:Point = new Point()
+    val edge = new Line()
 
-  override def equals(other: Any): Boolean = other match {
-    case that: Polygon =>
-      (that canEqual this) &&
-        indices == that.indices &&
-        points == that.points
-    case _ => false
+    while (i < length && !found) {
+      if (start == null) {
+        start = new Point()
+        start.setX(xcoordinates(i))
+        start.setY(ycoordinates(i))
+      } else {
+        start = end
+        end = new Point()
+        end.setX(xcoordinates(i))
+        end.setY(ycoordinates(i))
+        edge.setStart(start)
+        edge.setEnd(end)
+        found = edge.intersects(line)
+      }
+      i += 1
+    }
+    found
   }
 
-  override def hashCode(): Int = {
-    val state = Seq(indices, points)
-    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  private [magellan] def contains(line: Line): Boolean = {
+    !this.intersects(line) && this.contains(line.getStart()) && this.contains(line.getEnd())
   }
 
-  override def toString = s"Polygon($shapeType, $indices, $points)"
+  override def getType(): Int = 5
 
   /**
    * Applies an arbitrary point wise transformation to a given shape.
@@ -105,71 +113,103 @@ class Polygon(
    * @param fn
    * @return
    */
-  override def transform(fn: (Point) => Point): Polygon = {
-    val transformedPoints = points.map(point => point.transform(fn))
-    new Polygon(indices, transformedPoints)
+  override def transform(fn: (Point) => Point): Shape = ???
+
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Polygon =>
+      (that canEqual this) &&
+        indices.deep == that.indices.deep &&
+        xcoordinates.deep == that.xcoordinates.deep &&
+        ycoordinates.deep == that.ycoordinates.deep
+    case _ => false
   }
 
-  override def jsonValue: JValue =
-    ("type" -> "udt") ~
-      ("class" -> this.getClass.getName) ~
-      ("pyClass" -> "magellan.types.PolygonUDT") ~
-      ("indices" -> JArray(indices.map(index => JInt(index)).toList)) ~
-      ("points" -> JArray(points.map(_.jsonValue).toList))
+  override def hashCode(): Int = {
+    val state = Seq(indices, xcoordinates, ycoordinates)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
 }
 
-private[magellan] class PolygonUDT extends UserDefinedType[Polygon] {
+class PolygonUDT extends UserDefinedType[Polygon] {
 
-  override def sqlType: DataType = Polygon.EMPTY
+  override val sqlType: DataType = StructType(Seq(
+    StructField("type", IntegerType, nullable = false),
+    StructField("xmin", DoubleType, nullable = false),
+    StructField("ymin", DoubleType, nullable = false),
+    StructField("xmax", DoubleType, nullable = false),
+    StructField("ymax", DoubleType, nullable = false),
+    StructField("indices", ArrayType(IntegerType, containsNull = false), nullable = true),
+    StructField("xcoordinates", ArrayType(DoubleType, containsNull = false), nullable = true),
+    StructField("ycoordinates", ArrayType(DoubleType, containsNull = false), nullable = true)
+  ))
 
-  override def serialize(obj: Any): Polygon = {
-    obj.asInstanceOf[Polygon]
+  override def serialize(obj: Any): InternalRow = {
+    val row = new GenericMutableRow(8)
+    val polygon = obj.asInstanceOf[Polygon]
+    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
+    row.update(0, polygon.getType())
+    row.update(1, xmin)
+    row.update(2, ymin)
+    row.update(3, xmax)
+    row.update(4, ymax)
+    row.update(5, new IntegerArrayData(polygon.indices))
+    row.update(6, new DoubleArrayData(polygon.xcoordinates))
+    row.update(7, new DoubleArrayData(polygon.ycoordinates))
+    row
   }
 
   override def userClass: Class[Polygon] = classOf[Polygon]
 
   override def deserialize(datum: Any): Polygon = {
-    datum match {
-      case x: Polygon => x
-      case r: Row => r(0).asInstanceOf[Polygon]
-      case null => null
-      case Array(t: Int, indices: JList[Int], points: JList[Point]) => {
-        new Polygon(indices.toIndexedSeq, points.toIndexedSeq)
-      }
-      case _ => ???
-    }
-  }
+    val row = datum.asInstanceOf[InternalRow]
+    val polygon = new Polygon(
+        row.getArray(5).toIntArray(),
+        row.getArray(6).toDoubleArray(),
+        row.getArray(7).toDoubleArray(),
+        ((row.getDouble(1), row.getDouble(2)), (row.getDouble(3), row.getDouble(4)))
+      )
 
-  override def pyUDT: String = "magellan.types.PolygonUDT"
+    polygon
+  }
 
 }
 
-private[magellan] object Polygon {
+object Polygon {
 
-  val EMPTY = new Polygon(Array[Int](), Array[Point]())
-
-  def fromESRI(esriPolygon: ESRIPolygon): Polygon = {
-    val length = esriPolygon.getPointCount
-    if (length == 0) {
-      new Polygon(Array[Int](), Array[Point]())
-    } else {
-      val indices = ArrayBuffer[Int]()
-      indices.+=(0)
-      val points = ArrayBuffer[Point]()
-      var currentRing = esriPolygon.getPoint(0)
-      points.+=(Point.fromESRI(currentRing))
-
-      for (i <- (1 until length)) {
-        val p = esriPolygon.getPoint(i)
-        if (p.getX == currentRing.getX && p.getY == currentRing.getY) {
-          if (i < length - 1) {
-            indices.+=(i)
-            currentRing = esriPolygon.getPoint(i + 1)
-          }
-        }
-        points.+=(Point.fromESRI(p))
+  def apply(indices: Array[Int], points: Array[Point]): Polygon = {
+    // look for the extremities
+    var xmin: Double = Double.MaxValue
+    var ymin: Double = Double.MaxValue
+    var xmax: Double = Double.MinValue
+    var ymax: Double = Double.MinValue
+    val size = points.length
+    var i = 0
+    while (i < size) {
+      val point = points(i)
+      val (x, y) = (point.getX(), point.getY())
+      if (xmin > x) {
+        xmin = x
       }
-      new Polygon(indices.toIndexedSeq, points.toIndexedSeq)
+      if (ymin > y) {
+        ymin = y
+      }
+      if (xmax < x) {
+        xmax = x
+      }
+      if (ymax < y) {
+        ymax = y
+      }
+      i += 1
     }
+    new Polygon(
+        indices,
+        points.map(_.getX()),
+        points.map(_.getY()),
+        ((xmin, ymin), (xmax, ymax))
+      )
   }
 }

@@ -16,23 +16,24 @@
 
 package magellan.catalyst
 
-import magellan.Shape
+import magellan._
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenContext, GeneratedExpressionCode}
-import org.apache.spark.sql.types.DataType
 
-case class ShapeLiteral(shape: Shape) extends LeafExpression with MagellanExpression {
+trait MagellanExpression {
 
-  private val serialized = serialize(shape)
+  private val SERIALIZERS = Map(
+    1 -> new PointUDT,
+    2 -> new LineUDT,
+    3 -> new PolyLineUDT,
+    5  -> new PolygonUDT)
 
-  override def foldable: Boolean = true
+  def newInstance(row: InternalRow): Shape = {
+    SERIALIZERS.get(row.getInt(0)).fold(NullShape.asInstanceOf[Shape])(_.deserialize(row))
+  }
 
-  override def nullable: Boolean = false
+  def serialize(shape: Shape): Any = {
+    SERIALIZERS.get(shape.getType()).get.serialize(shape)
+  }
 
-  override val dataType: DataType = shape
-
-  override def eval(input: InternalRow) = serialized
-
-  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = ???
 }
+

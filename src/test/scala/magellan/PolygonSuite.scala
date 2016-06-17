@@ -13,158 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package magellan
 
 import org.scalatest.FunSuite
 
 class PolygonSuite extends FunSuite {
 
+  test("bounding box") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
+    assert(xmin === -1.0)
+    assert(ymin === -1.0)
+    assert(xmax === 1.0)
+    assert(ymax === 1.0)
+  }
+
   test("point in polygon") {
-    val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon = new Polygon(Array(0), ring)
-    assert(!polygon.contains(new Point(2.0, 0.0)))
-    assert(polygon.contains(new Point(0.0, 0.0)))
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    assert(!polygon.contains(Point(2.0, 0.0)))
+    assert(polygon.contains(Point(0.0, 0.0)))
   }
 
   test("point in polygon: 2 rings") {
-    val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0),
-      new Point(0.5, 0), new Point(0, 0.5), new Point(-0.5, 0),
-      new Point(0, -0.5), new Point(0.5, 0)
-      )
-    val polygon = new Polygon(Array(0, 5), ring)
-    assert(!polygon.contains(new Point(2.0, 0.0)))
-    assert(!polygon.contains(new Point(0.0, 0.0)))
-  }
-
-  test("point in polygon: OH") {
-    val ring = Array(new Point(-81.734260559082, 41.4910373687744),
-        new Point(-81.7333030700684, 41.4907093048096),
-        new Point(-81.7333488464355, 41.4905986785889),
-        new Point( -81.7331447601318, 41.49045753479),
-        new Point(-81.7330646514893, 41.4903812408447),
-        new Point(-81.7328319549561, 41.4901103973389),
-        new Point(-81.734260559082, 41.4910373687744)
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
+      Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
+      Point(0, -0.5), Point(0.5, 0)
     )
-
-    val polygon = new Polygon(Array(0), ring)
-    assert(!polygon.contains(new Point(-80.2, 25.77)))
-
+    val polygon = Polygon(Array(0, 5), ring)
+    assert(!polygon.contains(Point(2.0, 0.0)))
+    assert(!polygon.contains(Point(0.0, 0.0)))
   }
 
-  test("polygon intersects") {
-    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon1 = new Polygon(Array(0), ring1)
-
-    val ring2 = Array(new Point(2.0, 2.0), new Point(2.0, 0.0),
-      new Point(0.0, 0.0), new Point(0.0, 2.0), new Point(2.0, 2.0))
-    val polygon2 = new Polygon(Array(0), ring2)
-
-    assert(polygon2.intersects(polygon1))
-
-    val ring3 = Array(new Point(1.0, -1.0), new Point(2.0, -1.0),
-      new Point(2.0, 1.0), new Point(1.0, 1.0), new Point(1.0, -1.0))
-    val polygon3 = new Polygon(Array(0), ring3)
-    // the intersection region must be the line (1,-1), (1,1)
-    assert(polygon3.intersects(polygon1))
-
-    val ring4 = Array(new Point(1.0, 1.0), new Point(3.0, 1.0),
-      new Point(3.0, 3.0), new Point(1.0, 3.0), new Point(1.0, 1.0))
-    val polygon4 = new Polygon(Array(0), ring4)
-    // the intersection region must be the point (1,1)
-    assert(polygon4.intersects(polygon1))
-
-    val ring5 = Array(new Point(2.0, -1.0), new Point(3.0, -1.0),
-      new Point(3.0, 0.0), new Point(2.0, 0.0), new Point(2.0, -1.0))
-    val polygon5 = new Polygon(Array(0), ring5)
-    // the intersection region must be empty
-    assert(!polygon5.intersects(polygon1))
+  test("line in polygon") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    val line = Line(Point(-0.5, -0.5), Point(0.5, 0.5))
+    assert(polygon.contains(line))
   }
 
-  test("polygon intersection") {
-    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon1 = new Polygon(Array(0), ring1)
-
-    val ring2 = Array(new Point(2.0, 2.0), new Point(2.0, 0.0),
-      new Point(0.0, 0.0), new Point(0.0, 2.0), new Point(2.0, 2.0))
-    val polygon2 = new Polygon(Array(0), ring2)
-
-    assert(polygon2.intersects(polygon1))
-    // the intersection region must be the square (0,0), (1,0), (1, 1), (0, 1)
-    val square = polygon2.intersection(polygon1)
-    assert(square.isInstanceOf[Polygon])
-    assert(square.contains(new Point(0.75, 0.75)))
+  test("line in polygon: 2 rings") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
+      Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
+      Point(0, -0.5), Point(0.5, 0)
+    )
+    val line = Line(Point(-0.5, -0.5), Point(0.5, 0.5))
+    val polygon = Polygon(Array(0, 5), ring)
+    assert(!polygon.contains(line))
   }
 
-  test("from ESRI") {
-    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon1 = new Polygon(Array(0), ring1)
-    val polygon2 = Polygon.fromESRI(polygon1.delegate)
-    assert(polygon1.equals(polygon2))
+  test("serialization") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
 
-    val ring3 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(1.0, 1.0))
-    val polygon3 = new Polygon(Array(0), ring3)
-    val polygon4 = Polygon.fromESRI(polygon3.delegate)
-    assert(polygon3.equals(polygon4))
-  }
-
-  test("transform") {
-    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon1 = new Polygon(Array(0), ring1)
-    val polygon2 = polygon1.transform((x: Point) => new Point(3 * x.x, 3 * x.y))
-    assert(polygon2.points(0).equals(new Point(3.0, 3.0)))
-    assert(polygon2.points(1).equals(new Point(3.0, -3.0)))
-
-  }
-
-  test("difference") {
-    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon1 = new Polygon(Array(0), ring1)
-
-    val ring2 = Array(new Point(1.0, 0.0), new Point(1.0, -1.0),
-      new Point(0.0, -1.0), new Point(0.0, 0.0), new Point(1.0, 0.0))
-    val polygon2 = new Polygon(Array(0), ring2)
-
-    val p = polygon1.difference(polygon2)
-    assert(p.isInstanceOf[Polygon])
-    val polygon = p.asInstanceOf[Polygon]
-    assert(polygon.indices.diff(Array[Int](0)).isEmpty)
-    assert(polygon.points.size === 6)
-    assert(polygon.points.contains(new Point(0.0, 0.0)))
-  }
-
-  test("difference, polygon with hole") {
-    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon1 = new Polygon(Array(0), ring1)
-
-    val ring2 = Array(new Point(0.5, 0.5), new Point(0.5, -0.5),
-      new Point(-0.5, -0.5), new Point(-0.5, 0.5), new Point(0.5, 0.5))
-    val polygon2 = new Polygon(Array(0), ring2)
-
-    val p = polygon1.difference(polygon2)
-    val polygon = p.asInstanceOf[Polygon]
-    assert(polygon.indices.diff(Array[Int](0)).isEmpty)
-    assert(polygon.points.size === 8)
-    assert(!polygon.points.contains(new Point(0.0, 0.0)))
-    assert(!new Point(0.0, 0.0).within(polygon))
-    assert(new Point(0.6, 0.6).within(polygon))
-
-  }
-
-  test("buffer") {
-    val ring1 = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0), new Point(1.0, 1.0))
-    val polygon1 = new Polygon(Array(0), ring1)
-    val polygon2 = polygon1.buffer(1.0).asInstanceOf[Polygon]
-    assert(polygon2.contains(new Point(1.5, 1.5)))
+    val polygonUDT = new PolygonUDT
+    val row = polygonUDT.serialize(polygon)
+    assert(row.getInt(0) === polygon.getType())
+    assert(row.getDouble(1) === xmin)
+    assert(row.getDouble(2) === ymin)
+    assert(row.getDouble(3) === xmax)
+    assert(row.getDouble(4) === ymax)
   }
 }

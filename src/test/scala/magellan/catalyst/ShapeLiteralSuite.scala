@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package magellan.mapreduce
+package magellan.catalyst
 
-import magellan.TestSparkContext
-import org.apache.hadoop.io.{NullWritable, Text}
+import magellan.{Point, TestSparkContext}
+import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
 
-class WholeFileReaderSuite extends FunSuite with TestSparkContext {
+class ShapeLiteralSuite extends FunSuite with TestSparkContext {
 
-  test("Read Whole File") {
-    val path = this.getClass.getClassLoader.getResource("geojson/point").getPath
-    val data = sc.newAPIHadoopFile(
-      path,
-      classOf[WholeFileInputFormat],
-      classOf[NullWritable],
-      classOf[Text]
-    )
-    assert(data.count() === 1)
+  test("literal expression") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val df = sc.parallelize(Seq((1, Point(0.0, 0.0)))).toDF("id", "point")
+    assert(df.withColumn("p", shape(Point(1.0, 1.0))).select('p).count() === 1)
   }
 }

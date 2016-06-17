@@ -16,12 +16,11 @@
 
 package org.apache.spark.sql.magellan
 
+import magellan._
+import magellan.catalyst._
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
-
-import magellan._
-import magellan.catalyst._
 
 package object dsl {
   trait ImplicitOperators {
@@ -32,11 +31,11 @@ package object dsl {
 
     def within(other: Column): Column = Column(Within(expr, other.expr))
 
-    def within(other: Shape): Column = Column(Within(expr, ShapeLiteral(other)))
+    def intersects(other: Expression): Expression = Intersects(expr, other)
+
+    def intersects(other: Shape): Column = Column(Intersects(expr, ShapeLiteral(other)))
 
     def >?(other: Expression): Expression = Within(other, expr)
-
-    def >?(other: Shape): Expression = Within(ShapeLiteral(other), expr)
 
     def >?(other: Column): Column = Column(Within(other.expr, expr))
 
@@ -44,19 +43,7 @@ package object dsl {
 
     def apply(other: Expression): Expression = GetMapValue(expr, other)
 
-    def intersects(other: Expression): Expression = Intersects(expr, other)
-
-    def intersects(other: Shape): Column = Column(Intersects(expr, ShapeLiteral(other)))
-
-    def intersection(other: Expression): Expression = Intersection(expr, other)
-
-    def intersection(other: Shape): Column = Column(Intersection(expr, ShapeLiteral(other)))
-
     def transform(fn: Point => Point) = Transformer(expr, fn)
-
-    def buffer(other: Expression): Expression = Buffer(expr, other)
-
-    def buffer(distance: Double): Column = Column(Buffer(expr, Literal(distance)))
 
   }
 
@@ -71,9 +58,9 @@ package object dsl {
 
       def within(other: Column): Column = Column(Within(col.expr, other.expr))
 
-      def within(other: Shape): Column = Column(Within(col.expr, ShapeLiteral(other)))
+      def intersects(other: Column): Column = Column(Intersects(c.expr, other.expr))
 
-      def >?(other: Shape): Column = Column(Within(ShapeLiteral(other), col.expr))
+      def intersects(other: Shape): Column = Column(Intersects(c.expr, ShapeLiteral(other)))
 
       def >?(other: Column): Column = Column(Within(other.expr, col.expr))
 
@@ -83,31 +70,16 @@ package object dsl {
 
       def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
 
-      def intersects(other: Column): Column = Column(Intersects(c.expr, other.expr))
-
-      def intersects(other: Shape): Column = Column(Intersects(c.expr, ShapeLiteral(other)))
-
-      def intersection(other: Column): Column = Column(Intersection(c.expr, other.expr))
-
-      def intersection(other: Shape): Column = Column(Intersection(c.expr, ShapeLiteral(other)))
-
-      def intersection(other: Expression): Column = Column(Intersection(c.expr, other))
-
       def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
 
-      def buffer(distance: Double): Column = Column(Buffer(c.expr, Literal(distance)))
-
-      def buffer(other: Expression): Column = Column(Buffer(c.expr, other))
-
     }
-
-    implicit def point(x: Double, y: Double): Expression = ShapeLiteral(new Point(x, y))
 
     implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
 
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
-    implicit def shape(shape: Shape) = ShapeLiteral(shape)
+    implicit def shape(x: Shape) = Column(ShapeLiteral(x))
+
   }
 
 

@@ -16,10 +16,9 @@
 
 package magellan
 
-import org.apache.spark.sql.magellan.EvaluatePython
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
-import org.apache.spark.sql.sources.{Filter, BaseRelation, PrunedFilteredScan}
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.sources.{BaseRelation, Filter, PrunedFilteredScan}
 import org.apache.spark.sql.types._
 
 private[magellan] trait SpatialRelation extends BaseRelation with PrunedFilteredScan {
@@ -27,12 +26,24 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
   @transient val sc = sqlContext.sparkContext
 
   override val schema = {
-    StructType(List(StructField("point", Point.EMPTY, true),
-        StructField("polyline", PolyLine.EMPTY, true),
-        StructField("polygon", Polygon.EMPTY, true),
+    StructType(List(StructField("point", new PointUDT(), true),
+        StructField("polyline", new PolyLineUDT(), true),
+        StructField("polygon", new PolygonUDT(), true),
         StructField("metadata", MapType(StringType, StringType, true), true),
         StructField("valid", BooleanType, true)
       ))
+  }
+
+  override lazy val sizeInBytes: Long = {
+    _buildScan().map { case (shape, meta) =>
+      val geometrySize = shape match {
+        case p: Point => 16
+        case p: Polygon => p.xcoordinates.size * 20
+        case _ => ???
+      }
+      val metadataSize = meta.fold(0)(_.map { case (k, v) => 2 * (k.size + v.size)}.sum)
+      geometrySize + metadataSize
+    }.sum().toLong
   }
 
   protected def _buildScan(): RDD[(Shape, Option[Map[String, String]])]
@@ -41,10 +52,10 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
     val indices = requiredColumns.map(attr => schema.fieldIndex(attr))
     val numFields = indices.size
     _buildScan().mapPartitions { iter =>
-      val row = new GenericMutableRow(numFields)
+      val row = new Array[Any](numFields)
       iter.flatMap { case (shape: Shape, meta: Option[Map[String, String]]) =>
-        EvaluatePython.registerPicklers()
-        (0 until numFields).foreach(i => row.setNullAt(i))
+        (0 until numFields).foreach(i => row(i) = null)
+
         indices.zipWithIndex.foreach { case (index, i) =>
           val v = index match {
             case 0 => if (shape.isInstanceOf[Point]) Some(shape) else None
@@ -52,10 +63,11 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
             case 2 => if (shape.isInstanceOf[Polygon]) Some(shape) else None
             case 3 => Some(meta.fold(Map[String, String]())(identity))
             case 4 => Some(shape.isValid())
+            case _ => ???
           }
           v.foreach(x => row(i) = x)
           }
-        Some(row)
+        Some(Row.fromSeq(row))
       }
     }
   }
