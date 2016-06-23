@@ -148,4 +148,29 @@ class OsmSuite extends FunSuite with TestSparkContext {
     assert(p === expected)
   }
 
+  test("read complete file") {
+    val path = this.getClass
+      .getClassLoader
+      .getResource("osm/combination")
+      .getPath
+
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "osm")
+      .load(path)
+
+    val points = df.select("point")
+      .filter(df("point").isNotNull)
+
+    val linestrings = df.select("polyline")
+      .filter(df("polyline").isNotNull)
+
+    val polygons = df.select("polygon")
+      .filter(df("polygon").isNotNull)
+
+    assert(df.count() == 1288)
+    assert(points.count() == 1134)
+    assert(linestrings.count() == 90)
+    assert(polygons.count() == 64)
+  }
 }
