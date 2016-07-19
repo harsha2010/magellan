@@ -56,20 +56,6 @@ class PredicateSuite extends FunSuite with TestSparkContext {
 
   }
 
-  test("Polygon contains points and Line") {
-    val ring1 = Array( Point(1.0, 1.0),  Point(1.0, -1.0),
-                       Point(-1.0, -1.0),  Point(-1.0, 1.0), Point(1.0, 1.0))
-    val polygon = Polygon(Array(0), ring1)
-
-    assert(polygon.contains(Point(0.0, 0.0)))
-    assert(polygon.contains(Point(1.0, 1.0)))
-    assert(polygon.contains(Line(Point(0.0, 0.0), Point(0.9, 0.9))))
-    assert(polygon.contains(Line(Point(0.0, 0.0), Point(1.0, 1.0))))
-    assert(polygon.contains(Line(Point(0.0, 0.0), Point(-1.0, 0.5))))
-    assert(!polygon.contains(Line(Point(0.0, 0.0), Point(1.2, 1.1))))
-    assert(!polygon.contains(Line(Point(0.0, 0.0), Point(-1.2, -1.1))))
-    assert(!polygon.contains(Line(Point(-1.3, -2), Point(-1.2, -1.1))))
-  }
 
   test("within: Literal") {
     val ring1 = Array( Point(1.0, 1.0),  Point(1.0, -1.0),

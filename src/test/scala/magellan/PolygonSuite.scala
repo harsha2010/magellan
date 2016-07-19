@@ -49,6 +49,22 @@ class PolygonSuite extends FunSuite {
     assert(!polygon.contains(Point(0.0, 0.0)))
   }
 
+  test("Polygon contains points and Line") {
+    val ring1 = Array( Point(1.0, 1.0),  Point(1.0, -1.0),
+      Point(-1.0, -1.0),  Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring1)
+
+    assert(polygon.contains(Point(0.0, 0.0)))
+    assert(polygon.contains(Point(1.0, 1.0)))
+    assert(polygon.contains(Line(Point(0.0, 0.0), Point(0.9, 0.9))))
+    assert(polygon.contains(Line(Point(0.0, 0.0), Point(1.0, 1.0))))
+    assert(polygon.contains(Line(Point(0.0, 0.0), Point(-1.0, 0.5))))
+    assert(!polygon.contains(Line(Point(0.0, 0.0), Point(1.2, 1.1))))
+    assert(!polygon.contains(Line(Point(0.0, 0.0), Point(-1.2, -1.1))))
+    assert(!polygon.contains(Line(Point(-1.3, -2), Point(-1.2, -1.1))))
+  }
+
+
   test("line in polygon") {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
@@ -63,9 +79,55 @@ class PolygonSuite extends FunSuite {
       Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
       Point(0, -0.5), Point(0.5, 0)
     )
-    val line = Line(Point(-0.5, -0.5), Point(0.5, 0.5))
+    var line = Line(Point(-0.5, -0.5), Point(0.5, 0.5))
     val polygon = Polygon(Array(0, 5), ring)
+    assert(polygon.intersects(line))
     assert(!polygon.contains(line))
+
+    line = Line(Point(-0.5, 0.0), Point(0.5, 0.0))
+    assert(!polygon.contains(line))
+
+    line = Line(Point(-0.25, -0.25), Point(0.25, 0.25))
+    assert(!polygon.contains(line))
+
+    line = Line(Point(-0.90, 0.0), Point(-0.55, 0.0))
+    assert(polygon.contains(line))
+
+    line = Line(Point(-0.90, 0.75), Point(0.95, 0.75))
+    assert(polygon.contains(line))
+
+    line = Line(Point(-0.90, -0.75), Point(0.95, -0.75))
+    assert(polygon.contains(line))
+
+    line = Line(Point(-0.75, -1.0), Point(-0.75, 1.0))
+    assert(polygon.contains(line))
+
+    line = Line(Point(-1.0, -1.0), Point(-1.0, 1.0))
+    assert(polygon.contains(line))
+
+    line = Line(Point(0.75, -1.0), Point(0.75, 1.0))
+    assert(polygon.contains(line))
+
+    line = Line(Point(1.0, -1.0), Point(1.0, 1.0))
+    assert(polygon.contains(line))
+
+    line = Line(Point(-0.501, -1.0), Point(-0.501, 1.0))
+    assert(polygon.contains(line))
+
+    //TODO: this test case still needs to be addressed
+    /*line = Line(Point(-0.5, -1.0), Point(-0.5, 1.0))
+    assert(polygon.contains(line))*/
+
+    line = Line(Point(-0.49, -1.0), Point(-0.49, 1.0))
+    assert(!polygon.contains(line))
+
+    line = Line(Point(-0.9990, 0.0), Point(-0.55, 0.0))
+    assert(polygon.contains(line))
+
+    line = Line(Point(-0.5, 0.0), Point(0.5, 0.0))
+    assert(!polygon.contains(line))
+
+
   }
 
   test("serialization") {
