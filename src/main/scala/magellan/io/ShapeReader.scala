@@ -18,6 +18,8 @@ package magellan.io
 
 import java.io.DataInput
 
+import java.lang.{Double, Long}
+
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.commons.io.EndianUtils
