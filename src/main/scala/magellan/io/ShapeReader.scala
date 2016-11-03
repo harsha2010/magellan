@@ -78,8 +78,8 @@ private[magellan] class PolygonReader extends ShapeReader {
     val points = ArrayBuffer[Point]()
     for (_ <- 0 until numPoints) {
       points.+= {
-        val x = EndianUtils.swapDouble(dataInput.readDouble())
-        val y = EndianUtils.swapDouble(dataInput.readDouble())
+        val x = java.lang.Double.longBitsToDouble(java.lang.Long.reverseBytes(dataInput.readLong()))
+        val y = java.lang.Double.longBitsToDouble(java.lang.Long.reverseBytes(dataInput.readLong()))
         Point(x, y)
       }
     }
