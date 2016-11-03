@@ -18,6 +18,8 @@ package magellan.io
 
 import java.io.DataInput
 
+import java.lang.{Double, Long}
+
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.commons.io.EndianUtils
@@ -78,8 +80,8 @@ private[magellan] class PolygonReader extends ShapeReader {
     val points = ArrayBuffer[Point]()
     for (_ <- 0 until numPoints) {
       points.+= {
-        val x = EndianUtils.swapDouble(dataInput.readDouble())
-        val y = EndianUtils.swapDouble(dataInput.readDouble())
+        val x = Double.longBitsToDouble(Long.reverseBytes(dataInput.readLong()))
+        val y = Double.longBitsToDouble(Long.reverseBytes(dataInput.readLong()))
         Point(x, y)
       }
     }

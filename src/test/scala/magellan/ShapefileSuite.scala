@@ -101,5 +101,15 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     assert(df.filter($"valid").count() == 14959)
   }
+
+  test("shapefile-relation: parsing points") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testshapefile/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
+    import sqlCtx.implicits._
+    val polygon = df.select("polygon").first().get(0).asInstanceOf[Polygon]
+    assert(polygon.boundingBox == ((-121.457213, 41.183484), (-119.998287, 41.997613)))
+  }
 }
+
 
