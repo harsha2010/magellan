@@ -1,6 +1,6 @@
 name := "magellan"
 
-version := "1.0.4"
+version := "1.0.4-SNAPSHOT"
 
 organization := "harsha2010"
 
