@@ -69,6 +69,10 @@ class Polygon(
           currentRingIndex = nextRingIndex
         }
       }
+      val isPointOnLine = PolyLine(Array(0), Array(start, end)).contains(point)
+      if(isPointOnLine) {
+        return true
+      }
     }
     intersections % 2 != 0
   }
@@ -102,9 +106,35 @@ class Polygon(
   }
 
   private [magellan] def contains(line: Line): Boolean = {
-    !this.intersects(line) && this.contains(line.getStart()) && this.contains(line.getEnd())
+    val length = indices.length
+    var innerRingContains = false
+    var innerRingIntersects = false
+
+    if(length == 2) {
+      var innerRingIndex = indices(1)
+      val sizeOfInnerRing = xcoordinates.size - innerRingIndex
+      val innerRing = new Array[Point](sizeOfInnerRing)
+      var idx = 0
+      while (idx < sizeOfInnerRing) {
+        val point = Point(xcoordinates(innerRingIndex), ycoordinates(innerRingIndex))
+        innerRing.update(idx, point)
+        innerRingIndex += 1
+        idx += 1
+      }
+      val innerPolygon = Polygon(Array(0), innerRing)
+      val containStart = innerPolygon.contains(line.getStart())
+      val containEnd = innerPolygon.contains(line.getEnd())
+      innerRingContains = containStart || containEnd
+      innerRingIntersects = innerPolygon.intersects(line)
+    }
+    val containsStart = this.contains(line.getStart())
+    val containsEnd: Boolean = this.contains(line.getEnd())
+    !innerRingContains && !innerRingIntersects && containsStart && containsEnd
   }
 
+  private [magellan] def intersects(point: Point): Boolean = {
+    this.contains(point)
+  }
   override def getType(): Int = 5
 
   /**

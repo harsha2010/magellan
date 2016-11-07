@@ -55,6 +55,12 @@ class Point extends Shape {
     code
   }
 
+  def intersects(line: Line):Boolean = {
+    val start = line.getStart()
+    val end = line.getEnd()
+    val slope = (end.getY() - start.getY())/(end.getX() - start.getX())
+    (end.getY() - this.getY())/(end.getX()-this.getX()) == slope
+  }
 
   override def toString = s"Point($x, $y)"
 
