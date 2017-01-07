@@ -34,7 +34,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val df = sqlCtx.read.format("magellan").load(path)
     import sqlCtx.implicits._
     assert(df.count() === 1)
-    val point = df.select($"point").map {case Row(x: Point) => x}.first()
+    val point = df.select($"point").first().get(0).asInstanceOf[Point]
     assert(point.getX() ~== -99.796 absTol 0.2)
 
     // query
@@ -47,7 +47,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val df = sqlCtx.read.format("magellan").load(path)
     import sqlCtx.implicits._
     assert(df.count() === 1)
-    val polygon = df.select($"polygon").map {case Row(x: Polygon) => x}.first()
+    val polygon = df.select($"polygon").first().get(0).asInstanceOf[Polygon]
     assert(polygon.indices.size === 1)
   }
 
@@ -59,13 +59,8 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     assert(df.count() === 1932)  // 34 + 948 + 689 + 261
 
     // CA should have some metadata attached to it
-    val extractValue: (Map[String, String], String) => String =
-      (map: Map[String, String], key: String) => {
-        map.getOrElse(key, null)
-      }
-    val stateUdf = callUDF(extractValue, StringType, col("metadata"), lit("STATE"))
-    val dfwithmeta = df.withColumn("STATE", stateUdf)
-    assert(dfwithmeta.filter($"STATE" === "CA").count() === 948)
+
+    assert(df.filter($"metadata"("STATE") === "CA").count() === 948)
 
     assert(df.select($"metadata"("STATE").as("state")).filter($"state" === "CA").count() === 948)
     assert(df.select($"metadata"("STATE").as("state")).filter($"state" isNull).count() === 723)
@@ -78,9 +73,6 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     assert(df.count() === 14959)
     // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
-    val start = Point(5989880.123683602, 2107393.125753522)
-    val end = Point(5988698.112268105, 2107728.9863022715)
-    assert(df.filter($"polyline" intersects Line(start, end)).count() > 0)
   }
 
   test("shapefile-relation: points and polygons") {

@@ -33,8 +33,7 @@ class TransformerSuite extends FunSuite with TestSparkContext {
     val dbl = (x: Point) => Point(2 * x.getX(), 2 * x.getY())
     val point = df.withColumn("transformed", $"point".transform(dbl))
       .select($"transformed")
-      .map {case Row(p: Point) => p}
-      .first()
+      .first()(0).asInstanceOf[Point]
 
     assert(point.getX() ~== -199.0 absTol 1.0)
   }

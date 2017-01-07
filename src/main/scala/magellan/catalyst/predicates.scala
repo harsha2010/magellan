@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package magellan.catalyst
+package org.apache.spark.sql.types
 
 import magellan._
-import org.apache.spark.sql.Row
+import magellan.catalyst._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenContext, CodegenFallback, GeneratedExpressionCode}
-import org.apache.spark.sql.types.{BooleanType, DataType, UserDefinedType}
-
-import scala.collection.immutable.HashMap
+import org.apache.spark.sql.catalyst.expressions.codegen._
 
 
 /**
@@ -67,13 +64,13 @@ case class Intersects(left: Expression, right: Expression)
     }
   }
 
-  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = {
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
       "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        "serializers.put(1, new magellan.PointUDT());" +
-        "serializers.put(2, new magellan.LineUDT());" +
-        "serializers.put(3, new magellan.PolyLineUDT());" +
-        "serializers.put(5, new magellan.PolygonUDT());" +
+        "serializers.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        "serializers.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        "serializers.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        "serializers.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
 
     nullSafeCodeGen(ctx, ev, (c1, c2) => {
@@ -141,13 +138,13 @@ case class Within(left: Expression, right: Expression)
 
   override def nullable: Boolean = left.nullable || right.nullable
 
-  override protected def genCode(ctx: CodeGenContext, ev: GeneratedExpressionCode): String = {
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
       "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        "serializers.put(1, new magellan.PointUDT());" +
-        "serializers.put(2, new magellan.LineUDT());" +
-        "serializers.put(3, new magellan.PolyLineUDT());" +
-        "serializers.put(5, new magellan.PolygonUDT());" +
+        "serializers.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        "serializers.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        "serializers.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        "serializers.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
       "")
 
     nullSafeCodeGen(ctx, ev, (c1, c2) => {
