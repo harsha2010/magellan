@@ -32,8 +32,7 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     val df = sc.parallelize(Seq((35.7, -122.3))).toDF("lat", "lon")
     val p = df.withColumn("point", point($"lon", $"lat"))
       .select('point)
-      .map { case Row(p: Point) => p}
-      .first()
+      .first()(0).asInstanceOf[Point]
 
     assert(p.getX() === -122.3)
     assert(p.getY() === 35.7)
@@ -58,6 +57,27 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     assert(joined.count() === 1)
 
   }
+
+  test("Intersects") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(Polygon(Array(0), ring))
+    )).toDF()
+
+    val points = sc.parallelize(Seq(
+      PointExample(Point(0.0, -1.0)),
+      PointExample(Point(2.0, 2.0))
+    )).toDF()
+
+    val joined = points.join(polygons).where($"point" intersects $"polygon")
+    assert(joined.count() === 1)
+
+  }
+
 
   test("Contains") {
     val sqlCtx = this.sqlContext

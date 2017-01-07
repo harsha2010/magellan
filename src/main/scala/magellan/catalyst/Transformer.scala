@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package magellan.catalyst
+package org.apache.spark.sql.types
 
 import magellan._
+import magellan.catalyst._
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Expression, UnaryExpression}
-import org.apache.spark.sql.catalyst.expressions.codegen.{GeneratedExpressionCode, CodeGenContext, CodegenFallback}
-import org.apache.spark.sql.types.DataType
 
 case class Transformer(
     override val child: Expression,
     fn: Point => Point)
-  extends UnaryExpression with CodegenFallback with MagellanExpression {
+  extends UnaryExpression with MagellanExpression {
 
   protected override def nullSafeEval(input: Any): Any = {
     val shape = newInstance(input.asInstanceOf[InternalRow])
@@ -35,5 +35,30 @@ case class Transformer(
   override def nullable: Boolean = child.nullable
 
   override def dataType: DataType = child.dataType
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        "serializers.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        "serializers.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        "serializers.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        "serializers.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+        "")
+
+    val idx = ctx.references.length
+    ctx.addReferenceObj("fn", fn);
+
+    nullSafeCodeGen(ctx, ev, (c1) => {
+      s"" +
+      s"Integer childType = $c1.getInt(0); \n" +
+      "org.apache.spark.sql.types.UserDefinedType<magellan.Shape> serializer = " +
+      s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+      s"serializers.get(childType)); \n" +
+      s"magellan.Shape childShape = (magellan.Shape)" +
+      s"serializer.deserialize($c1); \n" +
+      s"magellan.Shape shape = childShape.transform((scala.Function1<magellan.Point>)references[$idx]); \n" +
+      s"${ev.value} = (org.apache.spark.sql.catalyst.InternalRow)serializer.serialize(shape); \n"
+    })
+  }
 
 }

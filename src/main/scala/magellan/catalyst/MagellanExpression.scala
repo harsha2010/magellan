@@ -18,6 +18,7 @@ package magellan.catalyst
 
 import magellan._
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.types._
 
 trait MagellanExpression {
 

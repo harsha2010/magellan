@@ -79,7 +79,7 @@ class OsmSuite extends FunSuite with TestSparkContext {
       .load(path)
     assert(df.count() === 1)
 
-    val p = df.select("point").map { case Row(p: Point) => p}.first()
+    val p = df.select("point").first()(0)
     assert(p.equals(Point(-75.6470109, 45.4187480)))
   }
 
@@ -107,7 +107,7 @@ class OsmSuite extends FunSuite with TestSparkContext {
     val p = df
       .filter(df("polyline").isNotNull)
       .select("polyline")
-      .map { case Row(p: PolyLine) => p}.first()
+      .first()(0).asInstanceOf[PolyLine]
 
     assert(p.xcoordinates.size == 4)
     assert(p.ycoordinates.size == 4)
@@ -132,8 +132,8 @@ class OsmSuite extends FunSuite with TestSparkContext {
 
     val polygons = df.select("polygon")
       .filter(df("polygon").isNotNull)
-      .map({ case Row(p: Polygon) => p})
       .collect()
+      .map(_(0))
 
     assert(polygons.length == 1)
     val p = polygons(0)

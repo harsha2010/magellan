@@ -15,8 +15,6 @@
  */
 package magellan
 
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
 
 /**
@@ -35,16 +33,26 @@ class Line extends Shape {
   def getEnd() = end
 
   private [magellan] def intersects(other: Line): Boolean = {
+    def area(a: Point, b: Point, c: Point) = {
+      ((c.getY() - a.getY()) * (b.getX() - a.getX())) - ((b.getY() - a.getY()) * (c.getX() - a.getX()))
+    }
+
+    def ccw(a: Point, b: Point, c: Point) = {
+      area(a, b, c) > 0
+    }
+
     // test for degeneracy
-    if (start == other.start ||
+    if (start == end) {
+      area(start, other.start, other.end) == 0
+    } else if (other.start == other.end) {
+      area(start, end, other.start) == 0
+    } else if (start == other.start ||
       end == other.end ||
       start == other.end ||
       end == other.start) {
       true
     } else {
-      def ccw(a: Point, b: Point, c: Point) = {
-        (c.getY() - a.getY()) * (b.getX() - a.getX()) > (b.getY() - a.getY()) * (c.getX() - a.getX())
-      }
+
       ccw(start, other.start, other.end) != ccw(end, other.start, other.end) &&
         ccw(start, end, other.start) != ccw(start, end, other.end)
     }
@@ -88,57 +96,6 @@ class Line extends Shape {
     val state = Seq(start, end)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
-}
-
-class LineUDT extends UserDefinedType[Line] {
-
-  override def sqlType: DataType = StructType(
-    Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("xmin", DoubleType, nullable = false),
-      StructField("ymin", DoubleType, nullable = false),
-      StructField("xmax", DoubleType, nullable = false),
-      StructField("ymax", DoubleType, nullable = false),
-      StructField("startX", DoubleType, nullable = false),
-      StructField("startY", DoubleType, nullable = false),
-      StructField("endX", DoubleType, nullable = false),
-      StructField("endY", DoubleType, nullable = false)
-    ))
-
-  override def serialize(obj: Any): InternalRow = {
-    val row = new GenericMutableRow(9)
-    val line = obj.asInstanceOf[Line]
-    row.setInt(0, 2)
-    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
-    row.setDouble(1, xmin)
-    row.setDouble(2, ymin)
-    row.setDouble(3, xmax)
-    row.setDouble(4, ymax)
-    row.setDouble(5, line.getStart().getX())
-    row.setDouble(6, line.getStart().getY())
-    row.setDouble(7, line.getEnd().getX())
-    row.setDouble(8, line.getEnd().getY())
-    row
-  }
-
-  override def userClass: Class[Line] = classOf[Line]
-
-  override def deserialize(datum: Any): Line = {
-    val row = datum.asInstanceOf[InternalRow]
-    val startX = row.getDouble(5)
-    val startY = row.getDouble(6)
-    val endX = row.getDouble(7)
-    val endY = row.getDouble(8)
-    val line = new Line()
-    val start = Point(startX, startY)
-    val end = Point(endX, endY)
-    line.setStart(start)
-    line.setEnd(end)
-    line
-  }
-
-  override def pyUDT: String = "magellan.types.LineUDT"
-
 }
 
 object Line {

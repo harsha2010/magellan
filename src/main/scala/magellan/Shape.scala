@@ -97,8 +97,8 @@ trait Shape extends DataType with Serializable {
       (otherxmin <= xmin && otherxmax >= xmin && otherymin <= ymin && otherymax >= ymin)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
-        case (p: Point, q: Polygon) => false
-        case (p: Polygon, q: Point) => p.intersects(q)
+        case (p: Point, q: Polygon) => q.intersects(Line(p, p))
+        case (p: Polygon, q: Point) => p.intersects(Line(q, q))
         case (p: Polygon, q: Line) => p.intersects(q)
         case (p: Polygon, q: PolyLine) => p.intersects(q)
         case (p: PolyLine, q: Line) => p.intersects(q)
