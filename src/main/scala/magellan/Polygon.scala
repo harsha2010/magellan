@@ -36,6 +36,15 @@ class Polygon(
     val ycoordinates: Array[Double],
     override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
 
+  @inline private def intersects(point: Point, line: Line): Boolean = {
+    val (start, end) = (line.getStart(), line.getEnd())
+    val slope = (end.getY() - start.getY())/ (end.getX() - start.getX())
+    val cond1 = (start.getX() <= point.getX()) && (point.getX() < end.getX())
+    val cond2 = (end.getX() <= point.getX()) && (point.getX() < start.getX())
+    val above = (point.getY() < slope * (point.getX() - start.getX()) + start.getY())
+    ((cond1 || cond2) && above )
+  }
+
   private [magellan] def contains(point: Point): Boolean = {
     var startIndex = 0
     var endIndex = 1
@@ -44,17 +53,21 @@ class Polygon(
     var currentRingIndex = 0
     val start = new Point
     val end = new Point
-    while (endIndex < length) {
+    val line = new Line()
+    var touches = false
+
+    while (endIndex < length && !touches) {
 
       start.setX(xcoordinates(startIndex))
       start.setY(ycoordinates(startIndex))
       end.setX(xcoordinates(endIndex))
       end.setY(ycoordinates(endIndex))
-      val slope = (end.getY() - start.getY())/ (end.getX() - start.getX())
-      val cond1 = (start.getX() <= point.getX()) && (point.getX() < end.getX())
-      val cond2 = (end.getX() <= point.getX()) && (point.getX() < start.getX())
-      val above = (point.getY() < slope * (point.getX() - start.getX()) + start.getY())
-      if ((cond1 || cond2) && above ) intersections+= 1
+
+      line.setStart(start)
+      line.setEnd(end)
+      touches = line.contains(point)
+
+      intersections += {if (intersects(point, line)) 1 else 0}
       startIndex += 1
       endIndex += 1
       // if we reach a ring boundary skip it
@@ -68,39 +81,202 @@ class Polygon(
         }
       }
     }
-    intersections % 2 != 0
+    !touches && (intersections % 2 != 0)
+  }
+
+  private [magellan] def touches(point: Point): Boolean = {
+    var startIndex = 0
+    var endIndex = 1
+    val length = xcoordinates.length
+    var currentRingIndex = 0
+    val start = new Point
+    val end = new Point
+    var touches = false
+    val line = new Line()
+
+    while (endIndex < length && !touches) {
+
+      start.setX(xcoordinates(startIndex))
+      start.setY(ycoordinates(startIndex))
+      end.setX(xcoordinates(endIndex))
+      end.setY(ycoordinates(endIndex))
+      line.setStart(start)
+      line.setEnd(end)
+      touches = line.contains(point)
+      startIndex += 1
+      endIndex += 1
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
+        }
+      }
+    }
+    touches
+  }
+
+  private [magellan] def touches(other: Line): Boolean = {
+    var startIndex = 0
+    var endIndex = 1
+    val length = xcoordinates.length
+    var currentRingIndex = 0
+    val start = new Point
+    val end = new Point
+    var touches = false
+    val line = new Line()
+
+    while (endIndex < length && !touches) {
+
+      start.setX(xcoordinates(startIndex))
+      start.setY(ycoordinates(startIndex))
+      end.setX(xcoordinates(endIndex))
+      end.setY(ycoordinates(endIndex))
+      line.setStart(start)
+      line.setEnd(end)
+      touches = line.touches(other)
+      startIndex += 1
+      endIndex += 1
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
+        }
+      }
+    }
+    touches
   }
 
   private [magellan] def intersects(line: Line): Boolean = {
     // Check if any edge intersects this line
-    var i = 0
     val length = xcoordinates.length
-    var found = false
-    var start:Point = null
-    var end:Point = new Point()
+    var intersects = false
+    val start: Point = new Point()
+    val end: Point = new Point()
     val edge = new Line()
+    var startIndex = 0
+    var endIndex = 1
+    var currentRingIndex = 0
 
-    while (i < length && !found) {
-      if (start == null) {
-        start = new Point()
-        start.setX(xcoordinates(i))
-        start.setY(ycoordinates(i))
-      } else {
-        end = new Point()
-        end.setX(xcoordinates(i))
-        end.setY(ycoordinates(i))
-        edge.setStart(start)
-        edge.setEnd(end)
-        found = edge.intersects(line)
-        start = end
+    while (endIndex < length && !intersects) {
+
+      start.setX(xcoordinates(startIndex))
+      start.setY(ycoordinates(startIndex))
+
+      end.setX(xcoordinates(endIndex))
+      end.setY(ycoordinates(endIndex))
+
+      edge.setStart(start)
+      edge.setEnd(end)
+
+      intersects = edge.intersects(line)
+
+      startIndex += 1
+      endIndex += 1
+
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
+        }
       }
-      i += 1
     }
-    found
+    intersects
   }
 
   private [magellan] def contains(line: Line): Boolean = {
-    !this.intersects(line) && this.contains(line.getStart()) && this.contains(line.getEnd())
+    /**
+      * Algorithm:
+      * If a line does not intersect any edge of the polygon:
+      *   If start and end points are not contained in the polygon then false
+      *   Else true
+      * Else if line touches an edge/ boundary of the polygon:
+      *   False
+      * Else if a midpoint is not contained in/ touches the polygon
+      *   False
+      * Else if start is not contained in or touches polygon
+      *   end should touch or be contained in polygon
+      * Else
+      *   True
+      */
+
+
+    var startIndex = 0
+    var endIndex = 1
+    val length = xcoordinates.length
+    var currentRingIndex = 0
+    val start = new Point
+    val end = new Point
+    val edge = new Line()
+    var intersectsAnEdge = false
+    var onBoundary = false
+
+    val lineMid = line.getMid()
+    var startI = 0
+    var endI = 0
+    var midI = 0
+    var startTouches = false
+    var endTouches = false
+    var midTouches = false
+
+    while (endIndex < length) {
+
+      start.setX(xcoordinates(startIndex))
+      start.setY(ycoordinates(startIndex))
+      end.setX(xcoordinates(endIndex))
+      end.setY(ycoordinates(endIndex))
+
+      edge.setStart(start)
+      edge.setEnd(end)
+      intersectsAnEdge |= line.intersects(edge)
+      onBoundary |= edge.contains(line)
+
+      startI += {if (intersects(line.getStart(), edge)) 1 else 0}
+      endI += {if (intersects(line.getEnd(), edge)) 1 else 0}
+      midI += {if (intersects(lineMid, edge)) 1 else 0}
+
+      startTouches |= edge.contains(line.getStart())
+      endTouches |= edge.contains(line.getEnd())
+      midTouches |= edge.contains(lineMid)
+
+      startIndex += 1
+      endIndex += 1
+      // if we reach a ring boundary skip it
+      val nextRingIndex = currentRingIndex + 1
+      if (nextRingIndex < indices.length) {
+        val nextRing = indices(nextRingIndex)
+        if (endIndex == nextRing) {
+          startIndex += 1
+          endIndex += 1
+          currentRingIndex = nextRingIndex
+        }
+      }
+    }
+
+    val startContained = (startI % 2 != 0)
+    val endContained = (endI % 2 != 0)
+    val midContained = (midI % 2 != 0)
+
+    if (!intersectsAnEdge) {
+      startContained && endContained
+    } else if (!midContained && !midTouches) {
+      false
+    } else if (!startContained && !startTouches) {
+      endContained || endTouches
+    } else {
+      !onBoundary
+    }
   }
 
   override def getType(): Int = 5
