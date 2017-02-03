@@ -119,41 +119,6 @@ class Polygon(
     touches
   }
 
-  private [magellan] def touches(other: Line): Boolean = {
-    var startIndex = 0
-    var endIndex = 1
-    val length = xcoordinates.length
-    var currentRingIndex = 0
-    val start = new Point
-    val end = new Point
-    var touches = false
-    val line = new Line()
-
-    while (endIndex < length && !touches) {
-
-      start.setX(xcoordinates(startIndex))
-      start.setY(ycoordinates(startIndex))
-      end.setX(xcoordinates(endIndex))
-      end.setY(ycoordinates(endIndex))
-      line.setStart(start)
-      line.setEnd(end)
-      touches = line.touches(other)
-      startIndex += 1
-      endIndex += 1
-      // if we reach a ring boundary skip it
-      val nextRingIndex = currentRingIndex + 1
-      if (nextRingIndex < indices.length) {
-        val nextRing = indices(nextRingIndex)
-        if (endIndex == nextRing) {
-          startIndex += 1
-          endIndex += 1
-          currentRingIndex = nextRingIndex
-        }
-      }
-    }
-    touches
-  }
-
   private [magellan] def intersects(line: Line): Boolean = {
     // Check if any edge intersects this line
     val length = xcoordinates.length
