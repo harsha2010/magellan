@@ -163,6 +163,8 @@ trait Shape extends DataType with Serializable {
         case (p: Point, q: Polygon) => false
         case (p: Polygon, q: Point) => p.contains(q)
         case (p: Polygon, q: Line) => p.contains(q)
+        case (p: Line, q: Point) => p.contains(q)
+        case (p: Line, q: Line) => p.contains(q)
         case _ => ???
       }
     } else  {
@@ -295,3 +297,16 @@ object NullShape extends Shape {
       (Int.MaxValue, Int.MaxValue)
     )
 }
+
+object Shape {
+
+  def area(a: Point, b: Point, c: Point) = {
+    ((c.getY() - a.getY()) * (b.getX() - a.getX())) - ((b.getY() - a.getY()) * (c.getX() - a.getX()))
+  }
+
+  def ccw(a: Point, b: Point, c: Point) = {
+    area(a, b, c) > 0
+  }
+
+}
+

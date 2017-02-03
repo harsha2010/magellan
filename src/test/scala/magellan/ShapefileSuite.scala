@@ -17,11 +17,8 @@
 package magellan
 
 import magellan.TestingUtils._
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StringType
-import org.scalatest.FunSuite
 import org.apache.spark.sql.magellan.dsl.expressions._
+import org.scalatest.FunSuite
 
 case class UberRecord(tripId: String, timestamp: String, point: Point)
 
@@ -70,7 +67,6 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("testpolyline/").getPath
     val df = sqlCtx.read.format("magellan").load(path)
-    import sqlCtx.implicits._
     assert(df.count() === 14959)
     // 5979762.107174277,2085850.5510566086,6024890.0635061115,2130875.5735391825
   }
@@ -98,7 +94,6 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("testshapefile/").getPath
     val df = sqlCtx.read.format("magellan").load(path)
-    import sqlCtx.implicits._
     val polygon = df.select("polygon").first().get(0).asInstanceOf[Polygon]
     assert(polygon.boundingBox == ((-121.457213, 41.183484), (-119.998287, 41.997613)))
   }
