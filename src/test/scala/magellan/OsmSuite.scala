@@ -79,8 +79,46 @@ class OsmSuite extends FunSuite with TestSparkContext {
       .load(path)
     assert(df.count() === 1)
 
-    val p = df.select("point").map { case Row(p: Point) => p}.first()
+    val p = df.select("point").first()(0)
     assert(p.equals(Point(-75.6470109, 45.4187480)))
+  }
+
+  test("wayShapes generates polyline") {
+    val nodes = fileRelation.nodesRdd(osmRdd)
+    val ways = fileRelation.waysRdd(osmRdd)
+    val shapes = fileRelation.wayShapes(nodes, ways).collect()
+    assert(shapes.length == 1)
+    val points = List(Point(79.4000, 43.7000),
+                      Point(75.6919, 45.4214),
+                      Point(73.5673, 45.5017))
+    val line: PolyLine = PolyLine(new Array[Int](points.size), points.toArray)
+    assert(shapes(0)._1 == line)
+  }
+
+  test("read linestring") {
+    val path = this.getClass.getClassLoader.getResource("osm/linestring").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "osm")
+      .load(path)
+    assert(df.count() === 5)
+    assert(df.filter(df("polyline").isNotNull).count() === 1)
+
+    val p = df
+      .filter(df("polyline").isNotNull)
+      .select("polyline")
+      .first()(0).asInstanceOf[PolyLine]
+
+    assert(p.xcoordinates.size == 4)
+    assert(p.ycoordinates.size == 4)
+    assert(p.xcoordinates(0) == -75.6362879)
+    assert(p.xcoordinates(1) == -75.6378443)
+    assert(p.xcoordinates(2) == -75.6382141)
+    assert(p.xcoordinates(3) == -75.6390858)
+    assert(p.ycoordinates(0) == 45.4188896)
+    assert(p.ycoordinates(1) == 45.4191178)
+    assert(p.ycoordinates(2) == 45.4191290)
+    assert(p.ycoordinates(3) == 45.4190782)
   }
 
   test("read polygon") {
@@ -94,8 +132,8 @@ class OsmSuite extends FunSuite with TestSparkContext {
 
     val polygons = df.select("polygon")
       .filter(df("polygon").isNotNull)
-      .map({ case Row(p: Polygon) => p})
       .collect()
+      .map(_(0))
 
     assert(polygons.length == 1)
     val p = polygons(0)

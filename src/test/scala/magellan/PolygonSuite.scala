@@ -15,6 +15,7 @@
  */
 package magellan
 
+import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
 class PolygonSuite extends FunSuite {
@@ -61,9 +62,16 @@ class PolygonSuite extends FunSuite {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
     val polygon = Polygon(Array(0), ring)
+<<<<<<< HEAD
     assert(polygon.intersects(Line(Point(0.0, 0.0), Point(1.5, 1.5))))
     assert(polygon.intersects(Line(Point(0.0, 0.0), Point(1.5, 0.0))))
     assert(polygon.intersects(Line(Point(0.0, 0.0), Point(0.0, 1.5))))
+=======
+    val line = Line(Point(-0.5, -0.5), Point(0.5, 0.5))
+    assert(!polygon.intersects(line))
+    assert(!polygon.intersects(Line(Point(0.5, 0.5), Point(0.5, 0.5))))
+    assert(polygon.intersects(Line(Point(0.0, -1.0), Point(1.0, -1.0))))
+>>>>>>> master
   }
 
   test("line in polygon: 2 rings") {

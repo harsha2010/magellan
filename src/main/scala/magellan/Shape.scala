@@ -77,9 +77,10 @@ trait Shape extends DataType with Serializable {
         case (p: BoundingBox, q: Polygon) => q.intersects(p)
         case (p: Line, q: Point) => p.contains(q)
         case (p: Line, q: Shape) => q.intersects(p)
+        case _ => ???
       }
-    } else  {
-      false
+    } else {
+	false
     }
   }
 

@@ -16,9 +16,6 @@
 
 package magellan
 
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericMutableRow
 import org.apache.spark.sql.types._
 import org.json4s.JsonAST.JValue
 import org.json4s.JsonDSL._
@@ -88,56 +85,6 @@ class Point extends Shape {
       ("y" -> y)
 
   override def boundingBox = BoundingBox(x, y, x, y)
-
-}
-
-class PointUDT extends UserDefinedType[Point] {
-
-  override val sqlType: DataType = StructType(
-    Seq(
-      StructField("type", IntegerType, nullable = false),
-      StructField("xmin", DoubleType, nullable = false),
-      StructField("ymin", DoubleType, nullable = false),
-      StructField("xmax", DoubleType, nullable = false),
-      StructField("ymax", DoubleType, nullable = false),
-      StructField("x", DoubleType, nullable = false),
-      StructField("y", DoubleType, nullable = false)
-    ))
-
-  override def serialize(obj: Any): InternalRow = {
-    val p = obj.asInstanceOf[Point]
-    val row = new GenericMutableRow(7)
-    row.setInt(0, p.getType())
-    row.setDouble(1, p.getX())
-    row.setDouble(2, p.getY())
-    row.setDouble(3, p.getX())
-    row.setDouble(4, p.getY())
-    row.setDouble(5, p.getX())
-    row.setDouble(6, p.getY())
-    row
-  }
-
-  override def userClass: Class[Point] = classOf[Point]
-
-  override def deserialize(datum: Any): Point = {
-    val row = datum.asInstanceOf[InternalRow]
-    require(row.numFields == 7)
-    Point(row.getDouble(5), row.getDouble(6))
-  }
-
-  override def pyUDT: String = "magellan.types.PointUDT"
-
-  def serialize(x: Double, y: Double): InternalRow = {
-    val row = new GenericMutableRow(7)
-    row.setInt(0, 1)
-    row.setDouble(1, x)
-    row.setDouble(2, y)
-    row.setDouble(3, x)
-    row.setDouble(4, y)
-    row.setDouble(5, x)
-    row.setDouble(6, y)
-    row
-  }
 
 }
 

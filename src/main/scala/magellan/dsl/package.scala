@@ -21,6 +21,7 @@ import magellan.catalyst._
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
 
 package object dsl {
   trait ImplicitOperators {
@@ -30,6 +31,8 @@ package object dsl {
     def within(other: Expression): Expression = Within(expr, other)
 
     def within(other: Column): Column = Column(Within(expr, other.expr))
+
+    def intersects(other: Expression): Expression = Intersects(expr, other)
 
     def >?(other: Expression): Expression = Within(other, expr)
 
@@ -53,6 +56,8 @@ package object dsl {
       def col: Column = c
 
       def within(other: Column): Column = Column(Within(col.expr, other.expr))
+
+      def intersects(other: Column): Column = Column(Intersects(c.expr, other.expr))
 
       def >?(other: Column): Column = Column(Within(other.expr, col.expr))
 

@@ -15,6 +15,7 @@
  */
 package magellan
 
+import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
 class LineSuite extends FunSuite with TestSparkContext {
@@ -32,8 +33,11 @@ class LineSuite extends FunSuite with TestSparkContext {
     val x = Line(Point(0.0, 0.0), Point(1.0, 1.0))
     val y = Line(Point(1.0, 0.0), Point(0.0, 0.1))
     val z = Line(Point(0.5, 0.0), Point(1.0, 0.5))
+    val w = Line(Point(1.0, -1.0), Point(-1.0, -1.0))
+    val l = Line(Point(0.0, -1.0), Point(0.0, -1.0))
     assert(x.intersects(y))
     assert(!x.intersects(z))
+    assert(w.intersects(l))
   }
 
   test("serialization") {

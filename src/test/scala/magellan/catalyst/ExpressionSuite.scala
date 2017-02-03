@@ -16,7 +16,7 @@
 
 package magellan.catalyst
 
-import magellan.{Polygon, Point, TestSparkContext}
+import magellan._
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
@@ -32,8 +32,7 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     val df = sc.parallelize(Seq((35.7, -122.3))).toDF("lat", "lon")
     val p = df.withColumn("point", point($"lon", $"lat"))
       .select('point)
-      .map { case Row(p: Point) => p}
-      .first()
+      .first()(0).asInstanceOf[Point]
 
     assert(p.getX() === -122.3)
     assert(p.getY() === 35.7)
@@ -59,6 +58,27 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
   }
 
+  test("Intersects") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(Polygon(Array(0), ring))
+    )).toDF()
+
+    val points = sc.parallelize(Seq(
+      PointExample(Point(0.0, -1.0)),
+      PointExample(Point(2.0, 2.0))
+    )).toDF()
+
+    val joined = points.join(polygons).where($"point" intersects $"polygon")
+    assert(joined.count() === 1)
+
+  }
+
+
   test("Contains") {
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
@@ -79,4 +99,33 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
   }
 
+  test("PolyLine intersects Line") {
+
+    val line = Line(Point(0,0), Point(2,2))
+
+    val polyline1 = PolyLine(new Array[Int](3), Array(
+      Point(0.0, 0.0), Point(2.0, 2.0), Point(-2.0, -2.0)
+    ))
+
+    val polyline2 = PolyLine(new Array[Int](3), Array(
+      Point(0.0, 3.0), Point(3.0, 1.0), Point(-2.0, -2.0)
+    ))
+
+    val polyline3 = PolyLine(new Array[Int](3), Array(
+              Point(3.0, 3.0), Point(3.0, 11.0), Point(5.0, 0.0)
+            ))
+
+    assert(polyline1.intersects(line) === true)
+    assert(polyline2.intersects(line) === true)
+    assert(polyline3.intersects(line) === false)
+  }
+
+  test("PolyLine contains Point") {
+
+    val polyline = PolyLine(new Array[Int](3), Array(
+      Point(0.0, 0.0), Point(3.0, 3.0), Point(-2.0, -2.0)
+    ))
+    assert(polyline.contains(Point(1.0, 1.0)) === true)
+    assert(polyline.contains(Point(2.0, 1.0)) === false)
+  }
 }

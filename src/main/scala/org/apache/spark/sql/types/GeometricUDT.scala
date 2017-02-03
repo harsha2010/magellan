@@ -14,27 +14,13 @@
  * limitations under the License.
  */
 
-package magellan.catalyst
+package org.apache.spark.sql.types
 
-import magellan._
+import magellan.Shape
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.types._
 
-trait MagellanExpression {
+trait GeometricUDT {
 
-  private val SERIALIZERS = Map(
-    1 -> new PointUDT,
-    2 -> new LineUDT,
-    3 -> new PolyLineUDT,
-    5  -> new PolygonUDT)
-
-  def newInstance(row: InternalRow): Shape = {
-    SERIALIZERS.get(row.getInt(0)).fold(NullShape.asInstanceOf[Shape])(_.deserialize(row))
-  }
-
-  def serialize(shape: Shape): Any = {
-    SERIALIZERS.get(shape.getType()).get.serialize(shape)
-  }
+  def serialize(shape: Shape): InternalRow
 
 }
-

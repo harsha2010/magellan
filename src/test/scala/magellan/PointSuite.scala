@@ -15,6 +15,7 @@
  */
 package magellan
 
+import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
 class PointSuite extends FunSuite with TestSparkContext {

@@ -29,8 +29,10 @@ trait TestSparkContext extends BeforeAndAfterAll { self: Suite =>
     val conf = new SparkConf()
       .setMaster("local[2]")
       .setAppName("MLlibUnitTest")
+      .set("spark.sql.crossJoin.enabled", "true")
     sc = new SparkContext(conf)
     sqlContext = new SQLContext(sc)
+    sqlContext.setConf("spark.sql.crossJoin.enabled", "true")
   }
 
   override def afterAll() {

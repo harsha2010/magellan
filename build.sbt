@@ -4,11 +4,11 @@ version := "1.0.4-SNAPSHOT"
 
 organization := "harsha2010"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.11.8"
 
-crossScalaVersions := Seq("2.10.5")
+crossScalaVersions := Seq("2.11.8")
 
-sparkVersion := "1.6.1"
+sparkVersion := "2.1.0"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
@@ -83,3 +83,4 @@ ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
 credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
 
 licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
+
