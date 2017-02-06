@@ -19,7 +19,7 @@ package magellan.index
 import magellan.{BoundingBox, Point, Shape}
 
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, Stack}
+import scala.collection.mutable.{ArrayBuffer, ListBuffer, Stack}
 
 class ZOrderCurveIndexer(
     boundingBox: BoundingBox)
@@ -62,16 +62,32 @@ class ZOrderCurveIndexer(
   }
 
   override def index(shape: Shape, precision: Int): Seq[ZOrderCurve] = {
-    val stack = new mutable.Stack[ZOrderCurve]()
-    stack.push(new ZOrderCurve(boundingBox, 0, 0L))
-    while (!stack.isEmpty) {
-      val candidate = stack.pop()
-      // if candidate is inside shape, include and continue
-      // if candidate intersects shape, shape = shape \ GeoHash of candidate. push children onto stack
-      // otherwise continue
+    val candidates = cover(shape.boundingBox, precision)
+    for (candidate <- candidates) {
+      // check if the candidate actually lies within the shape
+      val BoundingBox(xmin, ymin, xmax, ymax) = candidate.boundingBox
+      val vertices = Array(Point(xmin, ymin),
+          Point(xmax, ymin),
+          Point(xmax, ymax),
+          Point(xmin, ymax)
+        )
 
-
+      if (vertices.filter(!shape.contains(_)).isEmpty) {
+        candidates.-=(candidate)
+      }
     }
+    candidates
+  }
+
+  /**
+    * Returns the curves of a given precision that cover the bounding box.
+    *
+    * @param box
+    * @return
+    */
+  private [index] def cover(box: BoundingBox, precision: Int): ListBuffer[ZOrderCurve] = {
+    val BoundingBox(xmin, ymin, xmax, ymax) = box
+
     ???
   }
 

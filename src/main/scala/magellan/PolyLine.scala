@@ -31,7 +31,7 @@ class PolyLine(
     val indices: Array[Int],
     val xcoordinates: Array[Double],
     val ycoordinates: Array[Double],
-    override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
+    override val boundingBox: BoundingBox) extends Shape {
 
   override def getType(): Int = 3
 
@@ -62,8 +62,8 @@ class PolyLine(
   }
 
   def exceedsBounds(point:Point):Boolean = {
-    val ((pt_xmin, pt_ymin), (pt_xmax, pt_ymax)) = point.boundingBox
-    val ((xmin, ymin), (xmax, ymax)) = boundingBox
+    val BoundingBox(pt_xmin, pt_ymin, pt_xmax, pt_ymax) = point.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = boundingBox
 
     pt_xmin < xmin && pt_ymin < ymin ||
     pt_xmax > xmax && pt_ymax > ymax
@@ -163,7 +163,7 @@ private[magellan] object PolyLine {
       indices,
       points.map(_.getX()),
       points.map(_.getY()),
-      ((xmin, ymin), (xmax, ymax))
+      BoundingBox(xmin, ymin, xmax, ymax)
     )
   }
 }

@@ -24,8 +24,6 @@ import org.apache.spark.sql.types._
  */
 trait Shape extends DataType with Serializable {
 
-  type BoundingBox = Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
-
   override def defaultSize: Int = 4096
 
   override def asNullable: DataType = this
@@ -91,8 +89,8 @@ trait Shape extends DataType with Serializable {
    * @see Shape#disjoint
    */
   def intersects(other: Shape, bitMask: Int): Boolean = {
-    val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
-    val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = this.boundingBox
+    val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other.boundingBox
     if ((xmin <= otherxmin && xmax >= otherxmin && ymin <= otherymin && ymax >= otherymin) ||
       (otherxmin <= xmin && otherxmax >= xmin && otherymin <= ymin && otherymax >= ymin)) {
       (this, other) match {
@@ -155,8 +153,8 @@ trait Shape extends DataType with Serializable {
   def contains(other: Shape): Boolean = {
     // check if the bounding box encompasses other's bounding box.
     // if not, no need to check further
-    val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
-    val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = this.boundingBox
+    val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other.boundingBox
     if (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
@@ -173,7 +171,7 @@ trait Shape extends DataType with Serializable {
 
   }
 
-  def boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
+  def boundingBox: BoundingBox
 
   /**
    * Tests whether this shape is within the
@@ -292,9 +290,9 @@ object NullShape extends Shape {
 
   override def transform(fn: (Point) => Point): Shape = this
 
-  override def boundingBox: ((Double, Double), (Double, Double)) = (
-      (Int.MinValue, Int.MinValue),
-      (Int.MaxValue, Int.MaxValue)
+  override def boundingBox = BoundingBox(
+      Int.MinValue, Int.MinValue,
+      Int.MaxValue, Int.MaxValue
     )
 }
 

@@ -63,5 +63,6 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) e
 
     lines exists (_ contains point)
   }
+
 }
 
