@@ -16,12 +16,15 @@
 
 package magellan
 
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 
 /**
  * An abstraction for a geometric shape.
  */
 trait Shape extends DataType with Serializable {
+
+  type BoundingBox = Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
 
   override def defaultSize: Int = 4096
 
@@ -63,24 +66,47 @@ trait Shape extends DataType with Serializable {
    * @see Shape#disjoint
    */
   def intersects(other: Shape): Boolean = {
-    // check if the bounding box intersects other's bounding box.
-    // if not, no need to check further
+    intersects(other, 7)
+  }
 
-    if (this.boundingBox.intersects(other.boundingBox)) {
+  /**
+   * Tests whether this shape intersects the argument shape.
+   * <p>
+   * The <code>intersects</code> predicate has the following equivalent definitions:
+   * <ul>
+   * <li>The two geometries have at least one point in common
+   * <li><code>! other.disjoint(this) = true</code>
+   * <br>(<code>intersects</code> is the inverse of <code>disjoint</code>)
+   * </ul>
+   *
+   * @param  other  the <code>Shape</code> with which to compare this <code>Shape</code>
+   * @param bitMask The dimension of the intersection. The value is either -1, or a bitmask mask of values (1 << dim).
+   *                The value of -1 means the lower dimension in the intersecting pair.
+   *                This is a fastest option when intersecting polygons with polygons or polylines.
+   *                The bitmask of values (1 << dim), where dim is the desired dimension value, is used to indicate
+   *                what dimensions of geometry one wants to be returned. For example, to return
+   *                multipoints and lines only, pass (1 << 0) | (1 << 1), which is equivalen to 1 | 2, or 3.
+   * @return        <code>true</code> if the two <code>Shape</code>s intersect
+   *
+   * @see Shape#disjoint
+   */
+  def intersects(other: Shape, bitMask: Int): Boolean = {
+    val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
+    val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
+    if ((xmin <= otherxmin && xmax >= otherxmin && ymin <= otherymin && ymax >= otherymin) ||
+      (otherxmin <= xmin && otherxmax >= xmin && otherymin <= ymin && otherymax >= ymin)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
-        case (p: Point, q: Polygon) => q.intersects(p)
-        case (p: Polygon, q: Point) => p.intersects(q)
+        case (p: Point, q: Polygon) => q.intersects(Line(p, p))
+        case (p: Polygon, q: Point) => p.intersects(Line(q, q))
         case (p: Polygon, q: Line) => p.intersects(q)
-        case (p: Polygon, q: BoundingBox) => p.intersects(q)
-        case (p: BoundingBox, q: BoundingBox) => p.intersects(q)
-        case (p: BoundingBox, q: Polygon) => q.intersects(p)
-        case (p: Line, q: Point) => p.contains(q)
-        case (p: Line, q: Shape) => q.intersects(p)
+        case (p: Polygon, q: PolyLine) => p.intersects(q)
+        case (p: PolyLine, q: Line) => p.intersects(q)
+        case (p: Line, q: PolyLine) => q.intersects(p)
         case _ => ???
       }
-    } else {
-	false
+    } else  {
+      false
     }
   }
 
@@ -129,16 +155,17 @@ trait Shape extends DataType with Serializable {
   def contains(other: Shape): Boolean = {
     // check if the bounding box encompasses other's bounding box.
     // if not, no need to check further
-
-    if (this.boundingBox.contains(other.boundingBox)) {
+    val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
+    val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
+    if (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
         case (p: Point, q: Polygon) => false
         case (p: Polygon, q: Point) => p.contains(q)
         case (p: Polygon, q: Line) => p.contains(q)
-        case (p: Polygon, q: BoundingBox) => p.contains(q)
-        case (p: BoundingBox, q: BoundingBox) => p.contains(q)
-        case (p: BoundingBox, q: Point) =>  p.contains(BoundingBox(q.getX(), q.getY(), q.getX(), q.getY()))
+        case (p: Line, q: Point) => p.contains(q)
+        case (p: Line, q: Line) => p.contains(q)
+        case _ => ???
       }
     } else  {
       false
@@ -146,7 +173,7 @@ trait Shape extends DataType with Serializable {
 
   }
 
-  def boundingBox: BoundingBox
+  def boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
 
   /**
    * Tests whether this shape is within the
@@ -265,7 +292,21 @@ object NullShape extends Shape {
 
   override def transform(fn: (Point) => Point): Shape = this
 
-  override def boundingBox = (
-      BoundingBox(Int.MinValue, Int.MinValue, Int.MaxValue, Int.MaxValue)
+  override def boundingBox: ((Double, Double), (Double, Double)) = (
+      (Int.MinValue, Int.MinValue),
+      (Int.MaxValue, Int.MaxValue)
     )
 }
+
+object Shape {
+
+  def area(a: Point, b: Point, c: Point) = {
+    ((c.getY() - a.getY()) * (b.getX() - a.getX())) - ((b.getY() - a.getY()) * (c.getX() - a.getX()))
+  }
+
+  def ccw(a: Point, b: Point, c: Point) = {
+    area(a, b, c) > 0
+  }
+
+}
+

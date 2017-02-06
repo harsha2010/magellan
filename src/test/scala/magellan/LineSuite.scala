@@ -29,15 +29,29 @@ class LineSuite extends FunSuite with TestSparkContext {
     assert(ymax === 1.0)
   }
 
+  test("touches") {
+    val x = Line(Point(0.0, 0.0), Point(1.0, 1.0))
+    val y = Line(Point(1.0, 1.0), Point(2.0, 2.0))
+    val z = Line(Point(0.5, 0.5), Point(0.5, 0.0))
+    val w = Line(Point(1.0, -1.0), Point(-1.0, -1.0))
+
+    // test touches line
+    assert(x.touches(y))
+    assert(x.touches(z))
+    assert(!x.touches(w))
+  }
+
   test("intersects") {
     val x = Line(Point(0.0, 0.0), Point(1.0, 1.0))
     val y = Line(Point(1.0, 0.0), Point(0.0, 0.1))
     val z = Line(Point(0.5, 0.0), Point(1.0, 0.5))
     val w = Line(Point(1.0, -1.0), Point(-1.0, -1.0))
     val l = Line(Point(0.0, -1.0), Point(0.0, -1.0))
+    val t = Line(Point(0.5, 0.5), Point(0.5, 0.0))
     assert(x.intersects(y))
     assert(!x.intersects(z))
     assert(w.intersects(l))
+    assert(x.intersects(t))
   }
 
   test("serialization") {
@@ -52,5 +66,18 @@ class LineSuite extends FunSuite with TestSparkContext {
     assert(row.getDouble(4) === ymax)
     val serializedLine = lineUDT.deserialize(row)
     assert(line.equals(serializedLine))
+  }
+
+  test("contains line") {
+    val x = Line(Point(0.0, 0.0), Point(1.0, 1.0))
+    val y = Line(Point(0.0, 0.0), Point(0.5, 0.5))
+    val z = Line(Point(0.0, 0.0), Point(1.5, 1.5))
+    val w = Line(Point(0.5, 0.5), Point(0.0, 0.0))
+    val u = Line(Point(0.0, 0.0), Point(0.0, 1.0))
+    assert(x.contains(y))
+    assert(!x.contains(z))
+    assert(x.contains(w))
+    assert(!x.contains(u))
+
   }
 }

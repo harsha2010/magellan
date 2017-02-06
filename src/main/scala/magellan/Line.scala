@@ -16,6 +16,7 @@
 package magellan
 
 import org.apache.spark.sql.types._
+import magellan.Shape.{ccw, area}
 
 /**
  * Line segment between two points.
@@ -32,23 +33,47 @@ class Line extends Shape {
   def getStart() = start
   def getEnd() = end
 
-  private [magellan] def ccw(a: Point, b: Point, c: Point) = {
-    area(a, b, c) > 0.0
+  @inline private [magellan] def contains(point: Point): Boolean = {
+    area(start, end, point) == 0 && {
+      val startX = start.getX()
+      val endX = end.getX()
+      val pointX = point.getX()
+      val (lower, upper) = if (startX < endX) (startX, endX) else (endX, startX)
+      lower <= pointX && pointX <= upper
+    }
   }
 
-  private [magellan] def area(a: Point, b: Point, c: Point) = {
-    (c.getY() - a.getY()) * (b.getX() - a.getX()) - (b.getY() - a.getY()) * (c.getX() - a.getX())
+  @inline private [magellan] def contains(line: Line): Boolean = {
+    val (lineStart, lineEnd) = (line.getStart(), line.getEnd())
+
+    val collinear = area(start, end, line.getStart()) == 0 && area(start, end, line.getEnd()) == 0
+    if (collinear) {
+      // check if both points of the line are within the start and end
+      val (leftX, rightX) = if (start.getX() < end.getX()) {
+        (start.getX(), end.getX())
+      } else {
+        (end.getX(), start.getX())
+      }
+
+      val (leftY, rightY) = if (start.getY() < end.getY()) {
+        (start.getY(), end.getY())
+      } else {
+        (end.getY(), start.getY())
+      }
+
+      val (lineStartX, lineEndX) = (lineStart.getX(), lineEnd.getX())
+      val (lineStartY, lineEndY) = (lineStart.getY(), lineEnd.getY())
+
+      (lineStartX <= rightX) && (lineStartX >= leftX) &&
+      (lineStartY <= rightY) && (lineStartY >= leftY) &&
+      (lineEndX <= rightX) && (lineEndX >= leftX) &&
+      (lineEndY <= rightY) && (lineEndY >= leftY)
+    } else {
+      false
+    }
   }
 
-  private [magellan] def intersects(other: Line): Boolean = {
-    def area(a: Point, b: Point, c: Point) = {
-      ((c.getY() - a.getY()) * (b.getX() - a.getX())) - ((b.getY() - a.getY()) * (c.getX() - a.getX()))
-    }
-
-    def ccw(a: Point, b: Point, c: Point) = {
-      area(a, b, c) > 0
-    }
-
+  @inline private [magellan] def touches(other: Line): Boolean = {
     // test for degeneracy
     if (start == end) {
       area(start, other.start, other.end) == 0
@@ -59,19 +84,31 @@ class Line extends Shape {
       start == other.end ||
       end == other.start) {
       true
+    } else if (
+      contains(other.start) ||
+      contains(other.end) ||
+      other.contains(this.start) ||
+      other.contains(this.end)) {
+      true
     } else {
+      false
+    }
+  }
+
+  @inline private [magellan] def intersects(other: Line): Boolean = {
+
+    // test for degeneracy
+    if (this.touches(other)) {
+      true
+    } else {
+
       ccw(start, other.start, other.end) != ccw(end, other.start, other.end) &&
         ccw(start, end, other.start) != ccw(start, end, other.end)
     }
   }
 
-  private [magellan] def contains(point: Point): Boolean = {
-    // test for degeneracy
-    if (start == point || end == point) {
-      true
-    } else {
-      area(start, point, end) == 0.0
-    }
+  @inline private [magellan] def getMid(): Point = {
+    Point(start.getX() + (end.getX() - start.getX())/ 2, start.getY() + (end.getY() - start.getY())/ 2)
   }
 
   override def getType(): Int = 2
@@ -84,7 +121,7 @@ class Line extends Shape {
    */
   override def transform(fn: (Point) => Point): Shape = ???
 
-  override def boundingBox = {
+  override def boundingBox: ((Double, Double), (Double, Double)) = {
     val (xmin, xmax) = if (start.getX() < end.getX()) {
       (start.getX(), end.getX())
     } else {
@@ -95,7 +132,7 @@ class Line extends Shape {
     } else {
       (end.getY(), start.getY())
     }
-    BoundingBox(xmin, ymin, xmax, ymax)
+    ((xmin, ymin), (xmax, ymax))
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Line]
@@ -122,5 +159,4 @@ object Line {
     line.setEnd(end)
     line
   }
-
 }
