@@ -15,8 +15,9 @@
  */
 package magellan
 
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
 import org.apache.spark.sql.types._
-import magellan.Shape.{ccw, area}
+import magellan.Shape.{area, ccw}
 
 /**
  * Line segment between two points.
@@ -30,7 +31,10 @@ class Line extends Shape {
   def setStart(start: Point) { this.start = start }
   def setEnd(end: Point) { this.end = end }
 
+  @JsonProperty
   def getStart() = start
+
+  @JsonProperty
   def getEnd() = end
 
   @inline private [magellan] def contains(point: Point): Boolean = {
@@ -107,7 +111,7 @@ class Line extends Shape {
     }
   }
 
-  @inline private [magellan] def getMid(): Point = {
+  @JsonIgnore @inline private [magellan] def getMid(): Point = {
     Point(start.getX() + (end.getX() - start.getX())/ 2, start.getY() + (end.getY() - start.getY())/ 2)
   }
 

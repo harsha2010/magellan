@@ -16,6 +16,7 @@
 
 package magellan
 
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 
@@ -30,6 +31,7 @@ trait Shape extends DataType with Serializable {
 
   override def asNullable: DataType = this
 
+  @JsonProperty
   def getType(): Int
 
   /**
@@ -173,6 +175,7 @@ trait Shape extends DataType with Serializable {
 
   }
 
+  @JsonProperty
   def boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
 
   /**
@@ -235,6 +238,7 @@ trait Shape extends DataType with Serializable {
    *
    * @return <code>true</code> if this <code>Shape</code> does not cover any points
    */
+  @JsonIgnore
   def isEmpty(): Boolean = ???
 
   /**
