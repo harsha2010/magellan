@@ -15,6 +15,7 @@
  */
 package magellan
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
@@ -56,6 +57,13 @@ class PointSuite extends FunSuite with TestSparkContext {
 
     assert(point.getX() === -1.0)
     assert(point.getY() === -1.0)
+  }
+
+  test("jackson serialization") {
+    val s = new ObjectMapper().writeValueAsString(Point(1.0, 1.0))
+    assert(s.contains("boundingBox"))
+    assert(s.contains("x"))
+    assert(s.contains("y"))
   }
 
 }
