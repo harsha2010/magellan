@@ -15,6 +15,7 @@
  */
 package magellan
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
@@ -42,4 +43,27 @@ class PointSuite extends FunSuite with TestSparkContext {
     val serializedPoint = pointUDT.deserialize(row)
     assert(point.equals(serializedPoint))
   }
+
+  test("point udf") {
+    val sqlContext = this.sqlContext
+    import sqlContext.implicits._
+    val points = sc.parallelize(Seq((-1.0, -1.0), (-1.0, 1.0), (1.0, -1.0))).toDF("x", "y")
+    import org.apache.spark.sql.functions.udf
+    val toPointUDF = udf{(x:Double,y:Double) => Point(x,y) }
+    val point = points.withColumn("point", toPointUDF('x, 'y))
+      .select('point)
+      .first()(0)
+      .asInstanceOf[Point]
+
+    assert(point.getX() === -1.0)
+    assert(point.getY() === -1.0)
+  }
+
+  test("jackson serialization") {
+    val s = new ObjectMapper().writeValueAsString(Point(1.0, 1.0))
+    assert(s.contains("boundingBox"))
+    assert(s.contains("x"))
+    assert(s.contains("y"))
+  }
+
 }

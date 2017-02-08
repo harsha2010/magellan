@@ -16,6 +16,7 @@
 package magellan
 
 import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyLine}
+import com.fasterxml.jackson.databind.ObjectMapper
 import magellan.TestingUtils._
 import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
@@ -250,6 +251,20 @@ class PolygonSuite extends FunSuite {
 
     esriPoint.setXY(0.75, 0.75)
     assert(GeometryEngine.contains(esriPolygon, esriPoint, null))
+  }
+
+  test("jackson serialization") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
+      Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
+      Point(0, -0.5), Point(0.5, 0)
+    )
+
+    val polygon = Polygon(Array(0, 5), ring)
+    val s = new ObjectMapper().writeValueAsString(polygon)
+    assert(s.contains("boundingBox"))
+    assert(s.contains("xcoordinates"))
+    assert(s.contains("ycoordinates"))
   }
 
   def fromESRI(esriPolygon: ESRIPolygon): Polygon = {

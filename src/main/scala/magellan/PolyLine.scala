@@ -16,6 +16,7 @@
 
 package magellan
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.apache.spark.sql.types._
 
 import scala.util.control.Breaks._
@@ -34,6 +35,12 @@ class PolyLine(
     override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
 
   override def getType(): Int = 3
+
+  @JsonProperty
+  private [magellan] def getXCoordinates(): Array[Double] = xcoordinates
+
+  @JsonProperty
+  private [magellan] def getYCoordinates(): Array[Double] = ycoordinates
 
   private [magellan] def contains(point:Point): Boolean = {
     var startIndex = 0
@@ -132,7 +139,7 @@ class PolyLine(
       ("points" -> JArray(points.map(_.jsonValue).toList))*/
 }
 
-private[magellan] object PolyLine {
+object PolyLine {
 
   def apply(indices: Array[Int], points: Array[Point]): PolyLine = {
     // look for the extremities
