@@ -16,7 +16,7 @@
 
 package magellan.index
 
-import magellan.{BoundingBox, Point}
+import magellan.{BoundingBox, Point, Polygon}
 import magellan.TestingUtils._
 import org.scalatest.FunSuite
 
@@ -32,7 +32,7 @@ class ZOrderCurveSuite extends FunSuite {
     assert(c.bits === 5476377146882523136L)
   }
 
-  test("GeoHash") {
+  test("GeoHash Point") {
     val indexer = new ZOrderCurveIndexer(BoundingBox(-180, -90, 180, 90))
     val index = indexer.index(Point(-122.3959313, 37.7912976), 25)
     assert(index.toBase32() === "9q8yy")
@@ -52,6 +52,45 @@ class ZOrderCurveSuite extends FunSuite {
     val index = indexer.index(Point(-122.3959313, 37.7912976), 23)
     val children = index.children()
     assert(children.filter(_.toBase32() === "9q8yy").nonEmpty)
+  }
+
+  test("cover") {
+    val indexer = new ZOrderCurveIndexer(BoundingBox(-4, -4, 4, 4))
+    var cover = indexer.cover(BoundingBox(1.0, 1.0, 3.0, 3.0), 2)
+    assert(cover.size === 1)
+    val Seq(hash) = cover
+    assert(hash.code() === "11")
+
+    cover = indexer.cover(BoundingBox(1.0, 1.0, 3.0, 3.0), 4)
+    assert(cover.size === 4)
+
+    assert(cover.map(_.code()).sorted === Seq("1100", "1101", "1110", "1111"))
+
+    cover = indexer.cover(BoundingBox(1.0, 1.0, 3.0, 3.0), 6)
+    assert(cover.map(_.code).sorted === Seq("110011", "110110", "111001", "111100"))
+  }
+
+  test("index Polygon") {
+    val indexer = new ZOrderCurveIndexer(BoundingBox(-4, -4, 4, 4))
+    var ring = Array(Point(2.0, 1.0),
+        Point(3.5, 1.0),
+        Point(3.5, 1.5),
+        Point(2.5, 1.5),
+        Point(2.5, 2.5),
+        Point(2, 2.5),
+        Point(2.0, 1.0)
+      )
+
+    var polygon = Polygon(Array(0), ring)
+
+    var hashes = indexer.index(polygon, 2)
+    assert(hashes.map(_.code()) === Seq("11"))
+
+    hashes = indexer.index(polygon, 4)
+    assert(hashes.map(_.code()).sorted === Seq("1110", "1111"))
+
+    hashes = indexer.index(polygon, 6)
+    assert(hashes.map(_.code()).sorted === Seq("111001", "111011", "111100"))
   }
 }
 

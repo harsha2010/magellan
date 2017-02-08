@@ -41,7 +41,7 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) e
 
   private [magellan] def intersects(other: BoundingBox): Boolean = {
     val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other
-    !(otherxmin > xmax || otherymin > ymax || otherymax < ymin || otherxmax < xmin)
+    !(otherxmin >= xmax || otherymin >= ymax || otherymax <= ymin || otherxmax <= xmin)
   }
 
   private [magellan] def contains(other: BoundingBox): Boolean = {

@@ -16,10 +16,9 @@
 
 package magellan.index
 
-import magellan.{BoundingBox, Point, Shape}
+import magellan.{BoundingBox, Line, Point, Shape}
 
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer, Stack}
+import scala.collection.mutable.ListBuffer
 
 class ZOrderCurveIndexer(
     boundingBox: BoundingBox)
@@ -65,15 +64,26 @@ class ZOrderCurveIndexer(
     val candidates = cover(shape.boundingBox, precision)
     for (candidate <- candidates) {
       // check if the candidate actually lies within the shape
-      val BoundingBox(xmin, ymin, xmax, ymax) = candidate.boundingBox
+      val box = candidate.boundingBox
+      val BoundingBox(xmin, ymin, xmax, ymax) = box
       val vertices = Array(Point(xmin, ymin),
           Point(xmax, ymin),
           Point(xmax, ymax),
           Point(xmin, ymax)
         )
 
-      if (vertices.filter(!shape.contains(_)).isEmpty) {
-        candidates.-=(candidate)
+      if (!box.contains(shape.boundingBox)) {
+        // check if the hash is within the polygon or intersecting it.
+        val intersects = vertices.sliding(2).exists {
+          case Array(start, end) => {
+            shape.intersects(Line(start, end)) ||
+            shape.contains(start)
+          }
+        }
+
+        if (!intersects) {
+          candidates.-=(candidate)
+        }
       }
     }
     candidates
@@ -87,8 +97,30 @@ class ZOrderCurveIndexer(
     */
   private [index] def cover(box: BoundingBox, precision: Int): ListBuffer[ZOrderCurve] = {
     val BoundingBox(xmin, ymin, xmax, ymax) = box
+    val leftBottom = index(Point(xmin, ymin), precision)
+    val BoundingBox(startX, startY, endX, endY) = leftBottom.boundingBox
+    val xdelta = Math.abs(endX - startX)
+    val ydelta = Math.abs(endY - startY)
 
-    ???
+    val cover = new ListBuffer[ZOrderCurve]()
+
+    var i = startX
+
+    while (i <= xmax) {
+      var j = startY
+      while (j <= ymax) {
+        val candidate = index(Point(i, j), precision)
+        // check if the candidate intersects the box
+        if (box.intersects(candidate.boundingBox)) {
+          cover.+= (index(Point(i, j), precision))
+        }
+        j += ydelta
+      }
+
+      i += xdelta
+    }
+
+    cover
   }
 
 }
