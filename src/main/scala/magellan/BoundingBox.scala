@@ -16,6 +16,8 @@
 
 package magellan
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 /**
  * A bounding box is an axis parallel rectangle. It is completely specified by
  * the bottom left and top right points.
@@ -25,19 +27,21 @@ package magellan
  * @param xmax the maximum x coordinate of the rectangle.
  * @param ymax the maximum y coordinate of the rectangle.
  */
-case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) extends Shape {
+case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
 
-  override def getType(): Int = 4
+  private def this() {this(0, 0, 0, 0)}
 
-  /**
-   * Applies an arbitrary point wise transformation to a given shape.
-   *
-   * @param fn
-   * @return
-   */
-  override def transform(fn: (Point) => Point): BoundingBox = ???
+  @JsonProperty
+  def getXmin(): Double = xmin
 
-  override def boundingBox: BoundingBox = this
+  @JsonProperty
+  def getYmin(): Double = ymin
+
+  @JsonProperty
+  def getXmax(): Double = xmax
+
+  @JsonProperty
+  def getYmax(): Double = ymax
 
   private [magellan] def intersects(other: BoundingBox): Boolean = {
     val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other
@@ -64,5 +68,25 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) e
     lines exists (_ contains point)
   }
 
-}
+  private [magellan] def disjoint(shape: Shape): Boolean = {
+    // a bounding box is disjoint from a shape if it does not intersect the shape
+    // nor is contained in nor contains the shape.
 
+    val vertices = Array(Point(xmin, ymin),
+      Point(xmax, ymin),
+      Point(xmax, ymax),
+      Point(xmin, ymax)
+    )
+
+    val lines = Array(
+      Line(Point(xmin, ymin), Point(xmax, ymin)),
+      Line(Point(xmin, ymin), Point(xmin, ymax)),
+      Line(Point(xmax, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymax)))
+
+    !contains(shape.boundingBox) &&
+    !(vertices exists (shape contains _)) &&
+    !(lines exists(shape intersects _))
+  }
+
+}

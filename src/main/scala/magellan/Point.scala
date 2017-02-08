@@ -16,6 +16,7 @@
 
 package magellan
 
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
 import org.apache.spark.sql.types._
 import org.json4s.JsonAST.JValue
 import org.json4s.JsonDSL._
@@ -63,8 +64,10 @@ class Point extends Shape {
     this.y = y
   }
 
+  @JsonProperty
   def getX(): Double = x
 
+  @JsonProperty
   def getY(): Double = y
 
   /**
@@ -75,6 +78,7 @@ class Point extends Shape {
    */
   override def transform(fn: (Point) => Point): Point = fn(this)
 
+  @JsonProperty
   override def getType(): Int = 1
 
   override def jsonValue: JValue =
@@ -84,7 +88,11 @@ class Point extends Shape {
       ("x" -> x) ~
       ("y" -> y)
 
+  @JsonProperty
   override def boundingBox = BoundingBox(x, y, x, y)
+
+  @JsonIgnore
+  override def isEmpty(): Boolean = true
 
 }
 

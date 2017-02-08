@@ -16,6 +16,9 @@
 
 package magellan.index
 
+import java.io.File
+
+import com.fasterxml.jackson.databind.ObjectMapper
 import magellan.{BoundingBox, Point, Polygon}
 import magellan.TestingUtils._
 import org.scalatest.FunSuite
@@ -91,6 +94,17 @@ class ZOrderCurveSuite extends FunSuite {
 
     hashes = indexer.index(polygon, 6)
     assert(hashes.map(_.code()).sorted === Seq("111001", "111011", "111100"))
+  }
+
+  test("geohash polygon") {
+    val path = this.getClass.getClassLoader.getResource("testindex/testpolygon.json").getPath
+    val polygon: Polygon = new ObjectMapper().readerFor(classOf[Polygon]).readValue(new File(path))
+    val indexer = new ZOrderCurveIndexer(BoundingBox(-180, -90, 180, 90))
+    var index = indexer.index(polygon, 20)
+    assert(index.map(_.toBase32()).sorted === Seq("dr5n", "dr5q"))
+
+    index = indexer.index(polygon, 25)
+    assert(index.map(_.toBase32()).contains("dr5nx"))
   }
 }
 

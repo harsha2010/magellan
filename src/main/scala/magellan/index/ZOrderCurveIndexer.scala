@@ -65,25 +65,8 @@ class ZOrderCurveIndexer(
     for (candidate <- candidates) {
       // check if the candidate actually lies within the shape
       val box = candidate.boundingBox
-      val BoundingBox(xmin, ymin, xmax, ymax) = box
-      val vertices = Array(Point(xmin, ymin),
-          Point(xmax, ymin),
-          Point(xmax, ymax),
-          Point(xmin, ymax)
-        )
-
-      if (!box.contains(shape.boundingBox)) {
-        // check if the hash is within the polygon or intersecting it.
-        val intersects = vertices.sliding(2).exists {
-          case Array(start, end) => {
-            shape.intersects(Line(start, end)) ||
-            shape.contains(start)
-          }
-        }
-
-        if (!intersects) {
-          candidates.-=(candidate)
-        }
+      if (box.disjoint(shape)) {
+        candidates.-=(candidate)
       }
     }
     candidates
@@ -95,7 +78,7 @@ class ZOrderCurveIndexer(
     * @param box
     * @return
     */
-  private [index] def cover(box: BoundingBox, precision: Int): ListBuffer[ZOrderCurve] = {
+  def cover(box: BoundingBox, precision: Int): ListBuffer[ZOrderCurve] = {
     val BoundingBox(xmin, ymin, xmax, ymax) = box
     val leftBottom = index(Point(xmin, ymin), precision)
     val BoundingBox(startX, startY, endX, endY) = leftBottom.boundingBox

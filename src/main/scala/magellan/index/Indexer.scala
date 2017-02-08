@@ -19,7 +19,7 @@ package magellan.index
 import magellan.{Point, Shape}
 import org.apache.spark.sql.DataFrame
 
-trait Indexer[T <: Index] {
+trait Indexer[T <: Index] extends Serializable {
 
   /**
    * Output the smallest spatial curve that covers given point at given precision

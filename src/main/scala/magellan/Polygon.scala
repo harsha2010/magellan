@@ -16,6 +16,7 @@
 
 package magellan
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.apache.spark.sql.types._
 
 /**
@@ -36,6 +37,8 @@ class Polygon(
     val ycoordinates: Array[Double],
     override val boundingBox: BoundingBox) extends Shape {
 
+  private def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
+
   @inline private def intersects(point: Point, line: Line): Boolean = {
     val (start, end) = (line.getStart(), line.getEnd())
     val slope = (end.getY() - start.getY())/ (end.getX() - start.getX())
@@ -44,6 +47,12 @@ class Polygon(
     val above = (point.getY() < slope * (point.getX() - start.getX()) + start.getY())
     ((cond1 || cond2) && above )
   }
+
+  @JsonProperty
+  def getXCoordinates(): Array[Double] = xcoordinates
+
+  @JsonProperty
+  def getYCoordinates(): Array[Double] = ycoordinates
 
   private [magellan] def contains(point: Point): Boolean = {
     var startIndex = 0
@@ -294,6 +303,8 @@ class Polygon(
     found
   }
 
+
+  @JsonProperty
   override def getType(): Int = 5
 
   /**
