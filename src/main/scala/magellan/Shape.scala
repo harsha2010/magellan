@@ -25,13 +25,11 @@ import org.apache.spark.sql.types._
  */
 trait Shape extends DataType with Serializable {
 
-  type BoundingBox = Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
-
   override def defaultSize: Int = 4096
 
   override def asNullable: DataType = this
 
-  @JsonProperty
+  @JsonIgnore
   def getType(): Int
 
   /**
@@ -50,6 +48,7 @@ trait Shape extends DataType with Serializable {
    *
    * @return <code>true</code> if this <code>Shape</code> is valid
    */
+  @JsonIgnore
   def isValid(): Boolean = true
 
   /**
@@ -93,10 +92,9 @@ trait Shape extends DataType with Serializable {
    * @see Shape#disjoint
    */
   def intersects(other: Shape, bitMask: Int): Boolean = {
-    val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
-    val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
-    if ((xmin <= otherxmin && xmax >= otherxmin && ymin <= otherymin && ymax >= otherymin) ||
-      (otherxmin <= xmin && otherxmax >= xmin && otherymin <= ymin && otherymax >= ymin)) {
+    if (boundingBox.intersects(other.boundingBox) ||
+        boundingBox.contains(other.boundingBox) ||
+        other.boundingBox.contains(boundingBox)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
         case (p: Point, q: Polygon) => q.intersects(Line(p, p))
@@ -130,7 +128,12 @@ trait Shape extends DataType with Serializable {
    *                Returns <code>false</code> if both <code>Shape</code>s are points
    */
   def touches(other: Shape): Boolean = {
-    ???
+    (this, other) match {
+      case (p: Point, q: Point) => p.equals(q)
+      case (p: Point, q: Polygon) => q.touches(p)
+      case (p: Polygon, q: Point) => p.touches(q)
+      case _ => ???
+    }
   }
 
   /**
@@ -155,11 +158,10 @@ trait Shape extends DataType with Serializable {
    * @return true if this shape contains the other.
    */
   def contains(other: Shape): Boolean = {
-    // check if the bounding box encompasses other's bounding box.
+    // check if the bounding box intersects other's bounding box.
     // if not, no need to check further
-    val ((xmin, ymin), (xmax, ymax)) = this.boundingBox
-    val ((otherxmin, otherymin), (otherxmax, otherymax)) = other.boundingBox
-    if (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax) {
+
+    if (boundingBox.contains(other.boundingBox)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
         case (p: Point, q: Polygon) => false
@@ -176,7 +178,7 @@ trait Shape extends DataType with Serializable {
   }
 
   @JsonProperty
-  def boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]
+  def boundingBox: BoundingBox
 
   /**
    * Tests whether this shape is within the
@@ -296,9 +298,9 @@ object NullShape extends Shape {
 
   override def transform(fn: (Point) => Point): Shape = this
 
-  override def boundingBox: ((Double, Double), (Double, Double)) = (
-      (Int.MinValue, Int.MinValue),
-      (Int.MaxValue, Int.MaxValue)
+  override def boundingBox = BoundingBox(
+      Int.MinValue, Int.MinValue,
+      Int.MaxValue, Int.MaxValue
     )
 }
 

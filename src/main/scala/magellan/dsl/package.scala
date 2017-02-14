@@ -44,6 +44,10 @@ package object dsl {
 
     def transform(fn: Point => Point) = Transformer(expr, fn)
 
+    def geohash(other: Expression, precision: Int) = GeohashIndexer(other, precision)
+
+    def wkt(other: Expression) = WKT(other)
+
   }
 
   trait ExpressionConversions {
@@ -69,11 +73,19 @@ package object dsl {
 
       def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
 
+      def geohash(precision: Int): Column = Column(GeohashIndexer(c.expr, precision))
+
+      def wkt(): Column = Column(WKT(c.expr))
+
     }
 
     implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
 
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
+
+    implicit def wkt(x: Expression) = WKT(x)
+
+    implicit def wkt(x: Column) = Column(WKT(x.expr))
 
   }
 

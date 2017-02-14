@@ -35,7 +35,9 @@ class Polygon(
     val indices: Array[Int],
     val xcoordinates: Array[Double],
     val ycoordinates: Array[Double],
-    override val boundingBox: Tuple2[Tuple2[Double, Double], Tuple2[Double, Double]]) extends Shape {
+    override val boundingBox: BoundingBox) extends Shape {
+
+  private def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
 
   @inline private def intersects(point: Point, line: Line): Boolean = {
     val (start, end) = (line.getStart(), line.getEnd())
@@ -251,6 +253,57 @@ class Polygon(
     }
   }
 
+  private [magellan] def contains(box: BoundingBox): Boolean = {
+    val BoundingBox(xmin, ymin, xmax, ymax) = box
+    val lines = Array(
+      Line(Point(xmin, ymin), Point(xmax, ymin)),
+      Line(Point(xmin, ymin), Point(xmin, ymax)),
+      Line(Point(xmax, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymax)))
+
+    !(lines exists (!contains(_)))
+  }
+
+  private [magellan] def intersects(box: BoundingBox): Boolean = {
+    val BoundingBox(xmin, ymin, xmax, ymax) = box
+    val lines = Array(
+      Line(Point(xmin, ymin), Point(xmax, ymin)),
+      Line(Point(xmin, ymin), Point(xmin, ymax)),
+      Line(Point(xmax, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymax)))
+
+    lines exists (intersects(_))
+  }
+
+  private [magellan] def intersects(point: Point): Boolean = {
+    // Check if any edge intersects this line
+    var i = 0
+    val length = xcoordinates.length
+    var found = false
+    var start:Point = null
+    var end:Point = new Point()
+    val edge = new Line()
+
+    while (i < length && !found) {
+      if (start == null) {
+        start = new Point()
+        start.setX(xcoordinates(i))
+        start.setY(ycoordinates(i))
+      } else {
+        start = end
+        end = new Point()
+        end.setX(xcoordinates(i))
+        end.setY(ycoordinates(i))
+        edge.setStart(start)
+        edge.setEnd(end)
+        found = edge.contains(point)
+      }
+      i += 1
+    }
+    found
+  }
+
+
   @JsonProperty
   override def getType(): Int = 5
 
@@ -312,7 +365,7 @@ object Polygon {
         indices,
         points.map(_.getX()),
         points.map(_.getY()),
-        ((xmin, ymin), (xmax, ymax))
+        BoundingBox(xmin, ymin, xmax, ymax)
       )
   }
 }

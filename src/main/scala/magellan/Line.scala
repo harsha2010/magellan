@@ -125,7 +125,7 @@ class Line extends Shape {
    */
   override def transform(fn: (Point) => Point): Shape = ???
 
-  override def boundingBox: ((Double, Double), (Double, Double)) = {
+  override def boundingBox: BoundingBox = {
     val (xmin, xmax) = if (start.getX() < end.getX()) {
       (start.getX(), end.getX())
     } else {
@@ -136,7 +136,7 @@ class Line extends Shape {
     } else {
       (end.getY(), start.getY())
     }
-    ((xmin, ymin), (xmax, ymax))
+    BoundingBox(xmin, ymin, xmax, ymax)
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Line]

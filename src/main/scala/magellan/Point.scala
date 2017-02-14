@@ -89,7 +89,7 @@ class Point extends Shape {
       ("y" -> y)
 
   @JsonProperty
-  override def boundingBox: ((Double, Double), (Double, Double)) = ((x, y), (x, y))
+  override def boundingBox = BoundingBox(x, y, x, y)
 
   @JsonIgnore
   override def isEmpty(): Boolean = true

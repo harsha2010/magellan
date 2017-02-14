@@ -23,7 +23,7 @@ class LineSuite extends FunSuite with TestSparkContext {
 
   test("bounding box") {
     val line = Line(Point(0.0, 1.0), Point(1.0, 0.5))
-    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = line.boundingBox
     assert(xmin === 0.0)
     assert(ymin === 0.5)
     assert(xmax === 1.0)
@@ -58,7 +58,7 @@ class LineSuite extends FunSuite with TestSparkContext {
   test("serialization") {
     val lineUDT = new LineUDT
     val line = Line(Point(0.0, 1.0), Point(1.0, 0.5))
-    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = line.boundingBox
     val row = lineUDT.serialize(line)
     assert(row.getInt(0) === line.getType())
     assert(row.getDouble(1) === xmin)

@@ -23,7 +23,7 @@ class PointSuite extends FunSuite with TestSparkContext {
 
   test("bounding box") {
     val point = Point(1.0, 1.0)
-    val ((xmin, ymin), (xmax, ymax)) = point.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = point.boundingBox
     assert(xmin === 1.0)
     assert(ymin === 1.0)
     assert(xmax === 1.0)
@@ -33,7 +33,7 @@ class PointSuite extends FunSuite with TestSparkContext {
   test("serialization") {
     val point = Point(1.0, 1.0)
     val pointUDT = new PointUDT
-    val ((xmin, ymin), (xmax, ymax)) = point.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = point.boundingBox
     val row = pointUDT.serialize(point)
     assert(row.getInt(0) === point.getType())
     assert(row.getDouble(1) === xmin)
