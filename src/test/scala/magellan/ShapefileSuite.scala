@@ -95,7 +95,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val path = this.getClass.getClassLoader.getResource("testshapefile/").getPath
     val df = sqlCtx.read.format("magellan").load(path)
     val polygon = df.select("polygon").first().get(0).asInstanceOf[Polygon]
-    assert(polygon.boundingBox == ((-121.457213, 41.183484), (-119.998287, 41.997613)))
+    assert(polygon.boundingBox == BoundingBox(-121.457213, 41.183484, -119.998287, 41.997613))
   }
 }
 

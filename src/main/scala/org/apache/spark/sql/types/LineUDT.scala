@@ -22,7 +22,7 @@ class LineUDT extends UserDefinedType[Line] with GeometricUDT {
   override def serialize(line: Line): InternalRow = {
     val row = new GenericInternalRow(9)
     row.setInt(0, 2)
-    val ((xmin, ymin), (xmax, ymax)) = line.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = line.boundingBox
     row.setDouble(1, xmin)
     row.setDouble(2, ymin)
     row.setDouble(3, xmax)

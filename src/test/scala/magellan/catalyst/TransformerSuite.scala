@@ -16,11 +16,10 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.Row
-import org.scalatest.FunSuite
-import magellan.{Point, TestSparkContext}
 import magellan.TestingUtils._
+import magellan.{Point, TestSparkContext}
 import org.apache.spark.sql.magellan.dsl.expressions._
+import org.scalatest.FunSuite
 
 
 class TransformerSuite extends FunSuite with TestSparkContext {

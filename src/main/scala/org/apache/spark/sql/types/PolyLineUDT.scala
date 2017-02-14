@@ -20,7 +20,7 @@ class PolyLineUDT extends UserDefinedType[PolyLine] with GeometricUDT {
 
   override def serialize(polyLine: PolyLine): InternalRow = {
     val row = new GenericInternalRow(8)
-    val ((xmin, ymin), (xmax, ymax)) = polyLine.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = polyLine.boundingBox
     row.update(0, polyLine.getType())
     row.update(1, xmin)
     row.update(2, ymin)
@@ -42,7 +42,7 @@ class PolyLineUDT extends UserDefinedType[PolyLine] with GeometricUDT {
       row.getArray(5).toIntArray(),
       row.getArray(6).toDoubleArray(),
       row.getArray(7).toDoubleArray(),
-      ((row.getDouble(1), row.getDouble(2)), (row.getDouble(3), row.getDouble(4)))
+      BoundingBox(row.getDouble(1), row.getDouble(2), row.getDouble(3), row.getDouble(4))
     )
     polyLine
   }

@@ -1,0 +1,92 @@
+/**
+ * Copyright 2015 Ram Sriharsha
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package magellan
+
+import com.fasterxml.jackson.annotation.JsonProperty
+
+/**
+ * A bounding box is an axis parallel rectangle. It is completely specified by
+ * the bottom left and top right points.
+ *
+ * @param xmin the minimum x coordinate of the rectangle.
+ * @param ymin the minimum y coordinate of the rectangle.
+ * @param xmax the maximum x coordinate of the rectangle.
+ * @param ymax the maximum y coordinate of the rectangle.
+ */
+case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
+
+  private def this() {this(0, 0, 0, 0)}
+
+  @JsonProperty
+  def getXmin(): Double = xmin
+
+  @JsonProperty
+  def getYmin(): Double = ymin
+
+  @JsonProperty
+  def getXmax(): Double = xmax
+
+  @JsonProperty
+  def getYmax(): Double = ymax
+
+  private [magellan] def intersects(other: BoundingBox): Boolean = {
+    val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other
+    !(otherxmin >= xmax || otherymin >= ymax || otherymax <= ymin || otherxmax <= xmin)
+  }
+
+  private [magellan] def contains(other: BoundingBox): Boolean = {
+    val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other
+    (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax)
+  }
+
+  private [magellan] def contains(point: Point): Boolean = {
+    val (x, y) = (point.getX(), point.getY())
+    (xmin <= x && ymin <= y && xmax >= x && ymax >= y)
+  }
+
+  private [magellan] def intersects(point: Point): Boolean = {
+    val lines = Array(
+      Line(Point(xmin, ymin), Point(xmax, ymin)),
+      Line(Point(xmin, ymin), Point(xmin, ymax)),
+      Line(Point(xmax, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymax)))
+
+    lines exists (_ contains point)
+  }
+
+  private [magellan] def disjoint(shape: Shape): Boolean = {
+    // a bounding box is disjoint from a shape if it does not intersect the shape
+    // nor is contained in nor contains the shape.
+
+    val vertices = Array(Point(xmin, ymin),
+      Point(xmax, ymin),
+      Point(xmax, ymax),
+      Point(xmin, ymax)
+    )
+
+    val lines = Array(
+      Line(Point(xmin, ymin), Point(xmax, ymin)),
+      Line(Point(xmin, ymin), Point(xmin, ymax)),
+      Line(Point(xmax, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymax)))
+
+    !contains(shape.boundingBox) &&
+    !(vertices exists (shape contains _)) &&
+    !(lines exists(shape intersects _))
+  }
+
+}

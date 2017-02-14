@@ -29,7 +29,7 @@ class PolygonSuite extends FunSuite {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
     val polygon = Polygon(Array(0), ring)
-    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = polygon.boundingBox
     assert(xmin === -1.0)
     assert(ymin === -1.0)
     assert(xmax === 1.0)
@@ -160,7 +160,7 @@ class PolygonSuite extends FunSuite {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
     val polygon = Polygon(Array(0), ring)
-    val ((xmin, ymin), (xmax, ymax)) = polygon.boundingBox
+    val BoundingBox(xmin, ymin, xmax, ymax) = polygon.boundingBox
 
     val polygonUDT = new PolygonUDT
     val row = polygonUDT.serialize(polygon)
@@ -265,6 +265,13 @@ class PolygonSuite extends FunSuite {
     assert(s.contains("boundingBox"))
     assert(s.contains("xcoordinates"))
     assert(s.contains("ycoordinates"))
+
+    // read back into Polygon to test deserialization
+
+    val deserializedPolygon: Polygon = new ObjectMapper().readerFor(classOf[Polygon]).readValue(s)
+    assert(deserializedPolygon.xcoordinates.deep === polygon.xcoordinates.deep)
+    assert(deserializedPolygon.ycoordinates.deep === polygon.ycoordinates.deep)
+    assert(deserializedPolygon.boundingBox === polygon.boundingBox)
   }
 
   def fromESRI(esriPolygon: ESRIPolygon): Polygon = {

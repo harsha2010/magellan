@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package magellan.catalyst
+package org.apache.spark.sql.types
 
-import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
 import org.apache.spark.sql.catalyst.expressions.codegen._
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression}
 
 /**
  * Convert x and y coordinates to a `Point`
