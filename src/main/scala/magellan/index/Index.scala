@@ -32,4 +32,6 @@ trait Index extends Serializable {
 
   def boundingBox(): BoundingBox
 
+  def toBase32(): String
+
 }

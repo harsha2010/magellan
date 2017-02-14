@@ -44,6 +44,8 @@ package object dsl {
 
     def transform(fn: Point => Point) = Transformer(expr, fn)
 
+    def geohash(other: Expression, precision: Int) = GeohashIndexer(other, precision)
+
   }
 
   trait ExpressionConversions {
@@ -68,6 +70,8 @@ package object dsl {
       def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
 
       def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
+
+      def geohash(precision: Int): Column = Column(GeohashIndexer(c.expr, precision))
 
     }
 

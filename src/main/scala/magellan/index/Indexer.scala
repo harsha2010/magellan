@@ -39,5 +39,10 @@ trait Indexer[T <: Index] extends Serializable {
    */
   def index(shape: Shape, precision: Int): Seq[T]
 
+  def indexAsJava(shape: Shape, precision: Int): java.util.Collection[T] = {
+    import scala.collection.JavaConversions.asJavaCollection
+    index(shape, precision)
+  }
+
 }
 

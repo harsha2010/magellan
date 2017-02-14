@@ -61,15 +61,20 @@ class ZOrderCurveIndexer(
   }
 
   override def index(shape: Shape, precision: Int): Seq[ZOrderCurve] = {
-    val candidates = cover(shape.boundingBox, precision)
-    for (candidate <- candidates) {
-      // check if the candidate actually lies within the shape
-      val box = candidate.boundingBox
-      if (box.disjoint(shape)) {
-        candidates.-=(candidate)
+    shape match {
+      case p: Point => ListBuffer(index(p, precision))
+      case _ => {
+        val candidates = cover(shape.boundingBox, precision)
+        for (candidate <- candidates) {
+          // check if the candidate actually lies within the shape
+          val box = candidate.boundingBox
+          if (box.disjoint(shape)) {
+            candidates.-=(candidate)
+          }
+        }
+        candidates
       }
     }
-    candidates
   }
 
   /**
