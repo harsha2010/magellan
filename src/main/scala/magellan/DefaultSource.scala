@@ -34,9 +34,9 @@ class DefaultSource extends RelationProvider
     val path = parameters.getOrElse("path", sys.error("'path' must be specified for Shapefiles."))
     val t = parameters.getOrElse("type", "shapefile")
     t match {
-      case "shapefile" => new ShapeFileRelation(path)(sqlContext)
-      case "geojson" => new GeoJSONRelation(path)(sqlContext)
-      case "osm" => new OsmFileRelation(path)(sqlContext)
+      case "shapefile" => new ShapeFileRelation(path, parameters)(sqlContext)
+      case "geojson" => new GeoJSONRelation(path, parameters)(sqlContext)
+      case "osm" => new OsmFileRelation(path, parameters)(sqlContext)
       case _ => ???
     }
   }

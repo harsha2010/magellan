@@ -16,8 +16,7 @@
 
 package org.apache.spark.sql.magellan
 
-import magellan._
-import magellan.catalyst._
+import magellan.Point
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.functions._
@@ -44,7 +43,7 @@ package object dsl {
 
     def transform(fn: Point => Point) = Transformer(expr, fn)
 
-    def geohash(other: Expression, precision: Int) = GeohashIndexer(other, precision)
+    def index(other: Expression, precision: Int) = Indexer(other, precision)
 
   }
 
@@ -71,7 +70,7 @@ package object dsl {
 
       def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
 
-      def geohash(precision: Int): Column = Column(GeohashIndexer(c.expr, precision))
+      def index(precision: Int): Column = Column(Indexer(c.expr, precision))
 
     }
 

@@ -17,10 +17,9 @@
 package magellan
 
 import magellan.TestingUtils._
+import magellan.index.ZOrderCurve
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
-
-case class UberRecord(tripId: String, timestamp: String, point: Point)
 
 class ShapefileSuite extends FunSuite with TestSparkContext {
 
@@ -96,6 +95,35 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val df = sqlCtx.read.format("magellan").load(path)
     val polygon = df.select("polygon").first().get(0).asInstanceOf[Polygon]
     assert(polygon.boundingBox == BoundingBox(-121.457213, 41.183484, -119.998287, 41.997613))
+  }
+
+  test("shapefile-relation: index") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testshapefile/").getPath
+    val df = sqlCtx.read.
+      format("magellan").
+      option("magellan.index.precision", "15").
+      load(path)
+    import sqlCtx.implicits._
+    import org.apache.spark.sql.functions.explode
+    assert(df.select(explode($"index.curve").as("curve")).count() === 2)
+  }
+
+  test("shapefile-relation: spatial join plan") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("testshapefile/").getPath
+    import sqlCtx.implicits._
+
+    val polygons = sqlCtx.read.
+      format("magellan").
+      load(path).
+      select($"polygon")
+
+
+    val df = sc.parallelize(Seq((35.7, -122.3))).toDF("lat", "lon")
+    val points = df.withColumn("point", point($"lon", $"lat"))
+
+    println(points.join(polygons).where($"point" within $"polygon").count())
   }
 }
 

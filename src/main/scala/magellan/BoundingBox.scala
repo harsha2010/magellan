@@ -16,6 +16,8 @@
 
 package magellan
 
+import magellan.Relate._
+
 import com.fasterxml.jackson.annotation.JsonProperty
 
 /**
@@ -69,9 +71,10 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
   }
 
   private [magellan] def disjoint(shape: Shape): Boolean = {
-    // a bounding box is disjoint from a shape if it does not intersect the shape
-    // nor is contained in nor contains the shape.
+    relate(shape) == Disjoint
+  }
 
+  private [magellan] def relate(shape: Shape): Relate = {
     val vertices = Array(Point(xmin, ymin),
       Point(xmax, ymin),
       Point(xmax, ymax),
@@ -82,11 +85,23 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
       Line(Point(xmin, ymin), Point(xmax, ymin)),
       Line(Point(xmin, ymin), Point(xmin, ymax)),
       Line(Point(xmax, ymin), Point(xmax, ymax)),
-      Line(Point(xmin, ymax), Point(xmax, ymax)))
+      Line(Point(xmin, ymax), Point(xmax, ymax)),
+      Line(Point(xmin, ymin), Point(xmax, ymax)),
+      Line(Point(xmin, ymax), Point(xmax, ymin))
+    )
 
-    !contains(shape.boundingBox) &&
-    !(vertices exists (shape contains _)) &&
-    !(lines exists(shape intersects _))
+    val lineIntersections = (lines filter (shape intersects _)).size
+    val vertexContained = (vertices filter (shape contains _)).size
+
+    if (contains(shape.boundingBox)) {
+      Contains
+    } else if (lineIntersections == 0 && vertexContained == 4) {
+      Within
+    } else if (lineIntersections > 0 || vertexContained > 0) {
+      Intersects
+    } else {
+      Disjoint
+    }
   }
 
 }

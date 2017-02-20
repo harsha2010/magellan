@@ -29,7 +29,10 @@ private class WayPartitioner(partitions: Int) extends Partitioner {
   }
 }
 
-case class OsmFileRelation(path: String)(@transient val sqlContext: SQLContext)
+case class OsmFileRelation(
+    path: String,
+    parameters: Map[String, String])
+    (@transient val sqlContext: SQLContext)
   extends SpatialRelation {
   
   private def expandWayValues(way: OsmWay) : Seq[(String, WayValue)] = {

@@ -17,21 +17,26 @@
 package magellan.catalyst
 
 import magellan.TestSparkContext
+import magellan.index.ZOrderCurve
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
 
-class GeohashIndexerSuite extends FunSuite with TestSparkContext {
+class IndexerSuite extends FunSuite with TestSparkContext {
 
   test("index points") {
     val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("testpoint/").getPath
     val df = sqlCtx.read.format("magellan").load(path)
     import sqlCtx.implicits._
-    val index = df.withColumn("index", $"point" geohash 25).select('index).take(1)(0)(0)
-    assert(index === Seq("9z109"))
+    val index = df.withColumn("index", $"point" index 25)
+      .select($"index.curve")
+      .take(1)(0)(0)
+      .asInstanceOf[Seq[ZOrderCurve]]
+
+    assert(index.map(_.toBase32()) === Seq("9z109"))
 
     try {
-      df.withColumn("index", $"point" geohash 23)
+      df.withColumn("index", $"point" index 23)
       assert(false)
     } catch {
       case e: Error => assert(true)

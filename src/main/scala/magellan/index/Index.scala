@@ -17,12 +17,13 @@
 package magellan.index
 
 import magellan.BoundingBox
+import org.apache.spark.sql.types.DataType
 
 /**
  * An abstraction for a spatial curve based 2D Index.
  * A spatial curve represents a two dimensional grid of a given precision.
  */
-trait Index extends Serializable {
+trait Index extends DataType with Serializable {
 
   def precision(): Int
 
@@ -33,5 +34,9 @@ trait Index extends Serializable {
   def boundingBox(): BoundingBox
 
   def toBase32(): String
+
+  override def defaultSize: Int = 4096
+
+  override def asNullable: DataType = this
 
 }

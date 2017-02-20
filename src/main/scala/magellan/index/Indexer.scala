@@ -16,8 +16,9 @@
 
 package magellan.index
 
-import magellan.{Point, Shape}
-import org.apache.spark.sql.DataFrame
+import java.util
+
+import magellan.{Point, Relate, Shape}
 
 trait Indexer[T <: Index] extends Serializable {
 
@@ -39,9 +40,30 @@ trait Indexer[T <: Index] extends Serializable {
    */
   def index(shape: Shape, precision: Int): Seq[T]
 
+  /**
+    * Outputs the set of all spatial curves that cover the given shape at a given precision,
+    * along with metadata about the nature of the relation. A spatial index can either Contain
+    * the shape, Intersect the shape, or be Within the shape.
+    *
+    * @param shape
+    * @param precision
+    * @return
+    */
+  def indexWithMeta(shape: Shape, precision: Int): Seq[(T, Relate)]
+
+  def indexWithMetaAsJava(shape: Shape, precision: Int): (util.List[T], util.List[String]) = {
+    val curves = new util.ArrayList[T]()
+    val relations = new util.ArrayList[String]()
+    indexWithMeta(shape, precision) foreach {
+      case (index: T, relation: Relate) =>
+        curves.add(index)
+        relations.add(relation.name())
+    }
+    (curves, relations)
+  }
+
   def indexAsJava(shape: Shape, precision: Int): java.util.Collection[T] = {
-    import scala.collection.JavaConversions.asJavaCollection
-    index(shape, precision)
+    indexWithMetaAsJava(shape, precision)._1
   }
 
 }

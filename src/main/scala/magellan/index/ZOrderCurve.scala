@@ -17,7 +17,9 @@
 package magellan.index
 
 import magellan.BoundingBox
+import org.apache.spark.sql.types._
 
+@SQLUserDefinedType(udt = classOf[ZOrderCurveUDT])
 class ZOrderCurve(
     override val boundingBox: BoundingBox,
     override val precision: Int,

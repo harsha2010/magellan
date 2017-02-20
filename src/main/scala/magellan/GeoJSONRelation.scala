@@ -39,7 +39,10 @@ import magellan.mapreduce.WholeFileInputFormat
  * or one of the literals: true, false, and null.
  * An array consists of elements where each element is a value as described above.
  */
-case class GeoJSONRelation(path: String)(@transient val sqlContext: SQLContext)
+case class GeoJSONRelation(
+    path: String,
+    parameters: Map[String, String])
+    (@transient val sqlContext: SQLContext)
   extends SpatialRelation {
 
   protected override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {

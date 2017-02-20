@@ -43,7 +43,7 @@ class OsmSuite extends FunSuite with TestSparkContext {
     sc.parallelize(rows, 2)
   }
 
-  def fileRelation = new OsmFileRelation("/test")(sqlContext)
+  def fileRelation = new OsmFileRelation("/test", Map())(sqlContext)
 
   test("nodesRdd filters and casts") {
     val nodes = fileRelation.nodesRdd(osmRdd).collect().sortBy({ node => node.id })
