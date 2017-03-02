@@ -25,11 +25,11 @@ You can link against this library using the following coordinates:
 
 	groupId: harsha2010
 	artifactId: magellan
-	version: 1.0.3-s_2.10
+	version: 1.0.4-s_2.11
 
 # Requirements
 
-This library requires Spark 1.4+
+This library requires Spark 2.1+ and Scala 2.11
 
 # Capabilities
 
@@ -95,7 +95,7 @@ Magellan is hosted on [Spark Packages](http://spark-packages.org/package/harsha2
 
 When launching the Spark Shell, Magellan can be included like any other spark package using the --packages option:
 
-	> $SPARK_HOME/bin/spark-shell --packages harsha2010:magellan:1.0.2-s_2.10
+	> $SPARK_HOME/bin/spark-shell --packages harsha2010:magellan:1.0.4-s_2.11
 
 A few common packages you might want to import within Magellan
 	
