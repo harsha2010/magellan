@@ -123,11 +123,11 @@ A few common packages you might want to import within Magellan
 
 	case class PolygonRecord(polygon: Polygon)
 	
-	val ring = Array(new Point(1.0, 1.0), new Point(1.0, -1.0),
-      new Point(-1.0, -1.0), new Point(-1.0, 1.0),
-      new Point(1.0, 1.0))
+	val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+     Point(-1.0, -1.0), Point(-1.0, 1.0),
+     Point(1.0, 1.0))
     val polygons = sc.parallelize(Seq(
-        PolygonRecord(new Polygon(Array(0), ring))
+        PolygonRecord(Polygon(Array(0), ring))
       )).toDF()
       
     polygons.show()
@@ -142,7 +142,7 @@ A few common packages you might want to import within Magellan
 
 ### within
 
-	polygons.select(point(0.5, 0.5) within $"polygon").count()
+	points.join(polygons).where($"point" within $"polygon").show()
 
 ### intersects
 
@@ -156,4 +156,4 @@ A few common packages you might want to import within Magellan
 	| Point(1.0, -1.0)|Polygon(5, Vector...|
 	+-----------------+--------------------+
 
-
+A Databricks notebook with similar examples is published [here](https://databricks-prod-cloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/137058993011870/882779309834027/6891974485343070/latest.html) for convenience.
