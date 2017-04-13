@@ -38,7 +38,7 @@ case class WKT(override val child: Expression)
       s"" +
         s"String text = ${c1}.toString();\n" +
         s"magellan.Shape shape = (magellan.Shape) " +
-        s"magellan.WKTParser.parseAll(magellan.WKTParser.expr(), text).get();\n" +
+        s"magellan.WKTParser.parseAll(text);\n" +
         s"Integer t = shape.getType();\n" +
         s"org.apache.spark.sql.types.UserDefinedType<magellan.Shape> serializer =" +
         s" (org.apache.spark.sql.types.UserDefinedType<magellan.Shape>) serializers.get(t);\n" +

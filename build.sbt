@@ -23,7 +23,9 @@ sparkComponents := Seq("core", "sql")
 libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.4",
   "org.slf4j" % "slf4j-api" % "1.7.5" % "provided",
+  "com.lihaoyi" % "fastparse_2.11" % "0.4.2",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+  "com.vividsolutions" % "jts" % "1.13" % "test",
   "com.esri.geometry" % "esri-geometry-api" % "1.2.1" % "test"
 )
 
