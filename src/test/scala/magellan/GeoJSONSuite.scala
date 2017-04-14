@@ -16,7 +16,7 @@
 
 package magellan
 
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.{ Row, SQLContext }
 import org.scalatest.FunSuite
 
 class GeoJSONSuite extends FunSuite with TestSparkContext {
@@ -32,6 +32,45 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     val p = df.select($"point").first()(0)
     assert(p.equals(Point(102.0, 0.5)))
+  }
+
+  test("Read Point with Double-Int Coordinates") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("geojson/point-double-int").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+    assert(df.count() === 1)
+    import sqlCtx.implicits._
+    val p = df.select($"point").first()(0)
+    assert(p.equals(Point(102.0, 1.0)))
+  }
+
+  test("Read Point with Int-Double Coordinates") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("geojson/point-int-double").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+    assert(df.count() === 1)
+    import sqlCtx.implicits._
+    val p = df.select($"point").first()(0)
+    assert(p.equals(Point(102.0, 0.5)))
+  }
+
+  test("Read Point with Int-Int Coordinates") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("geojson/point-int-int").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+    assert(df.count() === 1)
+    import sqlCtx.implicits._
+    val p = df.select($"point").first()(0)
+    assert(p.equals(Point(102.0, 5.0)))
   }
 
   test("Read Line String") {
@@ -65,5 +104,47 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     val indices = p.indices
     assert(indices(0) === 0)
     assert(indices(1) === 5)
+  }
+
+  test("Read Polygon with Int-Double coordinate pairs") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("geojson/polygon-int-double").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+
+    import sqlCtx.implicits._
+    val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
+    assert(p.xcoordinates(1) === 101)
+    assert(p.ycoordinates(1) === 0)
+  }
+
+  test("Read Polygon with Double-Int coordinate pairs") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("geojson/polygon-double-int").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+
+    import sqlCtx.implicits._
+    val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
+    assert(p.xcoordinates(1) === 101)
+    assert(p.ycoordinates(1) === 0)
+  }
+
+  test("Read Polygon with Int-Int coordinate pairs") {
+    val sqlCtx = new SQLContext(sc)
+    val path = this.getClass.getClassLoader.getResource("geojson/polygon-int-int").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+
+    import sqlCtx.implicits._
+    val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
+    assert(p.xcoordinates(0) === 100)
+    assert(p.ycoordinates(0) === 0)
   }
 }
