@@ -16,7 +16,7 @@
 
 package magellan
 
-import org.apache.hadoop.io.{NullWritable, Text}
+import org.apache.hadoop.io.{ NullWritable, Text }
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.json4s._
@@ -40,18 +40,18 @@ import magellan.mapreduce.WholeFileInputFormat
  * An array consists of elements where each element is a value as described above.
  */
 case class GeoJSONRelation(path: String)(@transient val sqlContext: SQLContext)
-  extends SpatialRelation {
+    extends SpatialRelation {
 
   protected override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {
     sc.newAPIHadoopFile(
       path,
       classOf[WholeFileInputFormat],
       classOf[NullWritable],
-      classOf[Text]
-    ).flatMap { case(k, v) =>
-      val line = v.toString()
-      parseShapeWithMeta(line)
-    }
+      classOf[Text]).flatMap {
+        case (k, v) =>
+          val line = v.toString()
+          parseShapeWithMeta(line)
+      }
   }
 
   private def parseShapeWithMeta(line: String) = {
@@ -63,14 +63,20 @@ case class GeoJSONRelation(path: String)(@transient val sqlContext: SQLContext)
 }
 
 private case class Geometry(`type`: String, coordinates: JValue) {
-  def extractPoints(p: List[JValue]) = { p.map { case (JArray(List(JDouble(x), JDouble(y)))) => Point(x, y)} }
+  def coordinatesToPoint(coordinates: JValue) = {
+    coordinates match {
+      case JArray(List(JDouble(x), JDouble(y))) => Point(x, y)
+      case JArray(List(JDouble(x), JInt(y)))    => Point(x, y.toDouble)
+      case JArray(List(JInt(x), JDouble(y)))    => Point(x.toDouble, y)
+      case JArray(List(JInt(x), JInt(y)))       => Point(x.toDouble, y.toDouble)
+    }
+  }
+
+  def extractPoints(p: List[JValue]) = p.map(coordinatesToPoint)
 
   val shape = {
     `type` match {
-      case "Point" => {
-        val JArray(List(JDouble(x), JDouble(y))) = coordinates
-        Point(x, y)
-      }
+      case "Point" => { coordinatesToPoint(coordinates) }
       case "LineString" => {
         val JArray(p) = coordinates.asInstanceOf[JArray]
         val points = extractPoints(p)
@@ -80,13 +86,13 @@ private case class Geometry(`type`: String, coordinates: JValue) {
       }
       case "Polyline" => {
         val JArray(p) = coordinates.asInstanceOf[JArray]
-        val lineSegments = p.map { case JArray(q) => extractPoints(q)}
+        val lineSegments = p.map { case JArray(q) => extractPoints(q) }
         val indices = lineSegments.scanLeft(0)((running, current) => running + current.size).dropRight(1)
         PolyLine(indices.toArray, lineSegments.flatten.toArray)
       }
       case "Polygon" => {
         val JArray(p) = coordinates.asInstanceOf[JArray]
-        val rings = p.map { case JArray(q) => extractPoints(q)}
+        val rings = p.map { case JArray(q) => extractPoints(q) }
         val indices = rings.scanLeft(0)((running, current) => running + current.size).dropRight(1)
         Polygon(indices.toArray, rings.flatten.toArray)
       }
@@ -97,9 +103,9 @@ private case class Geometry(`type`: String, coordinates: JValue) {
 }
 
 private case class Feature(
-    `type`: String,
-    properties: Option[Map[String, String]],
-    geometry: Geometry)
+  `type`: String,
+  properties: Option[Map[String, String]],
+  geometry: Geometry)
 
 private case class CRS(`type`: String, properties: Option[Map[String, String]])
 
