@@ -21,8 +21,8 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
 
-case class PointExample(point: Point)
-case class PolygonExample(polygon: Polygon)
+/*case class PointExample(point: Point)
+case class PolygonExample(polygon: Polygon)*/
 
 class ExpressionSuite extends FunSuite with TestSparkContext {
 
