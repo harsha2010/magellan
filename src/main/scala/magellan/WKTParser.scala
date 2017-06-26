@@ -53,7 +53,7 @@ object WKTParser {
     case (_, x ,_) => x.toArray
   }
 
-  def point: P[Point] = P(point0 ~ whitespace ~ leftBrace ~ coords ~ rightBrace) map {
+  def point: P[Point] = P(point0 ~ whitespace.? ~ leftBrace ~ coords ~ rightBrace) map {
     case (_ , _, _, p, _) => p
   }
 
@@ -61,19 +61,19 @@ object WKTParser {
 
   def linestring0: P[String] = P("""LINESTRING""") map {_.toString}
 
-  def linestring: P[PolyLine] = P(linestring0 ~ whitespace ~ ring) map {
+  def linestring: P[PolyLine] = P(linestring0 ~ whitespace.? ~ ring) map {
     case (_ , _, x) => PolyLine(Array(0), x)
   }
 
   def polygon0: P[String] = P("""POLYGON""") map {_.toString}
 
   def polygonWithoutHoles: P[Polygon] =
-    P(polygon0 ~ whitespace ~ P("((") ~ coords.rep(1, (comma ~ whitespace | comma)) ~ P("))")) map {
+    P(polygon0 ~ whitespace.? ~ P("((") ~ coords.rep(1, (comma ~ whitespace | comma)) ~ P("))")) map {
     case (_ , _, x ) => Polygon(Array(0), x.toArray)
   }
 
   def polygonWithHoles: P[Polygon] =
-    P(polygon0 ~ whitespace ~ P("(") ~ ring.rep(1, (comma ~ whitespace | comma)) ~ P(")")) map {
+    P(polygon0 ~ whitespace.? ~ P("(") ~ ring.rep(1, (comma ~ whitespace | comma)) ~ P(")")) map {
     case (_ , _, x) =>
       val indices = ListBuffer[Int]()
       val points = ListBuffer[Point]()

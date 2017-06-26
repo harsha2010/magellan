@@ -74,6 +74,14 @@ class WKTParserSuite extends FunSuite {
     assert(p.xcoordinates(5) === 20.0)
   }
 
+  test("parse Polygon without space") {
+    val parsed = WKTParser.polygonWithHoles.parse("POLYGON((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))")
+    val p: Polygon = parsed.get.value
+    assert(p.indices.length == 2)
+    assert(p.indices(1) == 5)
+    assert(p.xcoordinates(4) === 35.0)
+    assert(p.xcoordinates(5) === 20.0)  }
+
   test("parse") {
     val shape = WKTParser.parseAll("LINESTRING (30 10, 10 30, 40 40)")
     assert(shape.isInstanceOf[PolyLine])

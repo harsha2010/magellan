@@ -18,7 +18,7 @@ package magellan.mapreduce
 
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FSDataInputStream, FileSystem}
+import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
@@ -29,6 +29,7 @@ class WholeFileReader extends RecordReader[NullWritable, Text] {
   private val value = new Text()
   private var split: FileSplit = _
   private var conf: Configuration = _
+  private var path: Path = _
   private var done: Boolean = false
 
   override def getProgress: Float = ???
@@ -39,7 +40,7 @@ class WholeFileReader extends RecordReader[NullWritable, Text] {
     } else {
       val len = split.getLength.toInt
       val result = new Array[Byte](len)
-      val fs = FileSystem.get(conf)
+      val fs = path.getFileSystem(conf)
       var is: FSDataInputStream = null
       try {
         is = fs.open(split.getPath)
@@ -62,6 +63,7 @@ class WholeFileReader extends RecordReader[NullWritable, Text] {
     taskAttemptContext: TaskAttemptContext): Unit = {
     this.split = inputSplit.asInstanceOf[FileSplit]
     this.conf = MapReduceUtils.getConfigurationFromContext(taskAttemptContext)
+    this.path = this.split.getPath
   }
 
   override def getCurrentKey: NullWritable = key
