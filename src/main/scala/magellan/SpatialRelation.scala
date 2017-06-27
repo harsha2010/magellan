@@ -19,6 +19,8 @@ package magellan
 import magellan.index.{ZOrderCurve, ZOrderCurveIndexer}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.sources.{BaseRelation, Filter, PrunedFilteredScan}
 import org.apache.spark.sql.types._
 
@@ -36,10 +38,9 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
 
   private val precision = parameters.getOrElse("magellan.index.precision", "30").toInt
 
-  private val indexSchema = StructType(List(
-      StructField("curve", ArrayType(new ZOrderCurveUDT()), false),
-      StructField("relation", ArrayType(StringType), false)
-    ))
+  private val indexSchema = ArrayType(new StructType()
+    .add("curve", new ZOrderCurveUDT, false)
+    .add("relation", StringType, false))
 
   override val schema = {
     StructType(List(StructField("point", new PointUDT(), true),
@@ -65,17 +66,14 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
 
   protected def _buildScan(): RDD[(Shape, Option[Map[String, String]])]
 
-  private def index(shape: Shape): Row = {
-    val curves = new ListBuffer[ZOrderCurve]()
-    val relations = new ListBuffer[String]()
-
-    indexer.indexWithMeta(shape, precision) foreach {
-      case (index: ZOrderCurve, relation: Relate) =>
-        curves.+= (index)
-        relations.+= (relation.name())
+  private def index(shape: Shape) = {
+    val indices = indexer.indexWithMeta(shape, precision) map {
+      case (index: ZOrderCurve, relation: Relate) => {
+        (index, relation.name())
+      }
     }
 
-    Row.fromSeq(Seq(curves, relations))
+    indices
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]) = {

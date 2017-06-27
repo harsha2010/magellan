@@ -37,24 +37,20 @@ case class Indexer(
 
   protected override def nullSafeEval(input: Any): Any = {
     val shape = newInstance(input.asInstanceOf[InternalRow])
-    val curves = new ListBuffer[ZOrderCurve]()
-    val relations = new ListBuffer[String]()
-
-    indexer.indexWithMeta(shape, precision) foreach {
-      case (index: ZOrderCurve, relation: Relate) =>
-        curves.+= (index)
-        relations.+= (relation.name())
+    val indices = indexer.indexWithMeta(shape, precision) map {
+      case (index: ZOrderCurve, relation: Relate) => {
+        (index, relation.name())
+      }
     }
 
-    Row.fromSeq(Seq(curves, relations))
+    indices
   }
 
   override def nullable: Boolean = false
 
-  override def dataType: DataType = StructType(List(
-    StructField("curve", ArrayType(new ZOrderCurveUDT()), false),
-    StructField("relation", ArrayType(StringType), false)
-  ))
+  override def dataType: DataType = ArrayType(new StructType()
+    .add("curve", new ZOrderCurveUDT, false)
+    .add("relation", StringType, false))
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
@@ -82,24 +78,17 @@ case class Indexer(
         s"serializers.get(childType)); \n" +
         s"magellan.Shape childShape = (magellan.Shape)" +
         s"serializer.deserialize($c1); \n" +
-        s"scala.Tuple2<java.util.Collection<ZOrderCurve>, java.util.Collection<String>> v =" +
+        s"java.util.List<scala.Tuple2<magellan.index.ZOrderCurve, String>> v =" +
         s" indexer.indexWithMetaAsJava(childShape, precision); \n" +
-        s"java.util.List<magellan.index.ZOrderCurve> curves = (java.util.List<magellan.index.ZOrderCurve>)v._1(); \n" +
-        s"java.util.List<String> relations = (java.util.List<String>)v._2(); \n" +
-        s"java.util.List<InternalRow> c = new java.util.ArrayList<InternalRow>(); \n" +
-        s"java.util.List<org.apache.spark.unsafe.types.UTF8String> r = " +
-        s"  new java.util.ArrayList<org.apache.spark.unsafe.types.UTF8String>(); \n" +
-        s"for(magellan.index.ZOrderCurve curve : curves) { \n" +
-        s"  c.add(udt.serialize(curve));\n" +
+        s"java.util.List<InternalRow> c = new java.util.ArrayList<InternalRow>(v.size()); \n" +
+        s"for(scala.Tuple2<magellan.index.ZOrderCurve, String> i : v) { \n" +
+        s"  org.apache.spark.sql.catalyst.expressions.GenericInternalRow row =\n" +
+        s"  new org.apache.spark.sql.catalyst.expressions.GenericInternalRow(2);\n" +
+        s"  row.update(0, udt.serialize(i._1()));\n" +
+        s"  row.update(1, org.apache.spark.unsafe.types.UTF8String.fromString((String)i._2())); \n" +
+        s"  c.add(row); \n" +
         s"}\n" +
-        s"for(String relation : relations) { \n" +
-        s"  r.add(org.apache.spark.unsafe.types.UTF8String.fromString(relation));\n" +
-        s"}\n" +
-        s"org.apache.spark.sql.catalyst.expressions.GenericInternalRow row = " +
-        s" new org.apache.spark.sql.catalyst.expressions.GenericInternalRow(2);\n" +
-        s"row.update(0, new org.apache.spark.sql.catalyst.util.GenericArrayData(c));\n" +
-        s"row.update(1, new org.apache.spark.sql.catalyst.util.GenericArrayData(r));\n" +
-        s"${ev.value} = row; \n"
+        s"${ev.value} = new org.apache.spark.sql.catalyst.util.GenericArrayData(c); \n"
     })
   }
 }

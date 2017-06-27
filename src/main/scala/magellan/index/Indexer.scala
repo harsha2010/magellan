@@ -51,19 +51,13 @@ trait Indexer[T <: Index] extends Serializable {
     */
   def indexWithMeta(shape: Shape, precision: Int): Seq[(T, Relate)]
 
-  def indexWithMetaAsJava(shape: Shape, precision: Int): (util.List[T], util.List[String]) = {
-    val curves = new util.ArrayList[T]()
-    val relations = new util.ArrayList[String]()
+  def indexWithMetaAsJava(shape: Shape, precision: Int): util.List[(T, String)] = {
+    val indices = new util.ArrayList[(T, String)]()
     indexWithMeta(shape, precision) foreach {
       case (index: T, relation: Relate) =>
-        curves.add(index)
-        relations.add(relation.name())
+        indices.add((index, relation.name()))
     }
-    (curves, relations)
-  }
-
-  def indexAsJava(shape: Shape, precision: Int): java.util.Collection[T] = {
-    indexWithMetaAsJava(shape, precision)._1
+    indices
   }
 
 }
