@@ -45,6 +45,8 @@ package object dsl {
 
     def index(other: Expression, precision: Int) = Indexer(other, precision)
 
+    def wkt(other: Expression) = WKT(other)
+
   }
 
   trait ExpressionConversions {
@@ -72,11 +74,17 @@ package object dsl {
 
       def index(precision: Int): Column = Column(Indexer(c.expr, precision))
 
+      def wkt(): Column = Column(WKT(c.expr))
+
     }
 
     implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
 
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
+
+    implicit def wkt(x: Expression) = WKT(x)
+
+    implicit def wkt(x: Column) = Column(WKT(x.expr))
 
   }
 
