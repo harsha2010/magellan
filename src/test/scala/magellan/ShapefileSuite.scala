@@ -106,25 +106,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
       load(path)
     import sqlCtx.implicits._
     import org.apache.spark.sql.functions.explode
-    assert(df.select(explode($"index.curve").as("curve")).count() === 2)
-  }
-
-  test("shapefile-relation: spatial join plan") {
-    val sqlCtx = this.sqlContext
-    val path = this.getClass.getClassLoader.getResource("testshapefile/").getPath
-    import sqlCtx.implicits._
-
-    val polygons = sqlCtx.read.
-      format("magellan").
-      load(path).
-      select($"polygon")
-
-
-    val df = sc.parallelize(Seq((35.7, -122.3))).toDF("lat", "lon")
-    val points = df.withColumn("point", point($"lon", $"lat"))
-
-    println(points.join(polygons).where($"point" within $"polygon").count())
+    assert(df.select(explode($"index")).count() === 2)
+    assert(df.select(explode($"index").as("index")).groupBy($"index.relation").count().count() === 1)
   }
 }
-
-
