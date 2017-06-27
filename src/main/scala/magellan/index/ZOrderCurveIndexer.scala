@@ -16,13 +16,16 @@
 
 package magellan.index
 
-import magellan.{BoundingBox, Line, Point, Shape}
+import magellan._
+import magellan.Relate._
 
 import scala.collection.mutable.ListBuffer
 
 class ZOrderCurveIndexer(
     boundingBox: BoundingBox)
   extends Indexer[ZOrderCurve] {
+
+  def this() = this(BoundingBox(-180, -90, 180, 90))
 
   private val BoundingBox(xmin, ymin, xmax, ymax) = boundingBox
 
@@ -61,18 +64,24 @@ class ZOrderCurveIndexer(
   }
 
   override def index(shape: Shape, precision: Int): Seq[ZOrderCurve] = {
+    indexWithMeta(shape, precision).map(_._1)
+  }
+
+  override def indexWithMeta(shape: Shape, precision: Int) = {
     shape match {
-      case p: Point => ListBuffer(index(p, precision))
+      case p: Point => ListBuffer((index(p, precision), Contains))
       case _ => {
         val candidates = cover(shape.boundingBox, precision)
+        val results = new ListBuffer[(ZOrderCurve, Relate)]
         for (candidate <- candidates) {
           // check if the candidate actually lies within the shape
           val box = candidate.boundingBox
-          if (box.disjoint(shape)) {
-            candidates.-=(candidate)
+          val relation = box.relate(shape)
+          if (relation != Disjoint) {
+            results.+= ((candidate, relation))
           }
         }
-        candidates
+        results
       }
     }
   }

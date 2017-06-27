@@ -29,7 +29,10 @@ import magellan.mapreduce._
 /**
  * A Shapefile relation is the entry point for working with Shapefile formats.
  */
-case class ShapeFileRelation(path: String)(@transient val sqlContext: SQLContext)
+case class ShapeFileRelation(
+    path: String,
+    parameters: Map[String, String])
+    (@transient val sqlContext: SQLContext)
   extends SpatialRelation {
 
   protected override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {
