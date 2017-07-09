@@ -157,3 +157,7 @@ A few common packages you might want to import within Magellan
 	+-----------------+--------------------+
 
 A Databricks notebook with similar examples is published [here](https://databricks-prod-cloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/137058993011870/882779309834027/6891974485343070/latest.html) for convenience.
+
+# Magellan Blog
+
+For more details on Magellan and thoughts around Geospatial Analytics and the optimizations chosen for this project, please visit my [blog](https://magellan.ghost.io)
