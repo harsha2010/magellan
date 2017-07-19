@@ -30,13 +30,13 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
 
   @transient val sc = sqlContext.sparkContext
 
-  Utils.injectRules(sqlContext.sparkSession)
-
   val parameters: Map[String, String]
 
   private val indexer = new ZOrderCurveIndexer()
 
   private val precision = parameters.getOrElse("magellan.index.precision", "30").toInt
+
+  Utils.injectRules(sqlContext.sparkSession, parameters)
 
   private val indexSchema = ArrayType(new StructType()
     .add("curve", new ZOrderCurveUDT, false)

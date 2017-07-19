@@ -25,6 +25,17 @@ import org.scalatest.FunSuite
 
 class ZOrderCurveSuite extends FunSuite {
 
+  test("equals") {
+    val indexer = new ZOrderCurveIndexer(BoundingBox(-180, -90, 180, 90))
+    val index = indexer.index(Point(-122.4517249, 37.765315), 5)
+    val anotherIndex = indexer.index(Point(-122.4517249, 37.765315), 5)
+
+    assert(index === anotherIndex)
+    assert(index !== indexer.index(Point(-122.4517249, 37.765315), 7))
+    println(indexer.index(Point(-122.45, 37.76), 25).boundingBox)
+    assert(indexer.index(Point(-122.45, 37.76), 25) !== indexer.index(Point(-122.45, 37.8), 25))
+  }
+
   test("GeoHash globe") {
     val indexer = new ZOrderCurveIndexer(BoundingBox(-180, -90, 180, 90))
     val index = indexer.index(Point(-122.4517249, 37.765315), 5)

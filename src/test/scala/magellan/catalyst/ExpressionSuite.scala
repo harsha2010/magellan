@@ -17,7 +17,6 @@
 package magellan.catalyst
 
 import magellan._
-import org.apache.spark.sql.Row
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
 

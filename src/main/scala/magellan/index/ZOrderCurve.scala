@@ -80,4 +80,19 @@ class ZOrderCurve(
   }
 
   override def toString = s"ZOrderCurve($xmin, $ymin, $xmax, $ymax, $precision, $bits, $code)"
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[ZOrderCurve]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: ZOrderCurve =>
+      (that canEqual this) &&
+        precision == that.precision &&
+        bits == that.bits
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(precision, bits)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
 }

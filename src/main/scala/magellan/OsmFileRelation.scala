@@ -1,12 +1,12 @@
 package magellan
 
-import com.google.common.base.Objects
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.Partitioner
+import java.util.Objects
 
 import magellan.io._
 import magellan.mapreduce._
+import org.apache.spark.Partitioner
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SQLContext
 
 private[magellan] case class WayKey(val id: String, val index: Int)
 
@@ -140,5 +140,5 @@ case class OsmFileRelation(
       .union(nodes.map({ node => (node.point, Some(node.tags))}))
   }
 
-  override def hashCode(): Int = Objects.hashCode(path, schema)
+  override def hashCode(): Int = Objects.hash(path, schema)
 }
