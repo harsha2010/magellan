@@ -65,36 +65,54 @@ case class Intersects(left: Expression, right: Expression)
   }
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
-      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        "serializers.put(1, new org.apache.spark.sql.types.PointUDT());" +
-        "serializers.put(2, new org.apache.spark.sql.types.LineUDT());" +
-        "serializers.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
-        "serializers.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+    val serializersVar = ctx.freshName("serializers")
+
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
+      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
+
+    val lxminVar = ctx.freshName("lxmin")
+    val lyminVar = ctx.freshName("lymin")
+    val lxmaxVar = ctx.freshName("lxmax")
+    val lymaxVar = ctx.freshName("lymax")
+
+    val rxminVar = ctx.freshName("rxmin")
+    val ryminVar = ctx.freshName("rymin")
+    val rxmaxVar = ctx.freshName("rxmax")
+    val rymaxVar = ctx.freshName("rymax")
+
+    val ltypeVar = ctx.freshName("ltype")
+    val rtypeVar = ctx.freshName("rtype")
+
+    val leftShapeVar = ctx.freshName("leftShape")
+    val rightShapeVar = ctx.freshName("rightShape")
 
     nullSafeCodeGen(ctx, ev, (c1, c2) => {
       s"" +
-        s"Double lxmin = $c1.getDouble(1);" +
-        s"Double lymin = $c1.getDouble(2);" +
-        s"Double lxmax = $c1.getDouble(3);" +
-        s"Double lymax = $c1.getDouble(4);" +
-        s"Double rxmin = $c2.getDouble(1);" +
-        s"Double rymin = $c2.getDouble(2);" +
-        s"Double rxmax = $c2.getDouble(3);" +
-        s"Double rymax = $c2.getDouble(4);" +
+        s"Double $lxminVar = $c1.getDouble(1);" +
+        s"Double $lyminVar = $c1.getDouble(2);" +
+        s"Double $lxmaxVar = $c1.getDouble(3);" +
+        s"Double $lymaxVar = $c1.getDouble(4);" +
+        s"Double $rxminVar = $c2.getDouble(1);" +
+        s"Double $ryminVar = $c2.getDouble(2);" +
+        s"Double $rxmaxVar = $c2.getDouble(3);" +
+        s"Double $rymaxVar = $c2.getDouble(4);" +
         s"Boolean intersects = false;" +
-        s"if ((lxmin <= rxmin && lxmax >= rxmin && lymin <= rymin && lymax >= rymin) ||" +
-        s"(rxmin <= lxmin && rxmax >= lxmin && rymin <= lymin && rymax >= lymin)) {" +
-        s"Integer ltype = $c1.getInt(0);" +
-        s"Integer rtype = $c2.getInt(0);" +
-        s"magellan.Shape leftShape = (magellan.Shape)" +
+        s"if (($lxminVar <= $rxminVar && $lxmaxVar >= $rxminVar && $lyminVar <= $ryminVar && $lymaxVar >= $ryminVar) ||" +
+        s"($rxminVar <= $lxminVar && $rxmaxVar >= $lxminVar && $ryminVar <= $lyminVar && $rymaxVar >= $lyminVar)) {" +
+        s"Integer $ltypeVar = $c1.getInt(0);" +
+        s"Integer $rtypeVar = $c2.getInt(0);" +
+        s"magellan.Shape $leftShapeVar = (magellan.Shape)" +
         s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
-        s"serializers.get(ltype)).deserialize($c1);" +
-        s"magellan.Shape rightShape = (magellan.Shape)" +
+        s"$serializersVar.get($ltypeVar)).deserialize($c1);" +
+        s"magellan.Shape $rightShapeVar = (magellan.Shape)" +
         s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
-        s"serializers.get(rtype)).deserialize($c2);" +
-        s"intersects = rightShape.intersects(leftShape);" +
+        s"$serializersVar.get($rtypeVar)).deserialize($c2);" +
+        s"intersects = $rightShapeVar.intersects($leftShapeVar);" +
         s"}" +
         s"${ev.value} = intersects;"
     })
@@ -139,35 +157,53 @@ case class Within(left: Expression, right: Expression)
   override def nullable: Boolean = left.nullable || right.nullable
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
-      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        "serializers.put(1, new org.apache.spark.sql.types.PointUDT());" +
-        "serializers.put(2, new org.apache.spark.sql.types.LineUDT());" +
-        "serializers.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
-        "serializers.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
-      "")
+    val serializersVar = ctx.freshName("serializers")
+
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
+      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+        "")
+
+    val lxminVar = ctx.freshName("lxmin")
+    val lyminVar = ctx.freshName("lymin")
+    val lxmaxVar = ctx.freshName("lxmax")
+    val lymaxVar = ctx.freshName("lymax")
+
+    val rxminVar = ctx.freshName("rxmin")
+    val ryminVar = ctx.freshName("rymin")
+    val rxmaxVar = ctx.freshName("rxmax")
+    val rymaxVar = ctx.freshName("rymax")
+
+    val ltypeVar = ctx.freshName("ltype")
+    val rtypeVar = ctx.freshName("rtype")
+
+    val leftShapeVar = ctx.freshName("leftShape")
+    val rightShapeVar = ctx.freshName("rightShape")
 
     nullSafeCodeGen(ctx, ev, (c1, c2) => {
         s"" +
-        s"Double lxmin = $c1.getDouble(1);" +
-        s"Double lymin = $c1.getDouble(2);" +
-        s"Double lxmax = $c1.getDouble(3);" +
-        s"Double lymax = $c1.getDouble(4);" +
-        s"Double rxmin = $c2.getDouble(1);" +
-        s"Double rymin = $c2.getDouble(2);" +
-        s"Double rxmax = $c2.getDouble(3);" +
-        s"Double rymax = $c2.getDouble(4);" +
+        s"Double $lxminVar = $c1.getDouble(1);" +
+        s"Double $lyminVar = $c1.getDouble(2);" +
+        s"Double $lxmaxVar = $c1.getDouble(3);" +
+        s"Double $lymaxVar = $c1.getDouble(4);" +
+        s"Double $rxminVar = $c2.getDouble(1);" +
+        s"Double $ryminVar = $c2.getDouble(2);" +
+        s"Double $rxmaxVar = $c2.getDouble(3);" +
+        s"Double $rymaxVar = $c2.getDouble(4);" +
         s"Boolean within = false;" +
-        s"if (rxmin <= lxmin && rymin <= lymin && rxmax >= lxmax && rymax >= lymax) {" +
-        s"Integer ltype = $c1.getInt(0);" +
-        s"Integer rtype = $c2.getInt(0);" +
-        s"magellan.Shape leftShape = (magellan.Shape)" +
+        s"if ($rxminVar <= $lxminVar && $ryminVar <= $lyminVar && $rxmaxVar >= $lxmaxVar && $rymaxVar >= $lymaxVar) {" +
+        s"Integer $ltypeVar = $c1.getInt(0);" +
+        s"Integer $rtypeVar = $c2.getInt(0);" +
+        s"magellan.Shape $leftShapeVar = (magellan.Shape)" +
           s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
-          s"serializers.get(ltype)).deserialize($c1);" +
-        s"magellan.Shape rightShape = (magellan.Shape)" +
+          s"$serializersVar.get($ltypeVar)).deserialize($c1);" +
+        s"magellan.Shape $rightShapeVar = (magellan.Shape)" +
           s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
-          s"serializers.get(rtype)).deserialize($c2);" +
-        s"within = rightShape.contains(leftShape);" +
+          s"$serializersVar.get($rtypeVar)).deserialize($c2);" +
+        s"within = $rightShapeVar.contains($leftShapeVar);" +
         s"}" +
         s"${ev.value} = within;"
       })

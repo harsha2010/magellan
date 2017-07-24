@@ -25,31 +25,40 @@ case class WKT(override val child: Expression)
   extends UnaryExpression with MagellanExpression{
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
-      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ; \n" +
-        "serializers.put(1, new org.apache.spark.sql.types.PointUDT()); \n" +
-        "serializers.put(2, new org.apache.spark.sql.types.LineUDT()); \n" +
-        "serializers.put(3, new org.apache.spark.sql.types.PolyLineUDT()); \n" +
-        "serializers.put(5, new org.apache.spark.sql.types.PolygonUDT()); \n" +
+    val serializersVar = ctx.freshName("serializers")
+
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
+      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
+
+    val childTypeVar = ctx.freshName("childType")
+    val childShapeVar = ctx.freshName("childShape")
+    val serializerVar = ctx.freshName("serializer")
+
+    val indexVar = ctx.freshName("index")
+    val resultVar = ctx.freshName("result")
 
     val idx = ctx.references.length
     nullSafeCodeGen(ctx, ev, (c1) => {
       s"" +
         s"String text = ${c1}.toString();\n" +
-        s"magellan.Shape shape = (magellan.Shape) " +
+        s"magellan.Shape $childShapeVar = (magellan.Shape) " +
         s"magellan.WKTParser.parseAll(text);\n" +
-        s"Integer t = shape.getType();\n" +
-        s"org.apache.spark.sql.types.UserDefinedType<magellan.Shape> serializer =" +
-        s" (org.apache.spark.sql.types.UserDefinedType<magellan.Shape>) serializers.get(t);\n" +
-        s"Integer index = -1; \n" +
-        s"if (t == 1) {index = 0;}\n" +
-        s"else if (t == 2 || t == 3) {index = 1;} \n" +
-        s"else {index = 2;} \n" +
-        s"org.apache.spark.sql.catalyst.expressions.GenericInternalRow row = " +
+        s"Integer $childTypeVar = $childShapeVar.getType();\n" +
+        s"org.apache.spark.sql.types.UserDefinedType<magellan.Shape> $serializerVar =" +
+        s" (org.apache.spark.sql.types.UserDefinedType<magellan.Shape>) $serializersVar.get($childTypeVar);\n" +
+        s"Integer $indexVar = -1; \n" +
+        s"if ($childTypeVar == 1) {$indexVar = 0;}\n" +
+        s"else if ($childTypeVar == 2 || $childTypeVar == 3) {$indexVar = 1;} \n" +
+        s"else {$indexVar = 2;} \n" +
+        s"org.apache.spark.sql.catalyst.expressions.GenericInternalRow $resultVar = " +
         s" new org.apache.spark.sql.catalyst.expressions.GenericInternalRow(3);\n" +
-        s"row.update(index, serializer.serialize(shape)); \n" +
-        s"${ev.value} = row; \n"
+        s"$resultVar.update($indexVar, $serializerVar.serialize($childShapeVar)); \n" +
+        s"${ev.value} = $resultVar; \n"
     })
   }
 

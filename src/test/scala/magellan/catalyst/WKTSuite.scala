@@ -23,8 +23,6 @@ import org.scalatest.FunSuite
 class WKTSuite extends FunSuite with TestSparkContext {
 
   test("convert points to WKT") {
-    val contextLoader = Thread.currentThread().getContextClassLoader
-    Thread.currentThread().setContextClassLoader(getClass.getClassLoader)
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
     val df = sc.parallelize(Seq(
@@ -38,6 +36,5 @@ class WKTSuite extends FunSuite with TestSparkContext {
     val point = points.first()(0).asInstanceOf[Point]
     assert(point.getX() === 3.0)
     assert(point.getY() === 15.0)
-    Thread.currentThread().setContextClassLoader(contextLoader)
   }
 }

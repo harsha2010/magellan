@@ -64,13 +64,16 @@ case class Indexer(
     val precisionVar = ctx.freshName("precision")
     val resultsVar = ctx.freshName("results")
     val indexSerializerVar = ctx.freshName("indexSerializer")
+    val indexVar = ctx.freshName("v")
 
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
-      "serializers = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ; \n" +
-        "serializers.put(1, new org.apache.spark.sql.types.PointUDT()); \n" +
-        "serializers.put(2, new org.apache.spark.sql.types.LineUDT()); \n" +
-        "serializers.put(3, new org.apache.spark.sql.types.PolyLineUDT()); \n" +
-        "serializers.put(5, new org.apache.spark.sql.types.PolygonUDT()); \n" +
+    val serializersVar = ctx.freshName("serializers")
+
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
+      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
 
     val idx = ctx.references.length
@@ -87,13 +90,13 @@ case class Indexer(
         s"  (org.apache.spark.sql.types.ZOrderCurveUDT) references[$idx + 2]; \n" +
         s"org.apache.spark.sql.types.UserDefinedType<magellan.Shape> $shapeSerializerVar = " +
         s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
-        s"serializers.get($childTypeVar)); \n" +
+        s"$serializersVar.get($childTypeVar)); \n" +
         s"magellan.Shape $childShapeVar = (magellan.Shape)" +
         s"$shapeSerializerVar.deserialize($c1); \n" +
-        s"java.util.List<scala.Tuple2<magellan.index.ZOrderCurve, String>> v =" +
-        s" indexer.indexWithMetaAsJava($childShapeVar, $precisionVar); \n" +
-        s"java.util.List<InternalRow> $resultsVar = new java.util.ArrayList<InternalRow>(v.size()); \n" +
-        s"for(scala.Tuple2<magellan.index.ZOrderCurve, String> i : v) { \n" +
+        s"java.util.List<scala.Tuple2<magellan.index.ZOrderCurve, String>> $indexVar =" +
+        s" $indexerVar.indexWithMetaAsJava($childShapeVar, $precisionVar); \n" +
+        s"java.util.List<InternalRow> $resultsVar = new java.util.ArrayList<InternalRow>($indexVar.size()); \n" +
+        s"for(scala.Tuple2<magellan.index.ZOrderCurve, String> i : $indexVar) { \n" +
         s"  org.apache.spark.sql.catalyst.expressions.GenericInternalRow row =\n" +
         s"  new org.apache.spark.sql.catalyst.expressions.GenericInternalRow(2);\n" +
         s"  row.update(0, $indexSerializerVar.serialize(i._1()));\n" +
