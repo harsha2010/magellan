@@ -7,10 +7,10 @@ cache:
 # https://github.com/travis-ci/travis-ci/issues/1519.
 matrix:
   include: 
-    - jdk: openjdk-8-jdk
+    - jdk: oraclejdk8 
       scala: 2.11.8
       env: TEST_HADOOP_VERSION="2.7.3" TEST_SPARK_VERSION="2.2.0"
-    - jdk: openjdk-8-jdk
+    - jdk: oraclejdk8
       scala: 2.11.8
       env: TEST_HADOOP_VERSION="2.2.0" TEST_SPARK_VERSION="2.1.0"
 script:
