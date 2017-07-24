@@ -8,7 +8,7 @@ scalaVersion := "2.11.8"
 
 crossScalaVersions := Seq("2.11.8")
 
-sparkVersion := "2.1.0"
+sparkVersion := "2.2.0"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
@@ -16,13 +16,13 @@ testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion.va
 
 val testHadoopVersion = settingKey[String]("The version of Hadoop to test against.")
 
-testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.2.0")
+testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.7.3")
 
 sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.4",
-  "org.slf4j" % "slf4j-api" % "1.7.5" % "provided",
+  "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
   "com.lihaoyi" % "fastparse_2.11" % "0.4.3" % "provided",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
   "com.vividsolutions" % "jts" % "1.13" % "test",

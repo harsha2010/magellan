@@ -21,9 +21,9 @@ import org.apache.spark.sql.SparkSession
 
 object Utils {
 
-  def injectRules(session: SparkSession): Unit = {
+  def injectRules(session: SparkSession, params: Map[String, String]): Unit = {
     if (!session.experimental.extraOptimizations.exists(_.isInstanceOf[SpatialJoin])) {
-      session.experimental.extraOptimizations ++= (Seq(SpatialJoin(session)))
+      session.experimental.extraOptimizations ++= (Seq(SpatialJoin(session, params)))
     }
   }
 }

@@ -31,6 +31,10 @@ class DoubleArrayData(v: Array[Double]) extends ArrayData {
     new DoubleArrayData(a)
   }
 
+  def setNullAt(i: Int): Unit = ???
+
+  def update(i: Int,value: Any): Unit = ???
+
   override val array: Array[Any] = v.map(_.asInstanceOf[Any])
 
   override def getUTF8String(ordinal: Int): UTF8String = ???

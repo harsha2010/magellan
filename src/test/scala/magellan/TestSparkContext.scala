@@ -16,30 +16,37 @@
 
 package magellan
 
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
 trait TestSparkContext extends BeforeAndAfterAll { self: Suite =>
   @transient var sc: SparkContext = _
+  @transient var spark: SparkSession = _
   @transient var sqlContext: SQLContext = _
 
   override def beforeAll() {
     super.beforeAll()
     val conf = new SparkConf()
       .setMaster("local[2]")
-      .setAppName("MLlibUnitTest")
+      .setAppName("MagellanUnitTest")
       .set("spark.sql.crossJoin.enabled", "true")
-    sc = new SparkContext(conf)
-    sqlContext = new SQLContext(sc)
-    sqlContext.setConf("spark.sql.crossJoin.enabled", "true")
+
+    spark = SparkSession.builder()
+      .config(conf)
+      .config("spark.sql.crossJoin.enabled", "true")
+      .getOrCreate()
+    sqlContext = spark.sqlContext
+    sc = spark.sparkContext
   }
 
   override def afterAll() {
-    sqlContext = null
-    if (sc != null) {
-      sc.stop()
+
+    if (spark != null) {
+      spark.stop()
     }
+    spark = null
+    sqlContext = null
     sc = null
     super.afterAll()
   }

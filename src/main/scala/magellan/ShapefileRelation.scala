@@ -16,15 +16,15 @@
 
 package magellan
 
-import scala.collection.JavaConversions._
+import java.util.Objects
 
-import com.google.common.base.Objects
+import magellan.io._
+import magellan.mapreduce._
 import org.apache.hadoop.io.{MapWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 
-import magellan.io._
-import magellan.mapreduce._
+import scala.collection.JavaConversions._
 
 /**
  * A Shapefile relation is the entry point for working with Shapefile formats.
@@ -66,5 +66,5 @@ case class ShapeFileRelation(
     dataRdd.leftOuterJoin(metadataRdd).map(f => f._2)
   }
 
-  override def hashCode(): Int = Objects.hashCode(path, schema)
+  override def hashCode(): Int = Objects.hash(path, schema)
 }
