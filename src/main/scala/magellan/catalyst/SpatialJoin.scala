@@ -40,10 +40,22 @@ private[magellan] case class SpatialJoin(
             Generate(Inline(_: Indexer), _, _, _, _, _), _, _) => p
       case p @ Join(l, r, Inner, Some(cond @ Within(a, b))) =>
 
-        // The following optimizations are done to this plan:
-        // 1. Check if there are indices on either side.
-        //    If an index exists, use it otherwise create a new index and explode it
-        // 2. Inner Join on the curve and add an additional filter on the relation
+        /**
+          * Given a Logical Query Plan of the form
+            'Project [...]
+              +- Filter Within(point, polygon)
+                +- Join Inner
+                  :- Relation[point, ...]
+                  :- Relation[polygon,...]
+
+          Convert it into
+            'Project [...]
+              +- Filter Or (('relation == "Within"), Within(point, polygon))
+                +- Join Inner JoinKey = 'curve
+                  :- Generate(Inline(index ($"point" , precision)))
+                  :- Generate(Inline(index ($"point" , precision)))
+
+          */
 
 
         // determine which is the left project and which is the right projection in Within
