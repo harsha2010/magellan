@@ -147,4 +147,40 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     assert(p.xcoordinates(0) === 100)
     assert(p.ycoordinates(0) === 0)
   }
+
+  test("Read Multipolygon") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val path = this.getClass.getClassLoader.getResource("geojson/multipolygon/example.geojson").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+      .select($"polygon")
+
+    assert(df.count() === 2)
+
+    // check that the second polygon has holes
+    assert(df.filter { row => row match { case Row(polygon: Polygon) => polygon.indices.size == 2 }}.count() === 1)
+  }
+
+  test("Read Multipolygon: more complex example") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val path = this.getClass.getClassLoader.getResource("geojson/multipolygon/countries.geojson").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+      .select($"polygon", $"metadata"("name").as("name"))
+
+    assert(df.groupBy($"name").count().count() === 180)
+    // check if USA is present
+    val point = Point(-122.5076401, 37.7576793)
+    val usa = df.filter { row => row match {
+      case Row(p: Polygon, name: String) => p.contains(point)
+    }}
+
+    assert(usa.count() === 1 && usa.filter($"name" === "United States of America").count() === 1)
+  }
 }
