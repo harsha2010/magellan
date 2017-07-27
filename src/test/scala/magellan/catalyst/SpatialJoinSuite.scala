@@ -34,7 +34,7 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
 
   override def beforeAll() {
     super.beforeAll()
-    Utils.injectRules(spark, Map())
+    Utils.injectRules(spark, Map("magellan.index.precision" -> "5"))
   }
 
   test("spatial join in plan") {
@@ -127,5 +127,25 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
     val joined = points.join(broadcast(polygons)).where($"point" within $"polygon")
     assert(joined.queryExecution.toString() contains "BroadcastExchange")
 
+  }
+
+  test("Spatial Join rewrite does not introduce additional output columns") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val path = this.getClass.getClassLoader.getResource("geojson/multipolygon/countries.geojson").getPath
+    val countries = sqlContext.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+      .select($"polygon",
+        $"metadata"("name").as("country"))
+      .cache()
+
+    val cities = sc.parallelize(Seq(("San Francisco", Point(-122.5076401, 37.7576793)))).toDF("city", "point")
+
+    val results = cities.join(countries).where($"point" within $"polygon").collect()(0)
+
+    //polygon, name, point, city
+    assert(results.length === 4)
   }
 }
