@@ -69,6 +69,7 @@ private[magellan] case class SpatialJoin(
         val r1 = attr("relation", StringType)
         val c2 = attr("curve", curveType)
         val r2 = attr("relation", StringType)
+
         val shortcutRelation = EqualTo(r1, Literal("Within"))
         val transformedCondition =  Or(shortcutRelation, cond)
 
@@ -78,11 +79,13 @@ private[magellan] case class SpatialJoin(
         val rightIndexer = r.outputSet.find(_.dataType == indexerType)
           .fold[Expression](Indexer(rightProjection, precision))(identity)
 
-        Join(
+        val join = Join(
           Generate(Inline(leftIndexer), true, false, None, Seq(c1, r1), l),
           Generate(Inline(rightIndexer), true, false, None, Seq(c2, r2), r),
           Inner,
           Some(And(EqualTo(c1, c2), transformedCondition)))
+
+        Project(p.outputSet.toSeq, join)
     }
   }
 
