@@ -182,5 +182,15 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     }}
 
     assert(usa.count() === 1 && usa.filter($"name" === "United States of America").count() === 1)
+
+    // Angola is a Multipolygon.
+    val angola = df.filter {$"name" === "Angola"}
+    assert(angola.count() === 2)
+
+    // check if Luanda is present here
+    val luanda = Point(13.2140638, -8.8535258)
+    assert(angola.filter { row => row match {
+      case Row(p: Polygon, name: String) => p.contains(luanda)
+    }}.count() === 1)
   }
 }
