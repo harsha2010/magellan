@@ -36,8 +36,6 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
 
   private val precision = parameters.getOrElse("magellan.index.precision", "30").toInt
 
-  Utils.injectRules(sqlContext.sparkSession, parameters)
-
   private val indexSchema = ArrayType(new StructType()
     .add("curve", new ZOrderCurveUDT, false)
     .add("relation", StringType, false))
