@@ -21,8 +21,6 @@ import magellan.TestingUtils._
 import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
-import scala.collection.mutable.ArrayBuffer
-
 class PolygonSuite extends FunSuite {
 
   test("bounding box") {
@@ -274,76 +272,4 @@ class PolygonSuite extends FunSuite {
     assert(deserializedPolygon.boundingBox === polygon.boundingBox)
   }
 
-  def fromESRI(esriPolygon: ESRIPolygon): Polygon = {
-    val length = esriPolygon.getPointCount
-    if (length == 0) {
-      Polygon(Array[Int](), Array[Point]())
-    } else {
-      val indices = ArrayBuffer[Int]()
-      indices.+=(0)
-      val points = ArrayBuffer[Point]()
-      var start = esriPolygon.getPoint(0)
-      var currentRingIndex = 0
-      points.+=(Point(start.getX(), start.getY()))
-
-      for (i <- (1 until length)) {
-        val p = esriPolygon.getPoint(i)
-        val j = esriPolygon.getPathEnd(currentRingIndex)
-        if (j < length) {
-          val end = esriPolygon.getPoint(j)
-          if (p.getX == end.getX && p.getY == end.getY) {
-            indices.+=(i)
-            currentRingIndex += 1
-            // add start point
-            points.+= (Point(start.getX(), start.getY()))
-            start = end
-          }
-        }
-        points.+=(Point(p.getX(), p.getY()))
-      }
-      Polygon(indices.toArray, points.toArray)
-    }
-  }
-
-  def toESRI(polygon: Polygon): ESRIPolygon = {
-    val p = new ESRIPolygon()
-    val indices = polygon.indices
-    val length = polygon.xcoordinates.length
-    if (length > 0) {
-      var startIndex = 0
-      var endIndex = 1
-      var currentRingIndex = 0
-      p.startPath(
-        polygon.xcoordinates(startIndex),
-        polygon.ycoordinates(startIndex))
-
-      while (endIndex < length) {
-        p.lineTo(polygon.xcoordinates(endIndex),
-          polygon.ycoordinates(endIndex))
-        startIndex += 1
-        endIndex += 1
-        // if we reach a ring boundary skip it
-        val nextRingIndex = currentRingIndex + 1
-        if (nextRingIndex < indices.length) {
-          val nextRing = indices(nextRingIndex)
-          if (endIndex == nextRing) {
-            startIndex += 1
-            endIndex += 1
-            currentRingIndex = nextRingIndex
-            p.startPath(
-              polygon.xcoordinates(startIndex),
-              polygon.ycoordinates(startIndex))
-          }
-        }
-      }
-    }
-    p
-  }
-
-  def toESRI(line: Line): ESRIPolyLine = {
-    val l = new ESRIPolyLine()
-    l.startPath(line.getStart().getX(), line.getStart().getY())
-    l.lineTo(line.getEnd().getX(), line.getEnd().getY())
-    l
-  }
 }
