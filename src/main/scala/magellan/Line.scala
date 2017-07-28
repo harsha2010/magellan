@@ -16,8 +16,8 @@
 package magellan
 
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
-import org.apache.spark.sql.types._
 import magellan.Shape.{area, ccw}
+import org.apache.spark.sql.types._
 
 /**
  * Line segment between two points.
@@ -138,6 +138,9 @@ class Line extends Shape {
     }
     BoundingBox(xmin, ymin, xmax, ymax)
   }
+
+  @JsonIgnore
+  override def isEmpty(): Boolean = start == null || end == null
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Line]
 
