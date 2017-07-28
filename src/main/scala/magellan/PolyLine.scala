@@ -16,7 +16,7 @@
 
 package magellan
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
 import org.apache.spark.sql.types._
 
 import scala.util.control.Breaks._
@@ -132,6 +132,9 @@ class PolyLine(
     PolyLine(indices, transformedPoints)*/
     ???
   }
+
+  @JsonIgnore
+  override def isEmpty(): Boolean = xcoordinates.length == 0
 
   /*override def jsonValue: JValue =
     ("type" -> "udt") ~

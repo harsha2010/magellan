@@ -16,7 +16,7 @@
 
 package magellan
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
 import org.apache.spark.sql.types._
 
 /**
@@ -314,6 +314,9 @@ class Polygon(
    * @return
    */
   override def transform(fn: (Point) => Point): Shape = ???
+
+  @JsonIgnore
+  override def isEmpty(): Boolean = xcoordinates.length == 0
 
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]

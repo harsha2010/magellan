@@ -117,5 +117,15 @@ class ZOrderCurveSuite extends FunSuite {
     index = indexer.index(polygon, 25)
     assert(index.map(_.toBase32()).contains("dr5nx"))
   }
+
+  test("index equality") {
+    val indexer = new ZOrderCurveIndexer(BoundingBox(-4, -4, 4, 4))
+    val index1 = indexer.index(Point(0.5, 0.5), 4)
+    val index2 = indexer.index(Point(0.25, 0.25), 4)
+    val index3 = indexer.index(Point(2.05, 2.05), 4)
+    assert(index1 === index2)
+    assert(index1.hashCode() === index2.hashCode())
+    assert(index1 !== index3)
+  }
 }
 
