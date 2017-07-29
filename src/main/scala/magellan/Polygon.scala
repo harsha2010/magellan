@@ -37,7 +37,7 @@ class Polygon(
     val ycoordinates: Array[Double],
     override val boundingBox: BoundingBox) extends Shape {
 
-  private def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
+  def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
 
   @inline private def intersects(point: Point, line: Line): Boolean = {
     val (start, end) = (line.getStart(), line.getEnd())

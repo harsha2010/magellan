@@ -47,4 +47,5 @@ class PolygonUDT extends UserDefinedType[Polygon] with GeometricUDT {
     polygon
   }
 
+  override val geometryType = new Polygon().getType()
 }

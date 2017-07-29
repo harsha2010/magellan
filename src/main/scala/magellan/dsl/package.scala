@@ -23,35 +23,10 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
 package object dsl {
-  trait ImplicitOperators {
-
-    def expr: Expression
-
-    def within(other: Expression): Expression = Within(expr, other)
-
-    def within(other: Column): Column = Column(Within(expr, other.expr))
-
-    def intersects(other: Expression): Expression = Intersects(expr, other)
-
-    def >?(other: Expression): Expression = Within(other, expr)
-
-    def >?(other: Column): Column = Column(Within(other.expr, expr))
-
-    def apply(other: Any): Expression = GetMapValue(expr, lit(other).expr)
-
-    def apply(other: Expression): Expression = GetMapValue(expr, other)
-
-    def transform(fn: Point => Point) = Transformer(expr, fn)
-
-    def index(other: Expression, precision: Int) = Indexer(other, precision)
-
-    def wkt(other: Expression) = WKT(other)
-
-  }
 
   trait ExpressionConversions {
 
-    implicit class DslExpression(e: Expression) extends ImplicitOperators {
+    implicit class DslExpression(e: Expression) {
       def expr: Expression = e
     }
 
@@ -64,12 +39,6 @@ package object dsl {
 
       def >?(other: Column): Column = Column(Within(other.expr, col.expr))
 
-      def >?(other: Expression): Column = Column(Within(other, col.expr))
-
-      def apply(other: Any): Column = Column(GetMapValue(col.expr, lit(other).expr))
-
-      def apply(other: Expression): Column = Column(GetMapValue(col.expr, other))
-
       def transform(fn: Point => Point): Column = Column(Transformer(c.expr, fn))
 
       def index(precision: Int): Column = Column(Indexer(c.expr, precision))
@@ -77,12 +46,8 @@ package object dsl {
       def wkt(): Column = Column(WKT(c.expr))
 
     }
-
-    implicit def point(x: Expression, y: Expression) = PointConverter(x, y)
-
+    
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
-
-    implicit def wkt(x: Expression) = WKT(x)
 
     implicit def wkt(x: Column) = Column(WKT(x.expr))
 

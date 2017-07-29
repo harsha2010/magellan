@@ -23,10 +23,10 @@ import org.apache.spark.sql.types._
 trait MagellanExpression {
 
   private val SERIALIZERS = Map(
-    1 -> new PointUDT,
-    2 -> new LineUDT,
-    3 -> new PolyLineUDT,
-    5  -> new PolygonUDT)
+    new Point().getType() -> new PointUDT,
+    new Line().getType() -> new LineUDT,
+    new PolyLine().getType() -> new PolyLineUDT,
+    new Polygon().getType()  -> new PolygonUDT)
 
   def newInstance(row: InternalRow): Shape = {
     SERIALIZERS.get(row.getInt(0)).fold(NullShape.asInstanceOf[Shape])(_.deserialize(row))

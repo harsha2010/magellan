@@ -35,7 +35,7 @@ case class ShapeFileRelation(
     (@transient val sqlContext: SQLContext)
   extends SpatialRelation {
 
-  protected override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {
+  protected override def _buildScan(): RDD[Array[Any]] = {
 
     val shapefileRdd = sqlContext.sparkContext.newAPIHadoopFile(
       path + "/*.shp",
@@ -63,7 +63,7 @@ case class ShapeFileRelation(
       }.toMap
       ((k.getFileNamePrefix(), k.getRecordIndex()), meta)
     }
-    dataRdd.leftOuterJoin(metadataRdd).map(f => f._2)
+    dataRdd.leftOuterJoin(metadataRdd).map(f => Array(f._2._1, f._2._2))
   }
 
   override def hashCode(): Int = Objects.hash(path, schema)
