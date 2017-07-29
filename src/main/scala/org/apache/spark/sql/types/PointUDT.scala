@@ -53,5 +53,7 @@ class PointUDT extends UserDefinedType[Point] with GeometricUDT {
     row
   }
 
+  override val geometryType = new Point().getType()
+
 }
 

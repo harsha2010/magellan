@@ -23,4 +23,6 @@ trait GeometricUDT {
 
   def serialize(shape: Shape): InternalRow
 
+  val geometryType: Int
+
 }

@@ -48,4 +48,6 @@ class PolyLineUDT extends UserDefinedType[PolyLine] with GeometricUDT {
   }
 
   override def pyUDT: String = "magellan.types.PolyLineUDT"
+
+  override val geometryType = new PolyLine().getType()
 }

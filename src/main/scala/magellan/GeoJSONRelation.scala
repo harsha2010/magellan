@@ -16,13 +16,12 @@
 
 package magellan
 
-import org.apache.hadoop.io.{ NullWritable, Text }
+import magellan.mapreduce.WholeFileInputFormat
+import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-
-import magellan.mapreduce.WholeFileInputFormat
 
 /**
   * A GeoJSON relation is the entry point for working with GeoJSON formats.
@@ -40,12 +39,12 @@ import magellan.mapreduce.WholeFileInputFormat
   * An array consists of elements where each element is a value as described above.
   */
 case class GeoJSONRelation(
-                            path: String,
-                            parameters: Map[String, String])
-                          (@transient val sqlContext: SQLContext)
+    path: String,
+    parameters: Map[String, String])
+    (@transient val sqlContext: SQLContext)
   extends SpatialRelation {
 
-  protected override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {
+  protected override def _buildScan(): RDD[Array[Any]] = {
     sc.newAPIHadoopFile(
       path,
       classOf[WholeFileInputFormat],
@@ -54,6 +53,9 @@ case class GeoJSONRelation(
       case (k, v) =>
         val line = v.toString()
         parseShapeWithMeta(line)
+    }.map {
+      case (shape: Shape, meta: Option[Map[String, String]]) =>
+        Array(shape, meta)
     }
   }
 
@@ -61,7 +63,9 @@ case class GeoJSONRelation(
     val tree = parse(line)
     implicit val formats = org.json4s.DefaultFormats
     val result = tree.extract[GeoJSON]
-    result.features.flatMap(f => f.geometry.shapes.map(shape => (shape, f.properties)))
+    result.features.flatMap { f =>
+      f.geometry.shapes.map(shape => (shape, f.properties))
+    }
   }
 }
 
@@ -115,9 +119,9 @@ private case class Geometry(`type`: String, coordinates: JValue) {
 }
 
 private case class Feature(
-                            `type`: String,
-                            properties: Option[Map[String, String]],
-                            geometry: Geometry)
+    `type`: String,
+    properties: Option[Map[String, String]],
+    geometry: Geometry)
 
 private case class CRS(`type`: String, properties: Option[Map[String, String]])
 

@@ -34,7 +34,7 @@ class PolyLine(
     val ycoordinates: Array[Double],
     override val boundingBox: BoundingBox) extends Shape {
 
-  private def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
+  def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
 
   override def getType(): Int = 3
 

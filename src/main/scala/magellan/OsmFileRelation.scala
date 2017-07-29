@@ -124,7 +124,7 @@ case class OsmFileRelation(
       .map({ case (shape, tags) => (shape, Option(tags))})
   }
 
-  protected override def _buildScan(): RDD[(Shape, Option[Map[String, String]])] = {
+  protected override def _buildScan(): RDD[Array[Any]] = {
 
     val osmRdd = sqlContext.sparkContext.newAPIHadoopFile(
       path,
@@ -138,6 +138,10 @@ case class OsmFileRelation(
 
     wayShapes(nodes, ways)
       .union(nodes.map({ node => (node.point, Some(node.tags))}))
+        .map {
+          case (shape: Shape, meta: Option[Map[String, String]]) =>
+            Array(shape, meta)
+        }
   }
 
   override def hashCode(): Int = Objects.hash(path, schema)

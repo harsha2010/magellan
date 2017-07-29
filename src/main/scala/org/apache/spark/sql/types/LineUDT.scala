@@ -54,4 +54,6 @@ class LineUDT extends UserDefinedType[Line] with GeometricUDT {
 
   override def pyUDT: String = "magellan.types.LineUDT"
 
+  override val geometryType = new Line().getType()
+
 }

@@ -40,29 +40,48 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
     .add("curve", new ZOrderCurveUDT, false)
     .add("relation", StringType, false))
 
-  override val schema = {
-    StructType(List(StructField("point", new PointUDT(), true),
-        StructField("polyline", new PolyLineUDT(), true),
-        StructField("polygon", new PolygonUDT(), true),
-        StructField("metadata", MapType(StringType, StringType, true), true),
-        StructField("valid", BooleanType, true),
-        StructField("index", indexSchema, false)
-      ))
+  override val schema = StructType(schemaWithHandlers().map(_._1))
+
+  protected def schemaWithHandlers(): List[(StructField, (Int, Array[Any]) => Option[Any])] = {
+
+    def extractShape = {
+      (fieldIndex: Int, row: Array[Any]) =>
+        val shape = row(0).asInstanceOf[Shape]
+        val shapeType = shape.getType()
+        val fieldSchema = schema(fieldIndex)
+        val expectedShapeType = fieldSchema.dataType.asInstanceOf[GeometricUDT].geometryType
+        if (expectedShapeType == shapeType) Some(shape) else None
+    }
+
+    def extractMetadata = {
+      (fieldIndex: Int, row: Array[Any]) =>
+        val meta = row(1).asInstanceOf[Option[Map[String, String]]]
+        Some(meta.fold(Map[String, String]())(identity))
+    }
+
+    def valid = {
+      (fieldIndex: Int, row: Array[Any]) =>
+        val shape = row(0).asInstanceOf[Shape]
+        Some(shape.isValid())
+    }
+
+    def index = {
+      (fieldIndex: Int, row: Array[Any]) =>
+        val shape = row(0).asInstanceOf[Shape]
+        Some(this.index(shape))
+    }
+
+    List(
+      (StructField("point", new PointUDT(), true), extractShape),
+      (StructField("polyline", new PolyLineUDT(), true), extractShape),
+      (StructField("polygon", new PolygonUDT(), true), extractShape),
+      (StructField("metadata", MapType(StringType, StringType, true), true), extractMetadata),
+      (StructField("valid", BooleanType, true), valid),
+      (StructField("index", indexSchema, false), index)
+    )
   }
 
-  override lazy val sizeInBytes: Long = {
-    _buildScan().map { case (shape, meta) =>
-      val geometrySize = shape match {
-        case p: Point => 16
-        case p: Polygon => p.xcoordinates.size * 20
-        case _ => ???
-      }
-      val metadataSize = meta.fold(0)(_.map { case (k, v) => 2 * (k.size + v.size)}.sum)
-      geometrySize + metadataSize
-    }.sum().toLong
-  }
-
-  protected def _buildScan(): RDD[(Shape, Option[Map[String, String]])]
+  protected def _buildScan(): RDD[Array[Any]]
 
   private def index(shape: Shape) = {
     val indices = indexer.indexWithMeta(shape, precision) map {
@@ -75,23 +94,19 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]) = {
+    val handlers = schemaWithHandlers()
     val indices = requiredColumns.map(attr => schema.fieldIndex(attr))
     val numFields = indices.size
     _buildScan().mapPartitions { iter =>
       val row = new Array[Any](numFields)
-      iter.flatMap { case (shape: Shape, meta: Option[Map[String, String]]) =>
+      iter.flatMap { record  =>
+
         (0 until numFields).foreach(i => row(i) = null)
 
         indices.zipWithIndex.foreach { case (index, i) =>
-          val v = index match {
-            case 0 => if (shape.isInstanceOf[Point]) Some(shape) else None
-            case 1 => if (shape.isInstanceOf[PolyLine]) Some(shape) else None
-            case 2 => if (shape.isInstanceOf[Polygon]) Some(shape) else None
-            case 3 => Some(meta.fold(Map[String, String]())(identity))
-            case 4 => Some(shape.isValid())
-            case 5 => Some(this.index(shape))
-            case _ => ???
-          }
+          // get the appropriate handler
+          val handler = handlers(index)._2
+          val v = handler(index, record)
           v.foreach(x => row(i) = x)
           }
         Some(Row.fromSeq(row))
