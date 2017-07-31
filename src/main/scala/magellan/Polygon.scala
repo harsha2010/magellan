@@ -17,6 +17,8 @@
 package magellan
 
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types._
 
 /**
@@ -31,13 +33,44 @@ import org.apache.spark.sql.types._
  *
  */
 @SQLUserDefinedType(udt = classOf[PolygonUDT])
-class Polygon(
-    val indices: Array[Int],
-    val xcoordinates: Array[Double],
-    val ycoordinates: Array[Double],
-    override val boundingBox: BoundingBox) extends Shape {
+class Polygon extends Shape {
 
-  def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
+  private var indices: Array[Int] = _
+  private var xcoordinates: Array[Double] = _
+  private var ycoordinates: Array[Double] = _
+  @JsonIgnore private var _boundingBox: BoundingBox = _
+
+  private[magellan] def init(
+      indices: Array[Int],
+      xcoordinates: Array[Double],
+      ycoordinates: Array[Double],
+      boundingBox: BoundingBox): Unit = {
+    this.indices = indices
+    this.xcoordinates = xcoordinates
+    this.ycoordinates = ycoordinates
+    this._boundingBox = boundingBox
+  }
+
+  def init(row: InternalRow): Unit = {
+    init(row.getArray(5).toIntArray(),
+      row.getArray(6).toDoubleArray(),
+      row.getArray(7).toDoubleArray(),
+      BoundingBox(row.getDouble(1), row.getDouble(2), row.getDouble(3), row.getDouble(4)))
+  }
+
+  def serialize(): InternalRow = {
+    val row = new GenericInternalRow(8)
+    val BoundingBox(xmin, ymin, xmax, ymax) = boundingBox
+    row.update(0, getType())
+    row.update(1, xmin)
+    row.update(2, ymin)
+    row.update(3, xmax)
+    row.update(4, ymax)
+    row.update(5, new IntegerArrayData(indices))
+    row.update(6, new DoubleArrayData(xcoordinates))
+    row.update(7, new DoubleArrayData(ycoordinates))
+    row
+  }
 
   @inline private def intersects(point: Point, line: Line): Boolean = {
     val (start, end) = (line.getStart(), line.getEnd())
@@ -49,10 +82,23 @@ class Polygon(
   }
 
   @JsonProperty
-  def getXCoordinates(): Array[Double] = xcoordinates
+  private def getXCoordinates(): Array[Double] = xcoordinates
 
   @JsonProperty
-  def getYCoordinates(): Array[Double] = ycoordinates
+  private def getYCoordinates(): Array[Double] = ycoordinates
+
+  @JsonProperty
+  private def setBoundingBox(boundingBox: BoundingBox): Unit = {
+    this._boundingBox = boundingBox
+  }
+
+  @JsonProperty
+  private def setRings(indices: Array[Int]): Unit = {
+    this.indices = indices
+  }
+
+  @JsonProperty
+  override def boundingBox = _boundingBox
 
   private [magellan] def contains(point: Point): Boolean = {
     var startIndex = 0
@@ -318,6 +364,17 @@ class Polygon(
   @JsonIgnore
   override def isEmpty(): Boolean = xcoordinates.length == 0
 
+  def length(): Int = xcoordinates.length
+
+  def getVertex(index: Int) = Point(xcoordinates(index), ycoordinates(index))
+
+  @JsonProperty
+  def getRings(): Array[Int] = indices
+
+  @JsonIgnore
+  def getNumRings(): Int = indices.length
+
+  def getRing(index: Int): Int = indices(index)
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
 
@@ -364,11 +421,12 @@ object Polygon {
       }
       i += 1
     }
-    new Polygon(
-        indices,
-        points.map(_.getX()),
-        points.map(_.getY()),
-        BoundingBox(xmin, ymin, xmax, ymax)
-      )
+    val polygon = new Polygon()
+    polygon.init(
+      indices,
+      points.map(_.getX()),
+      points.map(_.getY()),
+      BoundingBox(xmin, ymin, xmax, ymax))
+    polygon
   }
 }

@@ -16,13 +16,13 @@
 
 package magellan
 
-import org.apache.spark.sql.{ Row, SQLContext }
+import org.apache.spark.sql.Row
 import org.scalatest.FunSuite
 
 class GeoJSONSuite extends FunSuite with TestSparkContext {
 
   test("Read Point") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/point").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -35,7 +35,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
   }
 
   test("Read Point with Double-Int Coordinates") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/point-double-int").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -48,7 +48,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
   }
 
   test("Read Point with Int-Double Coordinates") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/point-int-double").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -61,7 +61,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
   }
 
   test("Read Point with Int-Int Coordinates") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/point-int-int").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -74,7 +74,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
   }
 
   test("Read Line String") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/linestring").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -92,7 +92,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
   }
 
   test("Read Polygon") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/polygon").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -101,13 +101,12 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
 
     import sqlCtx.implicits._
     val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
-    val indices = p.indices
-    assert(indices(0) === 0)
-    assert(indices(1) === 5)
+    assert(p.getRing(0) === 0)
+    assert(p.getRing(1) === 5)
   }
 
   test("Read Polygon with Int-Double coordinate pairs") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/polygon-int-double").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -116,12 +115,11 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
 
     import sqlCtx.implicits._
     val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
-    assert(p.xcoordinates(1) === 101)
-    assert(p.ycoordinates(1) === 0)
+    assert(p.getVertex(1) === Point(101, 0))
   }
 
   test("Read Polygon with Double-Int coordinate pairs") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/polygon-double-int").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -130,12 +128,11 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
 
     import sqlCtx.implicits._
     val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
-    assert(p.xcoordinates(1) === 101)
-    assert(p.ycoordinates(1) === 0)
+    assert(p.getVertex(1) === Point(101, 0))
   }
 
   test("Read Polygon with Int-Int coordinate pairs") {
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = this.sqlContext
     val path = this.getClass.getClassLoader.getResource("geojson/polygon-int-int").getPath
     val df = sqlCtx.read
       .format("magellan")
@@ -144,8 +141,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
 
     import sqlCtx.implicits._
     val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
-    assert(p.xcoordinates(0) === 100)
-    assert(p.ycoordinates(0) === 0)
+    assert(p.getVertex(0) === Point(100, 0))
   }
 
   test("Read Multipolygon") {
@@ -161,7 +157,7 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     assert(df.count() === 2)
 
     // check that the second polygon has holes
-    assert(df.filter { row => row match { case Row(polygon: Polygon) => polygon.indices.size == 2 }}.count() === 1)
+    assert(df.filter { row => row match { case Row(polygon: Polygon) => polygon.getNumRings() == 2 }}.count() === 1)
   }
 
   test("Read Multipolygon: more complex example") {
