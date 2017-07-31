@@ -1,0 +1,44 @@
+/**
+  * Copyright 2015 Ram Sriharsha
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
+package magellan.geometry
+
+import magellan.TestingUtils._
+import magellan.{Line, Point}
+import org.scalatest.FunSuite
+
+class R2LoopSuite extends FunSuite {
+
+  test("Loop contains Point") {
+    val r2Loop = makeLoop("1.0:1.0,1.0:-1.0,-1.0:-1.0,-1.0:1.0,1.0:1.0")
+    assert(r2Loop.contains(Point(0.0, 0.0)))
+    assert(r2Loop.contains(Point(0.5, 0.5)))
+    assert(!r2Loop.contains(Point(1.0, 0.0)))
+  }
+
+  test("Loop containsOrCrosses Point") {
+    val r2Loop = makeLoop("1.0:1.0,1.0:-1.0,-1.0:-1.0,-1.0:1.0,1.0:1.0")
+    assert(r2Loop.containsOrCrosses(Point(1.0, 0.0)) === 0)
+    assert(r2Loop.containsOrCrosses(Point(0.0, 0.0)) === 1)
+    assert(r2Loop.containsOrCrosses(Point(1.0, 1.0)) === 0)
+    assert(r2Loop.containsOrCrosses(Point(2.0, 0.0)) === -1)
+  }
+
+  test("Loop intersects line") {
+    val r2Loop = makeLoop("1.0:1.0,1.0:-1.0,-1.0:-1.0,-1.0:1.0,1.0:1.0")
+    assert(!r2Loop.intersects(Line(Point(0.0, 0.0), Point(0.5, 0.5))))
+    assert(r2Loop.intersects(Line(Point(-2.0, 0.0), Point(2.0, 0.0))))
+  }
+}

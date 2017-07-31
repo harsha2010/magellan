@@ -47,12 +47,17 @@ class Line extends Shape {
     }
   }
 
-  @inline private [magellan] def contains(line: Line): Boolean = {
+  @ inline private [magellan] def collinear(line: Line): Boolean = {
     val (lineStart, lineEnd) = (line.getStart(), line.getEnd())
 
-    val collinear = area(start, end, line.getStart()) == 0 && area(start, end, line.getEnd()) == 0
-    if (collinear) {
+    area(start, end, line.getStart()) == 0 && area(start, end, line.getEnd()) == 0
+  }
+
+  @inline private [magellan] def contains(line: Line): Boolean = {
+    val c = collinear(line)
+    if (c) {
       // check if both points of the line are within the start and end
+      val (lineStart, lineEnd) = (line.getStart(), line.getEnd())
       val (leftX, rightX) = if (start.getX() < end.getX()) {
         (start.getX(), end.getX())
       } else {
@@ -156,6 +161,9 @@ class Line extends Shape {
     val state = Seq(start, end)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
+
+
+  override def toString = s"Line($start, $end)"
 }
 
 object Line {

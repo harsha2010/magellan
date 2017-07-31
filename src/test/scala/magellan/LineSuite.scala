@@ -81,6 +81,11 @@ class LineSuite extends FunSuite with TestSparkContext {
     assert(!x.contains(u))
   }
 
+  test("contains point") {
+    val y = Line(Point(0.5, 0.0), Point(0.0, 0.5))
+    assert(y.contains(Point(0.5, 0.0)))
+  }
+
   test("jackson serialization") {
     val s = new ObjectMapper().writeValueAsString(Line(Point(0.0, 0.0), Point(1.0, 1.0)))
     assert(s.contains("boundingBox"))
