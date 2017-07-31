@@ -141,19 +141,20 @@ object TestingUtils {
 
   def toESRI(polygon: Polygon): ESRIPolygon = {
     val p = new ESRIPolygon()
-    val indices = polygon.indices
-    val length = polygon.xcoordinates.length
+    val indices = polygon.getRings()
+    val length = polygon.length
     if (length > 0) {
       var startIndex = 0
       var endIndex = 1
       var currentRingIndex = 0
+      val startVertex = polygon.getVertex(startIndex)
       p.startPath(
-        polygon.xcoordinates(startIndex),
-        polygon.ycoordinates(startIndex))
+        startVertex.getX(),
+        startVertex.getY())
 
       while (endIndex < length) {
-        p.lineTo(polygon.xcoordinates(endIndex),
-          polygon.ycoordinates(endIndex))
+        val endVertex = polygon.getVertex(endIndex)
+        p.lineTo(endVertex.getX(), endVertex.getY())
         startIndex += 1
         endIndex += 1
         // if we reach a ring boundary skip it
@@ -164,9 +165,10 @@ object TestingUtils {
             startIndex += 1
             endIndex += 1
             currentRingIndex = nextRingIndex
+            val startVertex = polygon.getVertex(startIndex)
             p.startPath(
-              polygon.xcoordinates(startIndex),
-              polygon.ycoordinates(startIndex))
+              startVertex.getX(),
+              startVertex.getY())
           }
         }
       }

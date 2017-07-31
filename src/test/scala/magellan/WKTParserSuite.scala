@@ -62,25 +62,27 @@ class WKTParserSuite extends FunSuite {
   test("parse polygon without holes") {
     var parsed = WKTParser.polygonWithoutHoles.parse("POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))")
     val p: Polygon = parsed.get.value
-    assert(p.xcoordinates.length === 5)
+    assert(p.length === 5)
   }
 
   test("parse polygon with holes") {
     val parsed = WKTParser.polygonWithHoles.parse("POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))")
     val p: Polygon = parsed.get.value
-    assert(p.indices.length == 2)
-    assert(p.indices(1) == 5)
-    assert(p.xcoordinates(4) === 35.0)
-    assert(p.xcoordinates(5) === 20.0)
+    assert(p.getNumRings() == 2)
+    assert(p.getRing(1) == 5)
+    assert(p.getVertex(4) === Point(35.0, 10.0))
+    assert(p.getVertex(5) === Point(20.0, 30.0))
+
   }
 
   test("parse Polygon without space") {
     val parsed = WKTParser.polygonWithHoles.parse("POLYGON((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))")
     val p: Polygon = parsed.get.value
-    assert(p.indices.length == 2)
-    assert(p.indices(1) == 5)
-    assert(p.xcoordinates(4) === 35.0)
-    assert(p.xcoordinates(5) === 20.0)  }
+    assert(p.getNumRings() == 2)
+    assert(p.getRing(1) == 5)
+    assert(p.getVertex(4) === Point(35.0, 10.0))
+    assert(p.getVertex(5) === Point(20.0, 30.0))
+  }
 
   test("parse") {
     val shape = WKTParser.parseAll("LINESTRING (30 10, 10 30, 40 40)")

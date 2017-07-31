@@ -44,7 +44,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     assert(df.count() === 1)
     val polygon = df.select($"polygon").first().get(0).asInstanceOf[Polygon]
-    assert(polygon.indices.size === 1)
+    assert(polygon.getNumRings() === 1)
   }
 
   test("shapefile-relation: Zillow Neighborhoods") {

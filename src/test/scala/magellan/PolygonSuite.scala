@@ -15,11 +15,12 @@
  */
 package magellan
 
-import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyLine}
+import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ESRIPolygon}
 import com.fasterxml.jackson.databind.ObjectMapper
 import magellan.TestingUtils._
 import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
+
 
 class PolygonSuite extends FunSuite {
 
@@ -196,12 +197,9 @@ class PolygonSuite extends FunSuite {
     esriPolygon.reverseAllPaths()
 
     val polygon = fromESRI(esriPolygon)
-    assert(polygon.indices === Array(0, 6, 12))
-    assert(polygon.xcoordinates(6) === -200.0)
-    assert(polygon.ycoordinates(6) === -100.0)
-    assert(polygon.xcoordinates(13) === -100.0)
-    assert(polygon.ycoordinates(13) === 50.0)
-
+    assert(polygon.getRings() === Array(0, 6, 12))
+    assert(polygon.getVertex(6) === Point(-200.0, -100.0))
+    assert(polygon.getVertex(13) === Point(-100.0, 50.0))
   }
 
   test("toESRI") {
@@ -267,8 +265,7 @@ class PolygonSuite extends FunSuite {
     // read back into Polygon to test deserialization
 
     val deserializedPolygon: Polygon = new ObjectMapper().readerFor(classOf[Polygon]).readValue(s)
-    assert(deserializedPolygon.xcoordinates.deep === polygon.xcoordinates.deep)
-    assert(deserializedPolygon.ycoordinates.deep === polygon.ycoordinates.deep)
+    assert(deserializedPolygon === polygon)
     assert(deserializedPolygon.boundingBox === polygon.boundingBox)
   }
 
