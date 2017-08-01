@@ -17,8 +17,8 @@ package magellan
 
 import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ESRIPolygon}
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.module.SimpleModule
 import magellan.TestingUtils._
-import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
 
@@ -33,6 +33,22 @@ class PolygonSuite extends FunSuite {
     assert(ymin === -1.0)
     assert(xmax === 1.0)
     assert(ymax === 1.0)
+  }
+
+  test("loops in polyon: no holes") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    val loops = polygon.loops
+    assert(loops.size === 1)
+    val loop = loops(0)
+    assert(loop.iterator().size === 4)
+    val iter = loop.iterator()
+    val first = iter.next()
+    assert(first === Line(Point(1.0, 1.0), Point(1.0, -1.0)))
+    (0 until 2) foreach { _ => iter.next() }
+    val last = iter.next()
+    assert(last === Line(Point(-1.0, 1.0), Point(1.0, 1.0)))
   }
 
   test("point in polygon: no holes") {
@@ -74,100 +90,6 @@ class PolygonSuite extends FunSuite {
     assert(!GeometryEngine.contains(esriPolygon, new ESRIPoint(0.5, 0.0), null))
     assert(!polygon.contains(Point(0.5, 0.0)))
 
-  }
-
-  test("line in polygon: no holes") {
-    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
-      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
-    val polygon = Polygon(Array(0), ring)
-    var line = Line(Point(-0.5, -0.5), Point(0.5, 0.5))
-    assert(polygon.contains(line))
-    line = Line(Point(-0.5, -1.0), Point(-0.5, 0.0))
-    assert(polygon.contains(line))
-  }
-
-  test("line in polygon: 1 hole") {
-    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
-      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
-      Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
-      Point(0, -0.5), Point(0.5, 0)
-    )
-    var line = Line(Point(-0.5, -0.5), Point(0.5, 0.5))
-    val polygon = Polygon(Array(0, 5), ring)
-
-    val esriPolygon = toESRI(polygon)
-
-    line = Line(Point(-0.5, 0.0), Point(0.5, 0.0))
-    assert(!polygon.contains(line))
-    assert(!GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.25, -0.25), Point(0.25, 0.25))
-    assert(!polygon.contains(line))
-    assert(!GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.90, 0.0), Point(-0.55, 0.0))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.90, 0.75), Point(0.95, 0.75))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.90, -0.75), Point(0.95, -0.75))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.75, -1.0), Point(-0.75, 1.0))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-1.0, -1.0), Point(-1.0, 1.0))
-    assert(!polygon.contains(line))
-    assert(!GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(0.75, -1.0), Point(0.75, 1.0))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(1.0, -1.0), Point(1.0, 1.0))
-    assert(!polygon.contains(line))
-    assert(!GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.501, -1.0), Point(-0.501, 1.0))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.5, -1.0), Point(-0.5, 1.0))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.49, -1.0), Point(-0.49, 1.0))
-    assert(!polygon.contains(line))
-    assert(!GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.9990, 0.0), Point(-0.55, 0.0))
-    assert(polygon.contains(line))
-    assert(GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-    line = Line(Point(-0.5, 0.0), Point(0.5, 0.0))
-    assert(!polygon.contains(line))
-    assert(!GeometryEngine.contains(esriPolygon, toESRI(line), null))
-
-  }
-
-  test("serialization") {
-    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
-      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
-    val polygon = Polygon(Array(0), ring)
-    val BoundingBox(xmin, ymin, xmax, ymax) = polygon.boundingBox
-
-    val polygonUDT = new PolygonUDT
-    val row = polygonUDT.serialize(polygon)
-    assert(row.getInt(0) === polygon.getType())
-    assert(row.getDouble(1) === xmin)
-    assert(row.getDouble(2) === ymin)
-    assert(row.getDouble(3) === xmax)
-    assert(row.getDouble(4) === ymax)
   }
 
   test("fromESRI") {
@@ -263,10 +185,59 @@ class PolygonSuite extends FunSuite {
     assert(s.contains("ycoordinates"))
 
     // read back into Polygon to test deserialization
-
-    val deserializedPolygon: Polygon = new ObjectMapper().readerFor(classOf[Polygon]).readValue(s)
+    val mapper = new ObjectMapper()
+    val module = new SimpleModule()
+    module.addDeserializer(classOf[Polygon], new PolygonDeserializer())
+    mapper.registerModule(module)
+    val deserializedPolygon: Polygon = mapper.readerFor(classOf[Polygon]).readValue(s)
     assert(deserializedPolygon === polygon)
     assert(deserializedPolygon.boundingBox === polygon.boundingBox)
   }
 
+  test("point touches polygon: no holes") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    assert(polygon.touches(Point(1.0, 0.0)))
+    assert(polygon.touches(Point(1.0, 1.0)))
+  }
+
+  test("point touches polygon: holes") {
+    val  ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
+      Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
+      Point(0, -0.5), Point(0.5, 0)
+    )
+
+    val polygon = Polygon(Array(0, 5), ring)
+
+    assert(polygon.touches(Point(1.0, 0.0)))
+    assert(polygon.touches(Point(0.5, 0.0)))
+  }
+
+  test("polygon intersects line: no holes") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    var line = Line(Point(-2.0, 0.0), Point(2.0, 0.0))
+    assert(polygon.intersects(line))
+
+    line = Line(Point(1.0, 1.0), Point(1.0, -2.0))
+    assert(polygon.intersects(line))
+  }
+
+  test("polygon intersects line: holes") {
+    val  ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
+      Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
+      Point(0, -0.5), Point(0.5, 0)
+    )
+
+    val polygon = Polygon(Array(0, 5), ring)
+    var line = Line(Point(-2.0, 0.0), Point(2.0, 0.0))
+    assert(polygon.intersects(line))
+
+    line = Line(Point(0.0, 0.0), Point(0.5, 0.0))
+    assert(polygon.intersects(line))
+  }
 }

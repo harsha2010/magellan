@@ -17,8 +17,11 @@
 package magellan
 
 import com.esri.core.geometry.{Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyLine}
+import com.google.common.base.Splitter
+import magellan.geometry.{Loop, R2Loop}
 import org.scalatest.exceptions.TestFailedException
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
 object TestingUtils {
@@ -189,4 +192,24 @@ object TestingUtils {
     esriPoint
   }
 
+  def makeLoop(str: String): Loop = {
+    val tokens = Splitter.on(',').split(str)
+    val size = tokens.size
+    val xcoordinates = Array.fill(size)(0.0)
+    val ycoordinates = Array.fill(size)(0.0)
+    var index = 0
+    for (token <- tokens) {
+      val colon = token.indexOf(':')
+      if (colon == -1) throw new IllegalArgumentException(
+        "Illegal string:" + token + ". Should look like '35:20'")
+      val x = token.substring(0, colon).toDouble
+      val y = token.substring(colon + 1).toDouble
+      xcoordinates(index) = x
+      ycoordinates(index) = y
+      index += 1
+    }
+    val r2Loop = new R2Loop()
+    r2Loop.init(xcoordinates, ycoordinates, 0, size - 1)
+    r2Loop
+  }
 }

@@ -72,8 +72,8 @@ trait Shape extends DataType with Serializable {
       other.boundingBox.contains(boundingBox)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
-        case (p: Point, q: Polygon) => q.intersects(Line(p, p))
-        case (p: Polygon, q: Point) => p.intersects(Line(q, q))
+        case (p: Point, q: Polygon) => q.touches(p)
+        case (p: Polygon, q: Point) => p.touches(q)
         case (p: Polygon, q: Line) => p.intersects(q)
         case (p: Polygon, q: PolyLine) => p.intersects(q)
         case (p: PolyLine, q: Line) => p.intersects(q)
