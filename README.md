@@ -37,9 +37,9 @@ The library currently supports the [ESRI](https://www.esri.com/library/whitepape
 
 We aim to support the full suite of [OpenGIS Simple Features for SQL ](http://www.opengeospatial.org/standards/sfs) spatial predicate functions and operators together with additional topological functions.
 
-capabilities we aim to support include (ones currently available are highlighted):
+Capabilities we aim to support include (ones currently available are highlighted):
 
-**Geometries**: **Point**, **LineString**, **Polygon**, **MultiPoint**, MultiLineString, MultiPolygon, GeometryCollection
+**Geometries**: **Point**, **LineString**, **Polygon**, **MultiPoint**, **MultiPolygon**, MultiLineString, GeometryCollection
 	
 **Predicates**: **Intersects**, Touches, Disjoint, Crosses, **Within**, **Contains**, Overlaps, Equals, Covers
 	
