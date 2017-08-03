@@ -171,7 +171,16 @@ class Polygon extends Shape {
    * @param fn
    * @return
    */
-  override def transform(fn: (Point) => Point): Shape = ???
+  override def transform(fn: (Point) => Point): Shape = {
+    val transformedPoints = (xcoordinates zip ycoordinates)
+      .map { case (x, y) => Point(x, y) }
+      .map(point => point.transform(fn))
+    new Polygon(
+      indices,
+      transformedPoints.map(p => p.getX()),
+      transformedPoints.map(p => p.getY()),
+      boundingBox)
+  }
 
   @JsonIgnore
   override def isEmpty(): Boolean = xcoordinates.length == 0
