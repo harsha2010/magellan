@@ -32,11 +32,11 @@ private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWrit
 
   private var dis: DataInputStream = _
 
-  private var length: Int = _
+  private var length: BigInt = _
 
-  private var remaining: Int = _
+  private var remaining: BigInt = _
 
-  override def getProgress: Float = remaining / length.toFloat
+  override def getProgress: Float = remaining.toFloat / length.toFloat
 
   override def nextKeyValue(): Boolean = {
     if (remaining <= 0) {
@@ -70,7 +70,8 @@ private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWrit
     // skip the next 20 bytes which should all be zero
     0 until 5 foreach {_ => require(is.readInt() == 0)}
     // file length in bits
-    length = 16 * is.readInt() - 50 * 16
+    val i: BigInt = is.readInt()
+    length = 16 * i - 50 * 16
     remaining = length
     val version = EndianUtils.swapInteger(is.readInt())
     require(version == 1000)
