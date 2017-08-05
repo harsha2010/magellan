@@ -34,6 +34,8 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
 
   private val indexer = new ZOrderCurveIndexer()
 
+  private val autoIndex: Boolean = parameters.getOrElse("magellan.index", "false").toBoolean
+
   private val precision = parameters.getOrElse("magellan.index.precision", "30").toInt
 
   private val indexSchema = ArrayType(new StructType()
@@ -71,14 +73,19 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
         Some(this.index(shape))
     }
 
-    List(
+    val base = List(
       (StructField("point", new PointUDT(), true), extractShape),
       (StructField("polyline", new PolyLineUDT(), true), extractShape),
       (StructField("polygon", new PolygonUDT(), true), extractShape),
       (StructField("metadata", MapType(StringType, StringType, true), true), extractMetadata),
-      (StructField("valid", BooleanType, true), valid),
-      (StructField("index", indexSchema, false), index)
+      (StructField("valid", BooleanType, true), valid)
     )
+
+    if (autoIndex) {
+      base ++ List((StructField("index", indexSchema, false), index))
+    } else {
+      base
+    }
   }
 
   protected def _buildScan(): RDD[Array[Any]]
