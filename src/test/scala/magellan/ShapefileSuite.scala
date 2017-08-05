@@ -102,6 +102,7 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
     val path = this.getClass.getClassLoader.getResource("testshapefile/").getPath
     val df = sqlCtx.read.
       format("magellan").
+      option("magellan.index", "true").
       option("magellan.index.precision", "15").
       load(path)
     import sqlCtx.implicits._
