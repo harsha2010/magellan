@@ -32,11 +32,9 @@ private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWrit
 
   private var dis: DataInputStream = _
 
-  private var length: BigInt = _
-
   private var remaining: BigInt = _
 
-  override def getProgress: Float = remaining.toFloat / length.toFloat
+  override def getProgress: Float = 0
 
   override def nextKeyValue(): Boolean = {
     if (remaining <= 0) {
@@ -47,7 +45,7 @@ private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWrit
       val recordNumber = dis.readInt()
       // record numbers begin at 1
       require(recordNumber > 0)
-      val contentLength = 16 * (dis.readInt() + 4)
+      val contentLength = 2 * (dis.readInt() + 4)
       value.readFields(dis)
       remaining -= contentLength
       key.setRecordIndex(key.getRecordIndex() + 1)
@@ -60,27 +58,26 @@ private[magellan] class ShapefileReader extends RecordReader[ShapeKey, ShapeWrit
   override def initialize(inputSplit: InputSplit, taskAttemptContext: TaskAttemptContext) {
     val split = inputSplit.asInstanceOf[FileSplit]
     val job = MapReduceUtils.getConfigurationFromContext(taskAttemptContext)
-    val start = split.getStart()
-    val end = start + split.getLength()
-    val file = split.getPath()
-    val fs = file.getFileSystem(job)
-    val is = fs.open(split.getPath())
+
+    val path = split.getPath()
+    val fs = path.getFileSystem(job)
+    val is = fs.open(path)
+
+    val (start, end) = {
+      val v = split.getStart
+      if (v == 0) {
+        is.seek(24)
+        (100L, 2 * is.readInt().toLong)
+      } else {
+        (v, v + split.getLength)
+      }
+    }
+
+    is.seek(start)
     dis = new DataInputStream(is)
-    require(is.readInt() == 9994)
-    // skip the next 20 bytes which should all be zero
-    0 until 5 foreach {_ => require(is.readInt() == 0)}
-    // file length in bits
-    val i: BigInt = is.readInt()
-    length = 16 * i - 50 * 16
-    remaining = length
-    val version = EndianUtils.swapInteger(is.readInt())
-    require(version == 1000)
-    // shape type: all the shapes in a given split have the same type
-    val shapeType = EndianUtils.swapInteger(is.readInt())
     key.setFileNamePrefix(split.getPath.getName.split("\\.")(0))
-    value = new ShapeWritable(shapeType)
-    // skip the next 64 bytes
-    0 until 8 foreach {_ => is.readDouble()}
+    value = new ShapeWritable()
+    remaining = (end - start)
   }
 
   override def getCurrentKey: ShapeKey = key

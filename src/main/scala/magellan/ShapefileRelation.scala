@@ -20,11 +20,12 @@ import java.util.Objects
 
 import magellan.io._
 import magellan.mapreduce._
-import org.apache.hadoop.io.{MapWritable, Text}
+import org.apache.hadoop.io.{ArrayWritable, LongWritable, MapWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 /**
  * A Shapefile relation is the entry point for working with Shapefile formats.
@@ -36,6 +37,27 @@ case class ShapeFileRelation(
   extends SpatialRelation {
 
   protected override def _buildScan(): RDD[Array[Any]] = {
+
+    // read the shx files, if they exist
+    val fileNameToFileSplits = Try(sc.newAPIHadoopFile(
+      path + "/*.shx",
+      classOf[ShxInputFormat],
+      classOf[Text],
+      classOf[ArrayWritable]
+    ).map { case (txt: Text, splits: ArrayWritable) =>
+      val fileName = txt.toString
+      val s = splits.get()
+      val size = s.length
+      var i = 0
+      val v = Array.fill(size)(0L)
+      while (i < size) {
+        v.update(i, s(i).asInstanceOf[LongWritable].get())
+        i += 1
+      }
+      (fileName, v)
+    }.collectAsMap())
+
+    fileNameToFileSplits.map(SplitInfos.SPLIT_INFO_MAP.set(_))
 
     val shapefileRdd = sqlContext.sparkContext.newAPIHadoopFile(
       path + "/*.shp",
