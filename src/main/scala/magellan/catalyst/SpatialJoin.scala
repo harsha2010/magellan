@@ -65,12 +65,16 @@ private[magellan] case class SpatialJoin(
             case None => (b, a)
           }
 
+        // left hand side attributes
         val c1 = attr("curve", curveType)
         val r1 = attr("relation", StringType)
+
+        // right hand side attributes
         val c2 = attr("curve", curveType)
         val r2 = attr("relation", StringType)
 
-        val shortcutRelation = EqualTo(r1, Literal("Within"))
+        // if a curve is within the geometry on the right hand side then we shortcircuit
+        val shortcutRelation = EqualTo(r2, Literal("Within"))
         val transformedCondition =  Or(shortcutRelation, cond)
 
         val leftIndexer = l.outputSet.find(_.dataType == indexerType)
