@@ -14,17 +14,24 @@
   * limitations under the License.
   */
 
-package magellan
+package magellan.catalyst
 
-import magellan.catalyst.SpatialJoin
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.expressions.Attribute
+import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.internal.SQLConf
 
-object Utils {
+/**
+  * A Spatial Join Hint node.
+  */
+case class SpatialJoinHint(child: LogicalPlan, hints: Map[String, String])
+  extends UnaryNode {
 
-  def injectRules(session: SparkSession): Unit = {
-    if (!session.experimental.extraOptimizations.exists(_.isInstanceOf[SpatialJoin])) {
-      session.experimental.extraOptimizations ++= (Seq(SpatialJoin(session)))
-    }
+  override def output: Seq[Attribute] = child.output
+
+  override lazy val canonicalized: LogicalPlan = child.canonicalized
+
+  override def computeStats(conf: SQLConf): Statistics = {
+    val stats = child.stats(conf)
+    stats.copy()
   }
-
 }

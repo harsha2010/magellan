@@ -16,25 +16,28 @@
 
 package magellan.catalyst
 
-import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, EqualTo, Explode, Expression, Inline, Literal, NamedExpression, Or}
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, EqualTo, Expression, Inline, Literal, Or}
 import org.apache.spark.sql.catalyst.plans._
 import org.apache.spark.sql.catalyst.plans.logical.{Generate, _}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Column, SparkSession}
 
-private[magellan] case class SpatialJoin(
-    session: SparkSession,
-    params: Map[String, String])
+private[magellan] case class SpatialJoin(session: SparkSession)
   extends Rule[LogicalPlan] {
 
   private val indexerType = Indexer.dataType
   private val curveType = new ZOrderCurveUDT().sqlType
-  private val precision = params.getOrElse("magellan.index.precision", "30").toInt
+  private var prec: Option[Int] = None
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
 
     plan transformUp {
+      case p @ SpatialJoinHint(child, hints) =>
+        prec = hints.get("magellan.index.precision").map(_.toInt)
+        logDebug(s"Spatial Join Hint provided, precision $prec")
+
+        child
       case p @ Join(
             Generate(Inline(_: Indexer), _, _, _, _, _),
             Generate(Inline(_: Indexer), _, _, _, _, _), _, _) => p
@@ -76,6 +79,11 @@ private[magellan] case class SpatialJoin(
         // if a curve is within the geometry on the right hand side then we shortcircuit
         val shortcutRelation = EqualTo(r2, Literal("Within"))
         val transformedCondition =  Or(shortcutRelation, cond)
+
+        // check if the precision is available as a hint, otherwise use default
+        val precision = prec.fold(30)(identity)
+
+        logDebug(s"Spatial Join Rule using precision $precision")
 
         val leftIndexer = l.outputSet.find(_.dataType == indexerType)
           .fold[Expression](Indexer(leftProjection, precision))(identity)
