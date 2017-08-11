@@ -18,7 +18,6 @@ package magellan.catalyst
 
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.logical._
-import org.apache.spark.sql.internal.SQLConf
 
 /**
   * A Spatial Join Hint node.
@@ -29,9 +28,4 @@ case class SpatialJoinHint(child: LogicalPlan, hints: Map[String, String])
   override def output: Seq[Attribute] = child.output
 
   override lazy val canonicalized: LogicalPlan = child.canonicalized
-
-  override def computeStats(conf: SQLConf): Statistics = {
-    val stats = child.stats(conf)
-    stats.copy()
-  }
 }
