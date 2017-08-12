@@ -29,12 +29,12 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
   object Optimize extends RuleExecutor[LogicalPlan] {
     val batches =
       Batch("pushdown filter through join", Once, PushPredicateThroughJoin) ::
-      Batch("spatial join", FixedPoint(100), new SpatialJoin(spark, Map())) :: Nil
+      Batch("spatial join", FixedPoint(100), new SpatialJoin(spark)) :: Nil
   }
 
   override def beforeAll() {
     super.beforeAll()
-    Utils.injectRules(spark, Map("magellan.index.precision" -> "5"))
+    Utils.injectRules(spark)
   }
 
   test("spatial join in plan") {
@@ -53,7 +53,7 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
       ("b" , 2, Point(2.0, 2.0))
     )).toDF("name", "value", "point")
 
-    val joined = points.join(polygons).where($"point" within $"polygon")
+    val joined = points.join(polygons index 5).where($"point" within $"polygon")
 
     val optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
     assert(optimizedPlan.toString().contains("Generate inline(indexer"))
@@ -76,10 +76,12 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
       ("b" , 2, Point(2.0, 2.0))
     )).toDF("name", "value", "point")
 
-    val joined = polygons.join(points).where($"point" within $"polygon")
+    val joined = polygons.join(points index 5).where($"point" within $"polygon")
 
     val optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
 
+    assert(joined.queryExecution.analyzed.toString().contains("SpatialJoinHint"))
+    assert(!optimizedPlan.toString().contains("SpatialJoinHint"))
     assert(optimizedPlan.toString().contains("Generate inline(index#"))
     assert(optimizedPlan.toString().contains("Generate inline(indexer"))
     assert(joined.count() === 1)
@@ -101,7 +103,7 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
       ("b" , 2, Point(2.0, 2.0))
     )).toDF("name", "value", "point")
 
-    val joined = polygons.join(points).where($"point" within $"polygon")
+    val joined = polygons.join(points index 5).where($"point" within $"polygon")
 
     val optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
     assert(optimizedPlan.toString().contains("Generate inline(indexer"))
@@ -124,8 +126,8 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
       ("b" , 2, Point(2.0, 2.0))
     )).toDF("name", "value", "point")
 
-    val joined = points.join(broadcast(polygons)).where($"point" within $"polygon")
-    assert(joined.queryExecution.toString() contains "BroadcastExchange")
+    val joined = points.join(broadcast(polygons index 5)).where($"point" within $"polygon")
+    assert(joined.queryExecution.executedPlan.toString() contains "BroadcastExchange")
 
   }
 
@@ -143,7 +145,7 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
 
     val cities = sc.parallelize(Seq(("San Francisco", Point(-122.5076401, 37.7576793)))).toDF("city", "point")
 
-    val results = cities.join(countries).where($"point" within $"polygon").collect()(0)
+    val results = cities.join(countries index 5).where($"point" within $"polygon").collect()(0)
 
     //polygon, name, point, city
     assert(results.length === 4)

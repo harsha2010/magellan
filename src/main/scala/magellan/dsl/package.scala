@@ -17,10 +17,10 @@
 package org.apache.spark.sql.magellan
 
 import magellan.Point
-import org.apache.spark.sql.Column
+import magellan.catalyst.SpatialJoinHint
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.{Column, Dataset}
 
 package object dsl {
 
@@ -51,8 +51,16 @@ package object dsl {
 
     implicit def wkt(x: Column) = Column(WKT(x.expr))
 
-  }
+    implicit class DslDataset[T](c: Dataset[T]) {
+      def df: Dataset[T] = c
 
+      def index(precision: Int): Dataset[T] = {
+        Dataset[T](df.sparkSession,
+          SpatialJoinHint(df.logicalPlan, Map("magellan.index.precision" -> precision.toString)))(df.exprEnc)
+      }
+    }
+
+  }
 
   object expressions extends ExpressionConversions  // scalastyle:ignore
 
