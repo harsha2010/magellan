@@ -17,12 +17,17 @@
 package magellan
 
 import magellan.TestingUtils._
-import magellan.index.ZOrderCurve
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.magellan.dsl.expressions._
-import org.scalatest.FunSuite
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
-class ShapefileSuite extends FunSuite with TestSparkContext {
+class ShapefileSuite extends FunSuite with TestSparkContext with BeforeAndAfterAll {
 
+  override def beforeAll() {
+    super.beforeAll()
+    sc.hadoopConfiguration.set("mapreduce.input.fileinputformat.split.maxsize", "10000")
+  }
 
   test("shapefile-relation: points") {
     val sqlCtx = this.sqlContext
@@ -105,9 +110,16 @@ class ShapefileSuite extends FunSuite with TestSparkContext {
       option("magellan.index", "true").
       option("magellan.index.precision", "15").
       load(path)
-    import sqlCtx.implicits._
     import org.apache.spark.sql.functions.explode
+    import sqlCtx.implicits._
     assert(df.select(explode($"index")).count() === 2)
     assert(df.select(explode($"index").as("index")).groupBy($"index.relation").count().count() === 1)
+  }
+
+  test("shapefile-relation: use shx file to split") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("shapefiles/us_states/").getPath
+    val df = sqlCtx.read.format("magellan").load(path)
+    assert(df.count() === 56)
   }
 }

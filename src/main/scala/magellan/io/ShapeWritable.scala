@@ -22,7 +22,7 @@ import magellan.Shape
 import org.apache.commons.io.EndianUtils
 import org.apache.hadoop.io.Writable
 
-private[magellan] class ShapeWritable(shapeType: Int) extends Writable {
+private[magellan] class ShapeWritable extends Writable {
 
   var shape: Shape = _
 
@@ -32,8 +32,6 @@ private[magellan] class ShapeWritable(shapeType: Int) extends Writable {
 
   override def readFields(dataInput: DataInput): Unit = {
     val shapeType = EndianUtils.swapInteger(dataInput.readInt())
-    // all records share the same type or nullshape.
-    require(this.shapeType == shapeType || shapeType == 0)
     val h = shapeType match {
       case 0 => new NullShapeReader()
       case 1 => new PointReader()
