@@ -1,5 +1,5 @@
 # Magellan: Geospatial Analytics Using Spark
-
+[![Gitter chat](https://badges.gitter.im/Magellan-dev/Lobby.png)](https://gitter.im/Magellan-dev/Lobby)
 [![Build Status](https://travis-ci.org/harsha2010/magellan.svg?branch=master)](https://travis-ci.org/harsha2010/magellan)
 [![codecov.io](http://codecov.io/github/harsha2010/magellan/coverage.svg?branch=master)](http://codecov.io/github/harsha2010/magellan?branch=maste)
 
@@ -167,6 +167,14 @@ A few common packages you might want to import within Magellan
 	| Point(1.0, -1.0)|Polygon(5, Vector...|
 	+-----------------+--------------------+
 
+### contains
+
+Since contains is an overloaded expression (contains is used for checking String containment by Spark SQL), Magellan uses the Binary Expression ```>?``` for checking shape containment.
+
+	points.join(polygons).where($"polygon" >? $"polygon").show()
+
+
+	
 A Databricks notebook with similar examples is published [here](https://databricks-prod-cloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/137058993011870/882779309834027/6891974485343070/latest.html) for convenience.
 
 # Spatial indexes
