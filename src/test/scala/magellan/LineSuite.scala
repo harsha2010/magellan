@@ -49,10 +49,13 @@ class LineSuite extends FunSuite with TestSparkContext {
     val w = Line(Point(1.0, -1.0), Point(-1.0, -1.0))
     val l = Line(Point(0.0, -1.0), Point(0.0, -1.0))
     val t = Line(Point(0.5, 0.5), Point(0.5, 0.0))
+    val u = Line(Point(1.0, 1.0), Point(2.0, 2.0))
+    val s = Line(Point(1.0, 1.0), Point(1.0, -1.0))
     assert(x.intersects(y))
     assert(!x.intersects(z))
     assert(w.intersects(l))
     assert(x.intersects(t))
+    assert(u.intersects(s))
   }
 
   test("serialization") {

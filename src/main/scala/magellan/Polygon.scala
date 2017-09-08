@@ -131,7 +131,7 @@ class Polygon extends Shape {
 
   /**
     * A polygon intersects a line iff it is a proper intersection,
-    * or if either edge of the line touches the polygon.
+    * or if either vertex of the line touches the polygon.
     *
     * @param line
     * @return

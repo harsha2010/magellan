@@ -53,4 +53,18 @@ class BoundingBoxSuite extends FunSuite {
     val b = BoundingBox(-122.4517249, 37.765315, -122.4173497, 37.7771202)
     assert(!a.intersects(b))
   }
+
+  test("disjoint bounding box") {
+    val x = BoundingBox(0.0, 0.0, 1.0, 1.0)
+    val y = BoundingBox(1.0, 1.0, 2.0, 2.0)
+    val z = BoundingBox(0.5, 1.0, 2.0, 2.0)
+    val w = BoundingBox(0.5, 1.1, 2.0, 2.0)
+    val u = BoundingBox(0.5, -1.0, 1.5, 0.0)
+    val t = BoundingBox(0.5, -1.0, 1.5, -0.01)
+    assert(!x.disjoint(y))
+    assert(!x.disjoint(z))
+    assert(x.disjoint(w))
+    assert(!x.disjoint(u))
+    assert(x.disjoint(t))
+  }
 }
