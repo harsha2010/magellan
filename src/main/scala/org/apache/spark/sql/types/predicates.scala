@@ -211,3 +211,57 @@ case class Within(left: Expression, right: Expression)
   }
 }
 
+/**
+  * A function that returns true if the Shape defined by the child expression
+  * lies within the bounding box.
+  *
+  * @param child
+  * @param boundingBox
+  */
+case class PointInRange(child: Expression, boundingBox: BoundingBox)
+  extends UnaryExpression with MagellanExpression {
+
+  override def dataType: DataType = BooleanType
+
+  override def nullable: Boolean = child.nullable
+
+  override def nullSafeEval(leftEval: Any): Any = {
+    val leftRow = leftEval.asInstanceOf[InternalRow]
+
+    // check if the bounding box contains the child's bounding box.
+    val ((lxmin, lymin), (lxmax, lymax)) = (
+      (leftRow.getDouble(1), leftRow.getDouble(2)),
+      (leftRow.getDouble(3), leftRow.getDouble(4))
+    )
+
+    val childBoundingBox = BoundingBox(lxmin, lymin, lxmax, lymax)
+    boundingBox.contains(childBoundingBox)
+  }
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val lxminVar = ctx.freshName("lxmin")
+    val lyminVar = ctx.freshName("lymin")
+    val lxmaxVar = ctx.freshName("lxmax")
+    val lymaxVar = ctx.freshName("lymax")
+
+    val ltypeVar = ctx.freshName("ltype")
+
+
+    val idx = ctx.references.length
+    ctx.addReferenceObj("boundingBox", boundingBox)
+
+    val boundingBoxVar = ctx.freshName("boundingBox")
+    val otherBoundingBoxVar = ctx.freshName("boundingBox")
+
+    nullSafeCodeGen(ctx, ev, c1 => {
+      s"" +
+        s"Double $lxminVar = $c1.getDouble(1);" +
+        s"Double $lyminVar = $c1.getDouble(2);" +
+        s"Double $lxmaxVar = $c1.getDouble(3);" +
+        s"Double $lymaxVar = $c1.getDouble(4);" +
+        s"magellan.BoundingBox $boundingBoxVar = (magellan.BoundingBox)references[$idx];" +
+        s"magellan.BoundingBox $otherBoundingBoxVar = new magellan.BoundingBox($lxminVar, $lyminVar, $lxmaxVar, $lymaxVar);" +
+        s"${ev.value} = $boundingBoxVar.contains($otherBoundingBoxVar);"
+    })
+  }
+}
