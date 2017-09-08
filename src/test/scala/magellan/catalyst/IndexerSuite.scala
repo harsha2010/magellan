@@ -16,9 +16,12 @@
 
 package magellan.catalyst
 
-import magellan.TestSparkContext
+import magellan.{MockPointExpr, Point, TestSparkContext}
 import magellan.index.ZOrderCurve
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.magellan.dsl.expressions._
+import org.apache.spark.sql.types.Indexer
 import org.scalatest.FunSuite
 
 class IndexerSuite extends FunSuite with TestSparkContext {
@@ -41,5 +44,17 @@ class IndexerSuite extends FunSuite with TestSparkContext {
     } catch {
       case e: Error => assert(true)
     }
+  }
+
+  test("eval: Index") {
+    val indexer = Indexer(MockPointExpr(Point(-122.3959313, 37.7912976)), 25)
+    val result = indexer.eval(null).asInstanceOf[GenericArrayData]
+    assert(result.numElements() === 1)
+    val resultRow = result.get(0, Indexer.dataType).asInstanceOf[GenericInternalRow]
+    val indexUDT = Indexer.indexUDT
+    val curve = indexUDT.deserialize(resultRow.get(0, indexUDT))
+    assert(curve.toBase32() === "9q8yy")
+    val relation = resultRow.getString(1)
+    assert(relation === "Contains")
   }
 }
