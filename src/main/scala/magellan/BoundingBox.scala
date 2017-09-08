@@ -55,6 +55,11 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
     (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax)
   }
 
+  private [magellan] def disjoint(other: BoundingBox): Boolean = {
+    val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other
+    (otherxmin > xmax || otherxmax < xmin || otherymin > ymax || otherymax < ymin)
+  }
+
   private [magellan] def contains(point: Point): Boolean = {
     val (x, y) = (point.getX(), point.getY())
     (xmin <= x && ymin <= y && xmax >= x && ymax >= y)

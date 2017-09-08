@@ -67,9 +67,7 @@ trait Shape extends DataType with Serializable {
    * @see Shape#disjoint
    */
   def intersects(other: Shape): Boolean = {
-    if (boundingBox.intersects(other.boundingBox) ||
-      boundingBox.contains(other.boundingBox) ||
-      other.boundingBox.contains(boundingBox)) {
+    if (!boundingBox.disjoint(other.boundingBox)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
         case (p: Point, q: Polygon) => q.touches(p)
@@ -77,6 +75,7 @@ trait Shape extends DataType with Serializable {
         case (p: Polygon, q: Line) => p.intersects(q)
         case (p: Polygon, q: PolyLine) => p.intersects(q)
         case (p: PolyLine, q: Line) => p.intersects(q)
+        case (p: Line, q: Polygon) => q.intersects(p)
         case (p: Line, q: PolyLine) => q.intersects(p)
         case _ => ???
       }
