@@ -17,8 +17,11 @@
 package magellan.catalyst
 
 import magellan.TestingUtils._
-import magellan.{Point, TestSparkContext}
+import magellan.{MockPointExpr, Point, TestSparkContext}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.magellan.dsl.expressions._
+import org.apache.spark.sql.types.Transformer
 import org.scalatest.FunSuite
 
 
@@ -35,5 +38,14 @@ class TransformerSuite extends FunSuite with TestSparkContext {
       .first()(0).asInstanceOf[Point]
 
     assert(point.getX() ~== -199.0 absTol 1.0)
+  }
+
+  test("eval: transform") {
+    val fn = (p: Point) => Point(2 * p.getX(), 2 * p.getY())
+    val expr = Transformer(MockPointExpr(Point(1.0, 2.0)), fn)
+    val result = expr.eval(null).asInstanceOf[InternalRow]
+    // skip the type
+    assert(result.getDouble(1) === 2.0)
+    assert(result.getDouble(2) === 4.0)
   }
 }

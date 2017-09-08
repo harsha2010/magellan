@@ -19,6 +19,10 @@ package magellan
 import com.esri.core.geometry.{Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyLine}
 import com.google.common.base.Splitter
 import magellan.geometry.{Loop, R2Loop}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.LeafExpression
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.types.{PointUDT, PolygonUDT}
 import org.scalatest.exceptions.TestFailedException
 
 import scala.collection.JavaConversions._
@@ -211,5 +215,27 @@ object TestingUtils {
     val r2Loop = new R2Loop()
     r2Loop.init(xcoordinates, ycoordinates, 0, size - 1)
     r2Loop
+  }
+}
+
+case class MockPointExpr(point: Point) extends LeafExpression with CodegenFallback {
+
+  override def nullable: Boolean = false
+
+  override val dataType = new PointUDT
+
+  override def eval(input: InternalRow): Any = {
+    dataType.serialize(point)
+  }
+}
+
+case class MockPolygonExpr(polygon: Polygon) extends LeafExpression with CodegenFallback {
+
+  override def nullable: Boolean = false
+
+  override val dataType = new PolygonUDT
+
+  override def eval(input: InternalRow): Any = {
+    dataType.serialize(polygon)
   }
 }

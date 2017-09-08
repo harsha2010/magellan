@@ -18,7 +18,11 @@ package magellan.catalyst
 
 import magellan._
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, LeafExpression}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.magellan.dsl.expressions._
+import org.apache.spark.sql.types.{Intersects, PointInRange, PointUDT, Within}
 import org.scalatest.FunSuite
 
 case class PointExample(point: Point)
@@ -150,5 +154,70 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     ))
     assert(polyline.contains(Point(1.0, 1.0)) === true)
     assert(polyline.contains(Point(2.0, 1.0)) === false)
+  }
+
+  test("Point within Range") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val points = sc.parallelize(Seq(
+      PointExample(Point(0.0, 0.0)),
+      PointExample(Point(2.0, 2.0))
+    )).toDF()
+
+    val boundingBox = BoundingBox(0.0, 0.0, 1.0, 1.0)
+    assert(points.where($"point" withinRange boundingBox).count() === 1)
+
+  }
+
+  test("Polygon within Range") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(Polygon(Array(0), ring))
+    )).toDF()
+
+    val boundingBox = BoundingBox(-1.0, -1.0, 1.0, 1.0)
+    assert(polygons.where($"polygon" withinRange boundingBox).count() === 1)
+
+  }
+
+  test("eval: point in range") {
+    val expr = PointInRange(MockPointExpr(Point(0.0, 0.0)), BoundingBox(0.0, 0.0, 1.0, 1.0))
+    assert(expr.eval(null) === true)
+  }
+
+  test("eval: point within polygon") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+
+    val polygon = Polygon(Array(0), ring)
+    var point = Point(0.0, 0.0)
+    var expr = Within(MockPointExpr(point), MockPolygonExpr(polygon))
+    assert(expr.eval(null) === true)
+
+    point = Point(1.5, 1.5)
+    expr = Within(MockPointExpr(point), MockPolygonExpr(polygon))
+    assert(expr.eval(null) === false)
+  }
+
+  test("eval: point intersects polygon") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+
+    val polygon = Polygon(Array(0), ring)
+    var point = Point(0.0, 0.0)
+    var expr = Intersects(MockPointExpr(point), MockPolygonExpr(polygon))
+    assert(expr.eval(null) === false)
+
+    point = Point(1.0, 1.0)
+    expr = Intersects(MockPointExpr(point), MockPolygonExpr(polygon))
+    assert(expr.eval(null) === true)
   }
 }

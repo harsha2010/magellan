@@ -16,7 +16,7 @@
 
 package org.apache.spark.sql.magellan
 
-import magellan.Point
+import magellan.{BoundingBox, Point}
 import magellan.catalyst.SpatialJoinHint
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types._
@@ -44,6 +44,8 @@ package object dsl {
       def index(precision: Int): Column = Column(Indexer(c.expr, precision))
 
       def wkt(): Column = Column(WKT(c.expr))
+
+      def withinRange(boundingBox: BoundingBox): Column = Column(PointInRange(c.expr, boundingBox))
 
     }
     
