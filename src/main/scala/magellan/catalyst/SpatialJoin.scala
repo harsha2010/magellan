@@ -17,7 +17,7 @@
 package magellan.catalyst
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, EqualTo, Expression, Inline, Literal, Or}
+import org.apache.spark.sql.catalyst.expressions.{And, Attribute, AttributeReference, EqualTo, ExprId, Expression, Inline, Literal, NamedExpression, Or}
 import org.apache.spark.sql.catalyst.plans._
 import org.apache.spark.sql.catalyst.plans.logical.{Generate, _}
 import org.apache.spark.sql.catalyst.rules.Rule
@@ -101,7 +101,27 @@ private[magellan] case class SpatialJoin(session: SparkSession)
     }
   }
 
-  private def attr(name: String, dt: DataType): AttributeReference = {
-    AttributeReference(name, dt)()
+  private def attr(name: String, dt: DataType): Attribute = {
+    // name: String, dataType: DataType, nullable: Boolean = true,
+    // metadata: Metadata = Metadata.empty), exprId: ExprId = NamedExpression.newExprId,
+    // qualifier: Option[String] = None,
+    // isGenerated: java.lang.Boolean = false
+    val klass = Class.forName("org.apache.spark.sql.catalyst.expressions.AttributeReference")
+    val ctor = klass.getConstructors.apply(0)
+    val nullable = true.asInstanceOf[AnyRef]
+    val metadata = Metadata.empty
+    val exprId = NamedExpression.newExprId
+    val qualifier = None
+    val isGenerated = false.asInstanceOf[AnyRef]
+    if (ctor.getParameterCount == 7) {
+      // prior to Spark 2.3
+      ctor.newInstance(name, dt, nullable, metadata, exprId, qualifier, isGenerated)
+        .asInstanceOf[Attribute]
+    } else {
+      // Spark 2.3  +
+      ctor.newInstance(name, dt, nullable, metadata, exprId, qualifier)
+        .asInstanceOf[Attribute]
+    }
+
   }
 }
