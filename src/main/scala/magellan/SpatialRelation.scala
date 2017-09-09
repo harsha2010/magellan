@@ -100,6 +100,20 @@ private[magellan] trait SpatialRelation extends BaseRelation with PrunedFiltered
     indices
   }
 
+  override lazy val sizeInBytes: Long = {
+    _buildScan().map { case (shape, meta) =>
+      val geometrySize = shape match {
+        case p: Point => 16
+        case p: Polygon => p.points.size * 20
+        case p: PolyLine => p.points.size * 20
+        case p: Line => 16 * 2
+        case _ => ???
+      }
+      val metadataSize = meta.fold(0)(_.map { case (k, v) => 2 * (k.size + v.size)}.sum)
+      geometrySize + metadataSize
+    }.sum().toLong
+  }
+
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]) = {
     val handlers = schemaWithHandlers()
     val indices = requiredColumns.map(attr => schema.fieldIndex(attr))
