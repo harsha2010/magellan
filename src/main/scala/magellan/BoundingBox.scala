@@ -55,6 +55,23 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
     (xmin <= otherxmin && ymin <= otherymin && xmax >= otherxmax && ymax >= otherymax)
   }
 
+  /**
+    * Checks if this bounding box is contained within the given circle.
+    *
+    * @param origin
+    * @param radius
+    * @return
+    */
+  def withinCircle(origin: Point, radius: Double): Boolean = {
+    val vertices = Array(
+      Point(xmin, ymin),
+      Point(xmax, ymin),
+      Point(xmax, ymax),
+      Point(xmin, ymax)
+    )
+    !(vertices exists  (vertex => !(vertex withinCircle(origin, radius))))
+  }
+
   private [magellan] def disjoint(other: BoundingBox): Boolean = {
     val BoundingBox(otherxmin, otherymin, otherxmax, otherymax) = other
     (otherxmin > xmax || otherxmax < xmin || otherymin > ymax || otherymax < ymin)

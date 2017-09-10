@@ -22,7 +22,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, LeafExpression}
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.magellan.dsl.expressions._
-import org.apache.spark.sql.types.{Intersects, PointInRange, PointUDT, Within}
+import org.apache.spark.sql.types._
 import org.scalatest.FunSuite
 
 case class PointExample(point: Point)
@@ -170,6 +170,19 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
   }
 
+  test("Point within Circle Range") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val points = sc.parallelize(Seq(
+      PointExample(Point(0.0, 0.0)),
+      PointExample(Point(2.0, 2.0))
+    )).toDF()
+
+    assert(points.where($"point" withinRange (Point(0.0, 0.0), 1.0)).count() === 1)
+
+  }
+
   test("Polygon within Range") {
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
@@ -186,9 +199,29 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
   }
 
+  test("Polygon within Circle Range") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      PolygonExample(Polygon(Array(0), ring))
+    )).toDF()
+
+    assert(polygons.where($"polygon" withinRange (Point(0.0, 0.0), 1.42)).count() === 1)
+
+  }
+
   test("eval: point in range") {
-    val expr = PointInRange(MockPointExpr(Point(0.0, 0.0)), BoundingBox(0.0, 0.0, 1.0, 1.0))
+    val expr = WithinRange(MockPointExpr(Point(0.0, 0.0)), BoundingBox(0.0, 0.0, 1.0, 1.0))
     assert(expr.eval(null) === true)
+  }
+
+  test("eval: point in circle range") {
+    val expr = WithinCircleRange(MockPointExpr(Point(0.0, 0.0)), Point(0.5, 0.5), 0.5)
+    assert(expr.eval(null) === false)
   }
 
   test("eval: point within polygon") {

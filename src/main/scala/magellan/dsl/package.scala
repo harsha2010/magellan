@@ -45,8 +45,9 @@ package object dsl {
 
       def wkt(): Column = Column(WKT(c.expr))
 
-      def withinRange(boundingBox: BoundingBox): Column = Column(PointInRange(c.expr, boundingBox))
+      def withinRange(boundingBox: BoundingBox): Column = Column(WithinRange(c.expr, boundingBox))
 
+      def withinRange(origin: Point, radius: Double): Column = Column(WithinCircleRange(c.expr, origin, radius))
     }
     
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))

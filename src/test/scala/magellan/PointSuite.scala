@@ -66,4 +66,9 @@ class PointSuite extends FunSuite with TestSparkContext {
     assert(s.contains("y"))
   }
 
+  test("within circle") {
+    assert(Point(0.0, 0.0) withinCircle (Point(0.5, 0.5), 0.75))
+    assert(!(Point(0.0, 0.0) withinCircle (Point(0.5, 0.5), 0.5)))
+
+  }
 }

@@ -218,7 +218,7 @@ case class Within(left: Expression, right: Expression)
   * @param child
   * @param boundingBox
   */
-case class PointInRange(child: Expression, boundingBox: BoundingBox)
+case class WithinRange(child: Expression, boundingBox: BoundingBox)
   extends UnaryExpression with MagellanExpression {
 
   override def dataType: DataType = BooleanType
@@ -262,6 +262,65 @@ case class PointInRange(child: Expression, boundingBox: BoundingBox)
         s"magellan.BoundingBox $boundingBoxVar = (magellan.BoundingBox)references[$idx];" +
         s"magellan.BoundingBox $otherBoundingBoxVar = new magellan.BoundingBox($lxminVar, $lyminVar, $lxmaxVar, $lymaxVar);" +
         s"${ev.value} = $boundingBoxVar.contains($otherBoundingBoxVar);"
+    })
+  }
+}
+
+/**
+  * An Expression that returns true if the shape is within a circle of
+  * prescribed radius around the given point.
+  *
+  * @param child
+  * @param point
+  * @param radius
+  */
+case class WithinCircleRange(child: Expression, point: Point, radius: Double)
+  extends UnaryExpression with MagellanExpression {
+
+  override def dataType: DataType = BooleanType
+
+  override def nullable: Boolean = child.nullable
+
+  override def nullSafeEval(leftEval: Any): Any = {
+    val leftRow = leftEval.asInstanceOf[InternalRow]
+
+    // check if the bounding box intersects the given circle.
+    val ((lxmin, lymin), (lxmax, lymax)) = (
+      (leftRow.getDouble(1), leftRow.getDouble(2)),
+      (leftRow.getDouble(3), leftRow.getDouble(4))
+    )
+
+    val childBoundingBox = BoundingBox(lxmin, lymin, lxmax, lymax)
+    childBoundingBox.withinCircle(point, radius)
+  }
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val lxminVar = ctx.freshName("lxmin")
+    val lyminVar = ctx.freshName("lymin")
+    val lxmaxVar = ctx.freshName("lxmax")
+    val lymaxVar = ctx.freshName("lymax")
+
+    val ltypeVar = ctx.freshName("ltype")
+
+
+    val idx = ctx.references.length
+    ctx.addReferenceObj("point", point)
+    ctx.addReferenceObj("radius", radius)
+
+    val originVar = ctx.freshName("origin")
+    val radiusVar = ctx.freshName("radius")
+    val otherBoundingBoxVar = ctx.freshName("boundingBox")
+
+    nullSafeCodeGen(ctx, ev, c1 => {
+      s"" +
+        s"Double $lxminVar = $c1.getDouble(1);" +
+        s"Double $lyminVar = $c1.getDouble(2);" +
+        s"Double $lxmaxVar = $c1.getDouble(3);" +
+        s"Double $lymaxVar = $c1.getDouble(4);" +
+        s"magellan.Point $originVar = (magellan.Point)references[$idx];" +
+        s"Double $radiusVar = (Double)references[$idx + 1];" +
+        s"magellan.BoundingBox $otherBoundingBoxVar = new magellan.BoundingBox($lxminVar, $lyminVar, $lxmaxVar, $lymaxVar);" +
+        s"${ev.value} = $otherBoundingBoxVar.withinCircle($originVar, $radiusVar);"
     })
   }
 }
