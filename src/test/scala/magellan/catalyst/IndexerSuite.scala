@@ -18,10 +18,9 @@ package magellan.catalyst
 
 import magellan.{MockPointExpr, Point, TestSparkContext}
 import magellan.index.ZOrderCurve
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, Indexer}
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.magellan.dsl.expressions._
-import org.apache.spark.sql.types.Indexer
 import org.scalatest.FunSuite
 
 class IndexerSuite extends FunSuite with TestSparkContext {

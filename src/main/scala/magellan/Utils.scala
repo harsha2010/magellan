@@ -16,14 +16,14 @@
 
 package magellan
 
-import magellan.catalyst.SpatialJoin
+import magellan.catalyst.{RangeQueryRewrite, SpatialJoin}
 import org.apache.spark.sql.SparkSession
 
 object Utils {
 
   def injectRules(session: SparkSession): Unit = {
     if (!session.experimental.extraOptimizations.exists(_.isInstanceOf[SpatialJoin])) {
-      session.experimental.extraOptimizations ++= (Seq(SpatialJoin(session)))
+      session.experimental.extraOptimizations ++= (Seq(SpatialJoin(session), RangeQueryRewrite(session)))
     }
   }
 

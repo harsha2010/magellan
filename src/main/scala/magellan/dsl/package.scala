@@ -16,10 +16,9 @@
 
 package org.apache.spark.sql.magellan
 
-import magellan.{BoundingBox, Point}
 import magellan.catalyst.SpatialJoinHint
+import magellan.{BoundingBox, Point}
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Column, Dataset}
 
 package object dsl {

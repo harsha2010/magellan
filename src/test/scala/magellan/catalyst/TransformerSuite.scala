@@ -19,9 +19,8 @@ package magellan.catalyst
 import magellan.TestingUtils._
 import magellan.{MockPointExpr, Point, TestSparkContext}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, Transformer}
 import org.apache.spark.sql.magellan.dsl.expressions._
-import org.apache.spark.sql.types.Transformer
 import org.scalatest.FunSuite
 
 

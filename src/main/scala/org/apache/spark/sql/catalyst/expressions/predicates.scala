@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.apache.spark.sql.types
+package org.apache.spark.sql.catalyst.expressions
 
 import magellan._
 import magellan.catalyst._
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.codegen._
+import org.apache.spark.sql.types.{BooleanType, DataType, UserDefinedType}
 
 
 /**
