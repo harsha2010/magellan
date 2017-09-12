@@ -67,4 +67,11 @@ class BoundingBoxSuite extends FunSuite {
     assert(!x.disjoint(u))
     assert(x.disjoint(t))
   }
+
+  test("within circle") {
+    val x = BoundingBox(0.0, 0.0, 1.0, 1.0)
+    assert(x.withinCircle(Point(0.0, 0.0), 2.0))
+    assert(!x.withinCircle(Point(0.5, 0.75), 0.5))
+    assert(!x.withinCircle(Point(0.5, 0.5), 0.2))
+  }
 }

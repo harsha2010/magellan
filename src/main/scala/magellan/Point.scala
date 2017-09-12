@@ -78,6 +78,11 @@ class Point extends Shape {
    */
   override def transform(fn: (Point) => Point): Point = fn(this)
 
+  def withinCircle(origin: Point, radius: Double): Boolean = {
+    val sqrdL2Norm = Math.pow((origin.getX() - getX()), 2) + Math.pow((origin.getY() - getY()), 2)
+    sqrdL2Norm <= Math.pow(radius, 2)
+  }
+
   @JsonProperty
   override def getType(): Int = 1
 

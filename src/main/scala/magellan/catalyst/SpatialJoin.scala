@@ -17,7 +17,7 @@
 package magellan.catalyst
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.expressions.{And, Attribute, AttributeReference, EqualTo, ExprId, Expression, Inline, Literal, NamedExpression, Or}
+import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans._
 import org.apache.spark.sql.catalyst.plans.logical.{Generate, _}
 import org.apache.spark.sql.catalyst.rules.Rule
