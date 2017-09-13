@@ -20,12 +20,13 @@ import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.{DeserializationContext, JsonDeserializer, JsonNode}
+import magellan.Relate.{Contains, Touches}
 import magellan.geometry.R2Loop
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types._
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * A polygon consists of one or more rings. A ring is a connected sequence of four or more points
@@ -44,7 +45,7 @@ class Polygon extends Shape {
   private var indices: Array[Int] = _
   private var xcoordinates: Array[Double] = _
   private var ycoordinates: Array[Double] = _
-  @transient var loops = new ListBuffer[R2Loop]()
+  @transient var loops = new ArrayBuffer[R2Loop]()
 
   @JsonIgnore private var _boundingBox: BoundingBox = _
 
@@ -89,15 +90,6 @@ class Polygon extends Shape {
     row
   }
 
-  @inline private def intersects(point: Point, line: Line): Boolean = {
-    val (start, end) = (line.getStart(), line.getEnd())
-    val slope = (end.getY() - start.getY())/ (end.getX() - start.getX())
-    val cond1 = (start.getX() <= point.getX()) && (point.getX() < end.getX())
-    val cond2 = (end.getX() <= point.getX()) && (point.getX() < start.getX())
-    val above = (point.getY() < slope * (point.getX() - start.getX()) + start.getY())
-    ((cond1 || cond2) && above )
-  }
-
   @JsonProperty
   private def getXCoordinates(): Array[Double] = xcoordinates
 
@@ -114,19 +106,18 @@ class Polygon extends Shape {
     var i = 0
     while (i < numLoops && !touches) {
       val c = loops(i).containsOrCrosses(point)
-      if (c == 0)
+      if (c == Touches)
         touches |= true
       else
-        inside ^= {
-          if (c == 1) true else false
-        }
+        inside ^= (c == Contains)
+
       i += 1
     }
     !touches && inside
   }
 
   private [magellan] def touches(point: Point): Boolean = {
-    loops.exists(_.containsOrCrosses(point) == 0)
+    loops.exists(_.containsOrCrosses(point) == Touches)
   }
 
   /**
@@ -205,7 +196,7 @@ class Polygon extends Shape {
   }
 
   def readResolve(): AnyRef = {
-    loops = new ListBuffer[R2Loop]()
+    loops = new ArrayBuffer[R2Loop]()
     this.init(indices, xcoordinates, ycoordinates, boundingBox)
     this
   }

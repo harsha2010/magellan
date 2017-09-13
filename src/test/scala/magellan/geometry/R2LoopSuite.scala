@@ -15,6 +15,7 @@
   */
 package magellan.geometry
 
+import magellan.Relate.{Contains, Disjoint, Touches}
 import magellan.TestingUtils._
 import magellan.{Line, Point}
 import org.scalatest.FunSuite
@@ -30,10 +31,10 @@ class R2LoopSuite extends FunSuite {
 
   test("Loop containsOrCrosses Point") {
     val r2Loop = makeLoop("1.0:1.0,1.0:-1.0,-1.0:-1.0,-1.0:1.0,1.0:1.0")
-    assert(r2Loop.containsOrCrosses(Point(1.0, 0.0)) === 0)
-    assert(r2Loop.containsOrCrosses(Point(0.0, 0.0)) === 1)
-    assert(r2Loop.containsOrCrosses(Point(1.0, 1.0)) === 0)
-    assert(r2Loop.containsOrCrosses(Point(2.0, 0.0)) === -1)
+    assert(r2Loop.containsOrCrosses(Point(1.0, 0.0)) === Touches)
+    assert(r2Loop.containsOrCrosses(Point(0.0, 0.0)) === Contains)
+    assert(r2Loop.containsOrCrosses(Point(1.0, 1.0)) === Touches)
+    assert(r2Loop.containsOrCrosses(Point(2.0, 0.0)) === Disjoint)
   }
 
   test("Loop intersects line") {

@@ -15,7 +15,7 @@
   */
 package magellan.geometry
 
-import magellan.{Line, Point}
+import magellan.{Line, Point, Relate}
 
 /**
   *
@@ -43,15 +43,16 @@ trait Loop extends Serializable {
     */
   def contains(point: Point): Boolean
 
+
   /**
-    * Return +1 if loop contains point (i.e the interior of the loop contains the point),
-    * -1 if the point lies in the exterior region of the loop,
-    * and 0 if the point lies on the loop.
+    * Return Contains if loop contains point (i.e the interior of the loop contains the point),
+    * Disjoint if the point lies in the exterior region of the loop,
+    * and Touches if the point lies on the loop.
     *
     * @param point
     * @return
     */
-  def containsOrCrosses(point: Point): Int
+  def containsOrCrosses(point: Point): Relate
 
   /**
     * Returns true if the line intersects (properly or vertex touching) loop, false otherwise.

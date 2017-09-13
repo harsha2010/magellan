@@ -40,11 +40,16 @@ object Relate {
   case object Intersects extends Relate
 
   /**
+    * This geometry touches the other.
+    */
+  case object Touches extends Relate
+
+  /**
     * This geometry has no overlap with the other.
     */
   case object Disjoint extends Relate
 
-  val values = List(Within, Contains, Intersects, Disjoint)
+  val values = List(Within, Contains, Intersects, Touches, Disjoint)
 
   def withValue(name: String) = values.find(_.name() == name).get
 
