@@ -1,6 +1,6 @@
 name := "magellan"
 
-version := "1.0.5"
+version := "1.0.6-SNAPSHOT"
 
 organization := "harsha2010"
 
@@ -9,6 +9,8 @@ scalaVersion := "2.11.8"
 crossScalaVersions := Seq("2.11.8")
 
 sparkVersion := "2.2.0"
+
+scalacOptions += "-optimize"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 

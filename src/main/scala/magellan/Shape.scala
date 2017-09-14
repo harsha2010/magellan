@@ -188,11 +188,11 @@ object NullShape extends Shape {
 
 object Shape {
 
-  def area(a: Point, b: Point, c: Point) = {
+  @inline final def area(a: Point, b: Point, c: Point) = {
     ((c.getY() - a.getY()) * (b.getX() - a.getX())) - ((b.getY() - a.getY()) * (c.getX() - a.getX()))
   }
 
-  def ccw(a: Point, b: Point, c: Point) = {
+  @inline final def ccw(a: Point, b: Point, c: Point) = {
     area(a, b, c) > 0
   }
 

@@ -14,7 +14,8 @@
   * limitations under the License.
   */
 package magellan.geometry
-import magellan.{Line, Point}
+import magellan.Relate.{Contains, Disjoint, Touches}
+import magellan.{Line, Point, Relate}
 
 class R2Loop extends Loop {
 
@@ -42,7 +43,7 @@ class R2Loop extends Loop {
     * @return
     */
   @inline override final def contains(point: Point): Boolean = {
-    containsOrCrosses(point) == 1
+    containsOrCrosses(point) == Contains
   }
 
   @inline override final def containsOrCrosses(point: Point) = {
@@ -51,12 +52,12 @@ class R2Loop extends Loop {
     var touches = false
 
     val loopIterator = new LoopIterator()
-    while (loopIterator.hasNext) {
+    while (loopIterator.hasNext && !touches) {
       val edge = loopIterator.next()
       inside ^= intersects(point, edge)
       touches |= edge.contains(point)
     }
-    if (touches) 0 else if (inside) 1 else -1
+    if (touches) Touches else if (inside) Contains else Disjoint
   }
 
   @inline override def intersects(line: Line): Boolean = {
@@ -90,9 +91,9 @@ class R2Loop extends Loop {
     private var i = startIndex
     private var j = startIndex + 1
 
-    override def hasNext: Boolean = i < endIndex
+    @inline override final def hasNext: Boolean = i < endIndex
 
-    override def next(): Line = {
+    @inline override final def next(): Line = {
       start.setX(xcoordinates(i))
       start.setY(ycoordinates(i))
 
