@@ -47,7 +47,7 @@ class Line extends Shape {
     }
   }
 
-  @ inline private [magellan] def collinear(line: Line): Boolean = {
+  @inline private [magellan] def collinear(line: Line): Boolean = {
     val (lineStart, lineEnd) = (line.getStart(), line.getEnd())
 
     area(start, end, line.getStart()) == 0 && area(start, end, line.getEnd()) == 0
