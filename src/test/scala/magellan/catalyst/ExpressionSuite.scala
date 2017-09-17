@@ -269,6 +269,19 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
       Point(2.0, -2.0), Point(0.0, -2.0), Point(0.0, 0.0))
     val polygon2 = Polygon(Array(0), ring2)
 
+    val ring3 = Array(Point(1.0, 0.0), Point(2.0, 0.0),
+      Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, 0.0))
+    val polygon3 = Polygon(Array(0), ring3)
+
+    val ring4 = Array(Point(1.0, -1.0), Point(2.0, -1.0),
+      Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, -1.0))
+    val polygon4 = Polygon(Array(0), ring4)
+
+    val ring5 = Array(Point(1.1, -1.0), Point(2.0, -1.0),
+      Point(2.0, -2.0), Point(1.1, -2.0), Point(1.1, -1.0))
+    val polygon5 = Polygon(Array(0), ring5)
+
+
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
 
@@ -276,10 +289,14 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
       PolygonExample(polygon1)
     )).toDF()
 
-    val y = sc.parallelize(Seq(
-      PolygonExample(polygon2)
-    )).toDF()
+    val y = sc.parallelize(Seq(polygon2, polygon3, polygon4, polygon5)).zipWithIndex().toDF("polygon", "index")
 
-    assert(x.join(y).where(x("polygon") intersects y("polygon")).count() === 1)
+    val results = x.join(y).where(x("polygon") intersects y("polygon")).
+      select($"index").
+      map {case Row (s: Long) => s}.
+      collect().
+      sorted
+
+    assert(results === Array(0, 1, 2))
   }
 }
