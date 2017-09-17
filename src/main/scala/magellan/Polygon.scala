@@ -131,6 +131,17 @@ class Polygon extends Shape {
     loops.exists(_.intersects(line))
   }
 
+  /**
+    * A polygon intersects another polygon iff at least one edge of the
+    * other polygon intersects this polygon.
+    *
+    * @param polygon
+    * @return
+    */
+  private [magellan] def intersects(polygon: Polygon): Boolean = {
+    polygon.loops.exists(otherLoop => this.loops.exists(_.intersects(otherLoop)))
+  }
+
   private [magellan] def contains(box: BoundingBox): Boolean = {
     val BoundingBox(xmin, ymin, xmax, ymax) = box
     val lines = Array(

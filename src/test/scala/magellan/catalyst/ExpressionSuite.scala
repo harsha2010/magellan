@@ -250,4 +250,53 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     expr = Intersects(MockPointExpr(point), MockPolygonExpr(polygon))
     assert(expr.eval(null) === true)
   }
+
+  test("Polygon intersects Polygon") {
+    /**
+      *  +---------+ 1,1
+      *  +   0,0   +     2,0
+      *  +     +---+----+
+      *  +     +   +    +
+      *  +-----+---+    +
+      *        +--------+
+      */
+
+    val ring1 = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon1 = Polygon(Array(0), ring1)
+
+    val ring2 = Array(Point(0.0, 0.0), Point(2.0, 0.0),
+      Point(2.0, -2.0), Point(0.0, -2.0), Point(0.0, 0.0))
+    val polygon2 = Polygon(Array(0), ring2)
+
+    val ring3 = Array(Point(1.0, 0.0), Point(2.0, 0.0),
+      Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, 0.0))
+    val polygon3 = Polygon(Array(0), ring3)
+
+    val ring4 = Array(Point(1.0, -1.0), Point(2.0, -1.0),
+      Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, -1.0))
+    val polygon4 = Polygon(Array(0), ring4)
+
+    val ring5 = Array(Point(1.1, -1.0), Point(2.0, -1.0),
+      Point(2.0, -2.0), Point(1.1, -2.0), Point(1.1, -1.0))
+    val polygon5 = Polygon(Array(0), ring5)
+
+
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val x = sc.parallelize(Seq(
+      PolygonExample(polygon1)
+    )).toDF()
+
+    val y = sc.parallelize(Seq(polygon2, polygon3, polygon4, polygon5)).zipWithIndex().toDF("polygon", "index")
+
+    val results = x.join(y).where(x("polygon") intersects y("polygon")).
+      select($"index").
+      map {case Row (s: Long) => s}.
+      collect().
+      sorted
+
+    assert(results === Array(0, 1, 2))
+  }
 }

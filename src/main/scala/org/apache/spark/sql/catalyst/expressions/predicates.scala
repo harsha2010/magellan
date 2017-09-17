@@ -53,9 +53,8 @@ case class Intersects(left: Expression, right: Expression)
       (rightRow.getDouble(3), rightRow.getDouble(4))
       )
 
-    if (
-        (lxmin <= rxmin && lxmax >= rxmin && lymin <= rymin && lymax >= rymin) ||
-        (rxmin <= lxmin && rxmax >= lxmin && rymin <= lymin && rymax >= lymin)) {
+    if (!(rxmax < lxmin || rxmin > lxmax) &&
+        !(rymax < lymin || rymin > lymax)) {
       val leftShape = newInstance(leftRow)
       val rightShape = newInstance(rightRow)
       rightShape.intersects(leftShape)
@@ -102,8 +101,7 @@ case class Intersects(left: Expression, right: Expression)
         s"Double $rxmaxVar = $c2.getDouble(3);" +
         s"Double $rymaxVar = $c2.getDouble(4);" +
         s"Boolean intersects = false;" +
-        s"if (($lxminVar <= $rxminVar && $lxmaxVar >= $rxminVar && $lyminVar <= $ryminVar && $lymaxVar >= $ryminVar) ||" +
-        s"($rxminVar <= $lxminVar && $rxmaxVar >= $lxminVar && $ryminVar <= $lyminVar && $rymaxVar >= $lyminVar)) {" +
+        s"if(!($rxmaxVar < $lxminVar || $rxminVar > $lxmaxVar) && !($rymaxVar < $lyminVar || $ryminVar > $lymaxVar)) {" +
         s"Integer $ltypeVar = $c1.getInt(0);" +
         s"Integer $rtypeVar = $c2.getInt(0);" +
         s"magellan.Shape $leftShapeVar = (magellan.Shape)" +

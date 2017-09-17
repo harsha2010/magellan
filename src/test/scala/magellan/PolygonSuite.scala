@@ -240,4 +240,75 @@ class PolygonSuite extends FunSuite {
     line = Line(Point(0.0, 0.0), Point(0.5, 0.0))
     assert(polygon.intersects(line))
   }
+
+  test("polygon intersects polygon") {
+
+    /**
+      *  +---------+ 1,1
+      *  +   0,0   +     2,0
+      *  +     +---+----+
+      *  +     +   +    +
+      *  +-----+---+    +
+      *        +--------+
+      */
+
+    val ring1 = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon1 = Polygon(Array(0), ring1)
+
+    val ring2 = Array(Point(0.0, 0.0), Point(2.0, 0.0),
+      Point(2.0, -2.0), Point(0.0, -2.0), Point(0.0, 0.0))
+    val polygon2 = Polygon(Array(0), ring2)
+
+    assert(polygon1.intersects(polygon2))
+
+    /**
+      *  +---------+ 1,1
+      *  +         +
+      *  +         +----+
+      *  +         +    +
+      *  +-----+---+    +
+      *            +----+
+      */
+
+    val ring3 = Array(Point(1.0, 0.0), Point(2.0, 0.0),
+      Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, 0.0))
+    val polygon3 = Polygon(Array(0), ring3)
+
+    assert(polygon1.intersects(polygon3))
+
+    /**
+      *  +---------+ 1,1
+      *  +         +
+      *  +         +
+      *  +         +
+      *  +-----+---+----+
+      *            +    +
+      *            +----+
+      */
+
+    val ring4 = Array(Point(1.0, -1.0), Point(2.0, -1.0),
+      Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, -1.0))
+    val polygon4 = Polygon(Array(0), ring4)
+
+    assert(polygon1.intersects(polygon4))
+
+    /**
+      *  +---------+ 1,1
+      *  +         +
+      *  +         +
+      *  +         +
+      *  +-----+---+
+      *             +----+
+      *             +    +
+      *             +----+
+      */
+
+    val ring5 = Array(Point(1.1, -1.0), Point(2.0, -1.0),
+      Point(2.0, -2.0), Point(1.1, -2.0), Point(1.1, -1.0))
+    val polygon5 = Polygon(Array(0), ring5)
+
+    assert(!polygon1.intersects(polygon5))
+
+  }
 }
