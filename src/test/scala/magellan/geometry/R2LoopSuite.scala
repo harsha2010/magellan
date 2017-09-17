@@ -42,4 +42,11 @@ class R2LoopSuite extends FunSuite {
     assert(!r2Loop.intersects(Line(Point(0.0, 0.0), Point(0.5, 0.5))))
     assert(r2Loop.intersects(Line(Point(-2.0, 0.0), Point(2.0, 0.0))))
   }
+
+  test("Loop intersects Loop") {
+    val loop1 = makeLoop("1.0:1.0,1.0:-1.0,-1.0:-1.0,-1.0:1.0,1.0:1.0")
+    val loop2 = makeLoop("0.0:0.0,2.0:0.0,2.0:-2.0,0.0:-2.0,0.0:0.0")
+    assert(loop1 intersects loop2)
+
+  }
 }

@@ -63,6 +63,15 @@ trait Loop extends Serializable {
   def intersects(line: Line): Boolean
 
   /**
+    * Returns true if the two loops intersect (properly or vertex touching), false otherwise.
+    * @param loop
+    * @return
+    */
+  def intersects(loop: Loop): Boolean = {
+    loop.iterator() exists (intersects(_))
+  }
+
+  /**
     * Returns an iterator over the loop.
     *
     * @return

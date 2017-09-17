@@ -250,4 +250,36 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     expr = Intersects(MockPointExpr(point), MockPolygonExpr(polygon))
     assert(expr.eval(null) === true)
   }
+
+  test("Polygon intersects Polygon") {
+    /**
+      *  +---------+ 1,1
+      *  +   0,0   +     2,0
+      *  +     +---+----+
+      *  +     +   +    +
+      *  +-----+---+    +
+      *        +--------+
+      */
+
+    val ring1 = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon1 = Polygon(Array(0), ring1)
+
+    val ring2 = Array(Point(0.0, 0.0), Point(2.0, 0.0),
+      Point(2.0, -2.0), Point(0.0, -2.0), Point(0.0, 0.0))
+    val polygon2 = Polygon(Array(0), ring2)
+
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val x = sc.parallelize(Seq(
+      PolygonExample(polygon1)
+    )).toDF()
+
+    val y = sc.parallelize(Seq(
+      PolygonExample(polygon2)
+    )).toDF()
+
+    assert(x.join(y).where(x("polygon") intersects y("polygon")).count() === 1)
+  }
 }
