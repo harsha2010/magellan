@@ -48,14 +48,14 @@ class WKTParserSuite extends FunSuite {
   test("parse linestring") {
     var parsed = WKTParser.linestring.parse("LINESTRING (30 10, 10 30, 40 40)")
     var p: PolyLine = parsed.get.value
-    assert(p.indices.length === 1)
-    assert(p.xcoordinates.length === 3)
+    assert(p.getNumRings() === 1)
+    assert(p.length === 3)
 
     parsed = WKTParser.linestring.parse(
       "LINESTRING (-79.470579 35.442827,-79.469465 35.444889,-79.468907 35.445829,-79.468294 35.446608,-79.46687 35.447893)")
 
     p = parsed.get.value
-    assert(p.xcoordinates.length === 5)
+    assert(p.length === 5)
 
   }
 

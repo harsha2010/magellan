@@ -109,16 +109,11 @@ class OsmSuite extends FunSuite with TestSparkContext {
       .select("polyline")
       .first()(0).asInstanceOf[PolyLine]
 
-    assert(p.xcoordinates.size == 4)
-    assert(p.ycoordinates.size == 4)
-    assert(p.xcoordinates(0) == -75.6362879)
-    assert(p.xcoordinates(1) == -75.6378443)
-    assert(p.xcoordinates(2) == -75.6382141)
-    assert(p.xcoordinates(3) == -75.6390858)
-    assert(p.ycoordinates(0) == 45.4188896)
-    assert(p.ycoordinates(1) == 45.4191178)
-    assert(p.ycoordinates(2) == 45.4191290)
-    assert(p.ycoordinates(3) == 45.4190782)
+    assert(p.length() == 4)
+    assert(p.getVertex(0) == Point(-75.6362879, 45.4188896))
+    assert(p.getVertex(1) == Point(-75.6378443, 45.4191178))
+    assert(p.getVertex(2) == Point(-75.6382141, 45.4191290))
+    assert(p.getVertex(3) == Point(-75.6390858, 45.4190782))
   }
 
   test("read polygon") {

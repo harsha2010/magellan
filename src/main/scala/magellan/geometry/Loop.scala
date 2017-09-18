@@ -15,11 +15,12 @@
   */
 package magellan.geometry
 
+import magellan.Relate.Touches
 import magellan.{Line, Point, Relate}
 
 /**
   *
-  * A Loop represents a simple polygon. It consists of a single
+  * A Loop represents a closed curve. It consists of a single
   * chain of vertices where the first vertex is explicitly connected to the last.
   *
   * Loops are not allowed to have any duplicate vertices (whether adjacent or
@@ -32,7 +33,11 @@ import magellan.{Line, Point, Relate}
   * that loops do not necessarily contain all (or any) of their vertices.
   *
   */
-trait Loop extends Serializable {
+trait Loop extends Serializable with Curve {
+
+  override def touches(point: Point) = {
+    containsOrCrosses(point) == Touches
+  }
 
   /**
     * A loop contains the given point iff the point is properly contained within the
@@ -53,14 +58,6 @@ trait Loop extends Serializable {
     * @return
     */
   def containsOrCrosses(point: Point): Relate
-
-  /**
-    * Returns true if the line intersects (properly or vertex touching) loop, false otherwise.
-    *
-    * @param line
-    * @return
-    */
-  def intersects(line: Line): Boolean
 
   /**
     * Returns true if the two loops intersect (properly or vertex touching), false otherwise.

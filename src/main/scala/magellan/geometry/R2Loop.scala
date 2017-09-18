@@ -72,7 +72,10 @@ class R2Loop extends Loop {
 
   override def iterator() = new LoopIterator()
 
-  override def toString = s"R2Loop($xcoordinates, $ycoordinates, $startIndex, $endIndex)"
+  override def toString = s"R2Loop(${xcoordinates.mkString(",")}," +
+    s" ${ycoordinates.mkString(",")}," +
+    s" $startIndex," +
+    s" $endIndex)"
 
   @inline private def intersects(point: Point, line: Line): Boolean = {
     val (start, end) = (line.getStart(), line.getEnd())

@@ -84,11 +84,9 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     import sqlCtx.implicits._
     val p = df.select($"polyline").first()(0).asInstanceOf[PolyLine]
     // [ -122.04864044239585, 37.408617050391001 ], [ -122.047741818556602, 37.408915362324983 ]
-    assert(p.indices.size === 2)
-    assert(p.xcoordinates.head == -122.04864044239585)
-    assert(p.ycoordinates.head == 37.408617050391001)
-    assert(p.xcoordinates.last == -122.047741818556602)
-    assert(p.ycoordinates.last == 37.408915362324983)
+    assert(p.getNumRings() === 2)
+    assert(p.getVertex(0) == Point(-122.04864044239585, 37.408617050391001))
+    assert(p.getVertex(1) == Point(-122.047741818556602, 37.408915362324983))
   }
 
   test("Read Polygon") {
