@@ -47,7 +47,5 @@ class R2LoopSuite extends FunSuite {
     val loop1 = makeLoop("1.0:1.0,1.0:-1.0,-1.0:-1.0,-1.0:1.0,1.0:1.0")
     val loop2 = makeLoop("0.0:0.0,2.0:0.0,2.0:-2.0,0.0:-2.0,0.0:0.0")
     assert(loop1 intersects loop2)
-
-    println(loop1)
   }
 }

@@ -167,8 +167,6 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     joined foreach { case (cond, line) => assert(cond || line.isEmpty)}
   }
 
-
-
   test("PolyLine contains Point") {
 
     val polyline = PolyLine(new Array[Int](3), Array(
