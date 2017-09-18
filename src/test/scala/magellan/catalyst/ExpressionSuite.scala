@@ -142,15 +142,60 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
     assert(polyline1.intersects(line) === true)
     assert(polyline2.intersects(line) === true)
     assert(polyline3.intersects(line) === false)
+
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val lines = sc.parallelize(Seq(("1", line))).toDF("id", "line")
+
+    val polylines = sc.parallelize(Seq(
+        (true, polyline1),
+        (true, polyline2),
+        (false, polyline3))).toDF("cond", "polyline")
+
+    val joined = polylines.join(lines, $"polyline" intersects  $"line", "leftOuter").
+      select("cond", "line").
+      collect().
+      map {
+        case Row(cond: Boolean, line: Line) =>
+          (cond, Some(line))
+
+        case Row(cond: Boolean, null) =>
+          (cond, None)
+      }
+
+    joined foreach { case (cond, line) => assert(cond || line.isEmpty)}
   }
+
+
 
   test("PolyLine contains Point") {
 
     val polyline = PolyLine(new Array[Int](3), Array(
       Point(0.0, 0.0), Point(3.0, 3.0), Point(-2.0, -2.0)
     ))
-    assert(polyline.contains(Point(1.0, 1.0)) === true)
-    assert(polyline.contains(Point(2.0, 1.0)) === false)
+
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val polylines = sc.parallelize(Seq(("1", polyline))).toDF("id", "polyline")
+
+    val points = sc.parallelize(Seq(
+        (true, Point(1.0, 1.0)),
+        (false, Point(2.0, 1.0)))).toDF("cond", "point")
+
+    val joined = points.join(polylines, $"point" within $"polyline", "leftOuter").
+      select("cond", "polyline").
+      collect().
+      map {
+        case Row(cond: Boolean, polyline: PolyLine) =>
+          (cond, Some(polyline))
+
+        case Row(cond: Boolean, null) =>
+          (cond, None)
+      }
+
+    joined foreach { case (cond, polyline) => assert(cond || polyline.isEmpty)}
   }
 
   test("Point within Range") {

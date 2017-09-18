@@ -17,9 +17,12 @@
 package magellan
 
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
+import magellan.geometry.{Curve, R2Loop}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types._
 
-import scala.util.control.Breaks._
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * A PolyLine is an ordered set of vertices that consists of one or more parts.
@@ -28,80 +31,105 @@ import scala.util.control.Breaks._
   * Parts may or may not intersect one another
   */
 @SQLUserDefinedType(udt = classOf[PolyLineUDT])
-class PolyLine(
-    val indices: Array[Int],
-    val xcoordinates: Array[Double],
-    val ycoordinates: Array[Double],
-    override val boundingBox: BoundingBox) extends Shape {
+class PolyLine extends Shape {
 
-  def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
+  private var indices: Array[Int] = _
+  private var xcoordinates: Array[Double] = _
+  private var ycoordinates: Array[Double] = _
 
+  @transient var curves = new ArrayBuffer[Curve]()
+
+  @JsonIgnore private var _boundingBox: BoundingBox = _
+
+  private[magellan] def init(
+      indices: Array[Int],
+      xcoordinates: Array[Double],
+      ycoordinates: Array[Double],
+      boundingBox: BoundingBox): Unit = {
+
+    this.indices = indices
+    this.xcoordinates = xcoordinates
+    this.ycoordinates = ycoordinates
+    this._boundingBox = boundingBox
+    // initialize the loops
+    val offsets = indices.zip(indices.drop(1) ++ Array(xcoordinates.length))
+    for ((start, end) <- offsets) {
+      curves += ({
+        val curves = new R2Loop()
+        curves.init(xcoordinates, ycoordinates, start, end - 1)
+        curves
+      })
+    }
+  }
   override def getType(): Int = 3
 
-  @JsonProperty
-  private [magellan] def getXCoordinates(): Array[Double] = xcoordinates
-
-  @JsonProperty
-  private [magellan] def getYCoordinates(): Array[Double] = ycoordinates
-
-  private [magellan] def contains(point:Point): Boolean = {
-    var startIndex = 0
-    var endIndex = 1
-    var contains = false
-    val length = xcoordinates.size
-
-    if(!exceedsBounds(point))
-    breakable {
-      while(endIndex < length) {
-        val startX = xcoordinates(startIndex)
-        val startY = ycoordinates(startIndex)
-        val endX = xcoordinates(endIndex)
-        val endY = ycoordinates(endIndex)
-        val slope =  (endY - startY)/(endX - startX)
-        val pointSlope = (endY - point.getY())/(endX - point.getX())
-        if(slope == pointSlope) {
-          contains = true
-          break
-        }
-        startIndex += 1
-        endIndex += 1
-      }
-    }
-    contains
+  def init(row: InternalRow): Unit = {
+    init(row.getArray(5).toIntArray(),
+      row.getArray(6).toDoubleArray(),
+      row.getArray(7).toDoubleArray(),
+      BoundingBox(row.getDouble(1), row.getDouble(2), row.getDouble(3), row.getDouble(4)))
   }
 
-  def exceedsBounds(point:Point):Boolean = {
-    val BoundingBox(pt_xmin, pt_ymin, pt_xmax, pt_ymax) = point.boundingBox
+  def serialize(): InternalRow = {
+    val row = new GenericInternalRow(8)
     val BoundingBox(xmin, ymin, xmax, ymax) = boundingBox
-
-    pt_xmin < xmin && pt_ymin < ymin ||
-    pt_xmax > xmax && pt_ymax > ymax
+    row.update(0, getType())
+    row.update(1, xmin)
+    row.update(2, ymin)
+    row.update(3, xmax)
+    row.update(4, ymax)
+    row.update(5, new IntegerArrayData(indices))
+    row.update(6, new DoubleArrayData(xcoordinates))
+    row.update(7, new DoubleArrayData(ycoordinates))
+    row
   }
 
-  def intersects(line:Line):Boolean = {
-    var startIndex = 0
-    var endIndex = 1
-    var intersects = false
-    val length = xcoordinates.size
+  @JsonProperty
+  private def getXCoordinates(): Array[Double] = xcoordinates
 
-    breakable {
+  @JsonProperty
+  private def getYCoordinates(): Array[Double] = ycoordinates
 
-      while(endIndex < length) {
-        val startX = xcoordinates(startIndex)
-        val startY = ycoordinates(startIndex)
-        val endX = xcoordinates(endIndex)
-        val endY = ycoordinates(endIndex)
-        // check if any segment intersects incoming line
-        if(line.intersects(Line(Point(startX, startY), Point(endX, endY)))) {
-          intersects = true
-          break
-        }
-        startIndex += 1
-        endIndex += 1
-      }
+  @JsonProperty
+  override def boundingBox = _boundingBox
+
+  private[magellan] def contains(point: Point): Boolean = {
+    val numLoops = curves.size
+    var touches = false
+    var i = 0
+    while (i < numLoops && !touches) {
+      touches |= curves(i).touches(point)
+      i += 1
     }
-    intersects
+    touches
   }
+
+
+  /**
+    * A polygon intersects a line iff it is a proper intersection,
+    * or if either vertex of the line touches the polygon.
+    *
+    * @param line
+    * @return
+    */
+  private [magellan] def intersects(line: Line): Boolean = {
+    curves exists (_.intersects(line))
+  }
+
+  @JsonIgnore
+  override def isEmpty(): Boolean = xcoordinates.length == 0
+
+  def length(): Int = xcoordinates.length
+
+  def getVertex(index: Int) = Point(xcoordinates(index), ycoordinates(index))
+
+  @JsonProperty
+  def getRings(): Array[Int] = indices
+
+  @JsonIgnore
+  def getNumRings(): Int = indices.length
+
+  def getRing(index: Int): Int = indices(index)
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 
@@ -132,9 +160,6 @@ class PolyLine(
     PolyLine(indices, transformedPoints)*/
     ???
   }
-
-  @JsonIgnore
-  override def isEmpty(): Boolean = xcoordinates.length == 0
 
   /*override def jsonValue: JValue =
     ("type" -> "udt") ~
@@ -171,11 +196,12 @@ object PolyLine {
       }
       i += 1
     }
-    new PolyLine(
+    val polyline = new PolyLine()
+    polyline.init(
       indices,
       points.map(_.getX()),
       points.map(_.getY()),
-      BoundingBox(xmin, ymin, xmax, ymax)
-    )
+      BoundingBox(xmin, ymin, xmax, ymax))
+    polyline
   }
 }

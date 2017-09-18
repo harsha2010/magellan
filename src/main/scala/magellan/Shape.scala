@@ -112,12 +112,20 @@ trait Shape extends DataType with Serializable {
 
     if (boundingBox.contains(other.boundingBox)) {
       (this, other) match {
+
         case (p: Point, q: Point) => p.equals(q)
+        case (p: Point, q: Line) => false
         case (p: Point, q: Polygon) => false
+        case (p: Point, q: PolyLine) => false
+
         case (p: Polygon, q: Point) => p.contains(q)
         case (p: Polygon, q: Line) => p.contains(q)
+
         case (p: Line, q: Point) => p.contains(q)
         case (p: Line, q: Line) => p.contains(q)
+
+        case (p: PolyLine, q: Point) => p.contains(q)
+
         case _ => ???
       }
     } else  {
