@@ -202,19 +202,34 @@ object TestingUtils {
     val xcoordinates = Array.fill(size)(0.0)
     val ycoordinates = Array.fill(size)(0.0)
     var index = 0
-    for (token <- tokens) {
-      val colon = token.indexOf(':')
-      if (colon == -1) throw new IllegalArgumentException(
-        "Illegal string:" + token + ". Should look like '35:20'")
-      val x = token.substring(0, colon).toDouble
-      val y = token.substring(colon + 1).toDouble
+    makePoints(str) foreach { case (x: Double, y: Double) =>
       xcoordinates(index) = x
       ycoordinates(index) = y
       index += 1
     }
+
     val r2Loop = new R2Loop()
     r2Loop.init(xcoordinates, ycoordinates, 0, size - 1)
     r2Loop
+  }
+
+  def makeLine(str: String): Line = {
+    val iter = makePoints(str) map {
+      case (x: Double, y: Double) => Point(x, y)
+    }
+    Line(iter.next(), iter.next())
+  }
+
+  private def makePoints(str: String): Iterator[(Double, Double)] = {
+    val tokens = Splitter.on(',').split(str)
+    tokens.iterator().map { s =>
+      val colon = s.indexOf(':')
+      if (colon == -1) throw new IllegalArgumentException(
+        "Illegal string:" + s + ". Should look like '35:20'")
+      val x = s.substring(0, colon).toDouble
+      val y = s.substring(colon + 1).toDouble
+      (x, y)
+    }
   }
 }
 
