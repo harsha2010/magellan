@@ -36,6 +36,14 @@ class PolyLine(
 
   def this() {this(Array(0), Array(), Array(), BoundingBox(0,0,0,0))}
 
+  def getboundingBox: BoundingBox = {
+    val xmin = this.xcoordinates.min
+    val ymin = this.ycoordinates.min
+    val xmax = this.xcoordinates.max
+    val ymax = this.ycoordinates.max
+    BoundingBox(xmin, ymin, xmax, ymax)
+  }
+
   override def getType(): Int = 3
 
   @JsonProperty
@@ -93,6 +101,31 @@ class PolyLine(
         val endY = ycoordinates(endIndex)
         // check if any segment intersects incoming line
         if(line.intersects(Line(Point(startX, startY), Point(endX, endY)))) {
+          intersects = true
+          break
+        }
+        startIndex += 1
+        endIndex += 1
+      }
+    }
+    intersects
+  }
+
+  def intersects(polygon:Polygon):Boolean = {
+    var startIndex = 0
+    var endIndex = 1
+    var intersects = false
+    val length = xcoordinates.size
+
+    breakable {
+
+      while(endIndex < length) {
+        val startX = xcoordinates(startIndex)
+        val startY = ycoordinates(startIndex)
+        val endX = xcoordinates(endIndex)
+        val endY = ycoordinates(endIndex)
+        // check if any segment intersects incoming line
+        if(polygon.intersects(Line(Point(startX, startY), Point(endX, endY)))) {
           intersects = true
           break
         }
