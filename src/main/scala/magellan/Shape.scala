@@ -76,6 +76,7 @@ trait Shape extends DataType with Serializable {
         case (p: Polygon, q: PolyLine) => p.intersects(q)
         case (p: Polygon, q: Polygon) => p.intersects(q)
         case (p: PolyLine, q: Line) => p.intersects(q)
+        case (p: PolyLine, q: Polygon) => p.intersects(q)
         case (p: Line, q: Polygon) => q.intersects(p)
         case (p: Line, q: PolyLine) => q.intersects(p)
         case _ => ???

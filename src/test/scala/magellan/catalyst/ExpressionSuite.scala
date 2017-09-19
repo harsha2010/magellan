@@ -115,12 +115,11 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
       (2, Line(Point(0.0, 0.0), Point(1.0, 0.0))), // contained within and touches boundary, yes
       (3, Line(Point(1.0, 1.0), Point(1.0, 0.0))), // lies on boundary, yes
       (4, Line(Point(1.0, 1.0), Point(2.0, 2.0))), // touches, yes
-      (5, Line(Point(0.0, 0.0), Point(0.5, 0.5)))  // outside, no
+      (5, Line(Point(0.0, 0.0), Point(0.5, 0.5)))  // contained entirely within, yes
     )).toDF("id", "line")
 
     val joined = lines.join(polygons).where($"polygon" intersects  $"line")
-    assert(joined.select($"id").map { case Row(s: Int) => s }.collect().sorted === Array(1, 2, 3, 4))
-
+    assert(joined.select($"id").map { case Row(s: Int) => s }.collect().sorted === Array(1, 2, 3, 4, 5))
   }
 
   test("PolyLine intersects Line") {

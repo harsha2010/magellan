@@ -224,6 +224,9 @@ class PolygonSuite extends FunSuite {
 
     line = Line(Point(1.0, 1.0), Point(1.0, -2.0))
     assert(polygon.intersects(line))
+
+    line = Line(Point(0.0, 0.0), Point(0.5, 0.5))
+    assert(polygon.intersects(line))
   }
 
   test("polygon intersects line: holes") {

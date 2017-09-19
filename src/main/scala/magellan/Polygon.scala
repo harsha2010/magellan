@@ -128,7 +128,14 @@ class Polygon extends Shape {
     * @return
     */
   private [magellan] def intersects(line: Line): Boolean = {
-    loops.exists(_.intersects(line))
+    var intersects = false
+    if(this.contains(line.getStart()) || this.contains(line.getEnd())){
+      intersects = true
+    }
+    else{
+      intersects = loops.exists(_.intersects(line))
+    }
+    intersects
   }
 
   /**
