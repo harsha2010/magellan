@@ -128,7 +128,14 @@ class Polygon extends Shape {
     * @return
     */
   private [magellan] def intersects(line: Line): Boolean = {
-    loops.exists(_.intersects(line))
+    var intersects = false
+    if(this.contains(line.getStart()) || this.contains(line.getEnd())){
+      intersects = true
+    }
+    else{
+      intersects = loops.exists(_.intersects(line))
+    }
+    intersects
   }
 
   /**
@@ -189,6 +196,25 @@ class Polygon extends Shape {
   def getNumRings(): Int = indices.length
 
   def getRing(index: Int): Int = indices(index)
+
+  def getRingPolygon(index: Int): Polygon = {
+    var startindex = getRing(index)
+    if(indices.length==1){
+      this
+    }
+    else {
+      var endindex = {
+        if (index == indices.last) length
+        else getRing(index + 1)
+      }
+      var arrayPoints = Array.empty[Point]
+
+      while (startindex <= endindex) {
+        arrayPoints :+ getVertex(startindex)
+      }
+      Polygon(Array(0), arrayPoints)
+    }
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
 
