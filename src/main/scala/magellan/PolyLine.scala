@@ -131,6 +131,31 @@ class PolyLine extends Shape {
 
   def getRing(index: Int): Int = indices(index)
 
+  def intersects(polygon:Polygon):Boolean = {
+    var startIndex = 0
+    var endIndex = 1
+    var intersects = false
+    val length = xcoordinates.size
+
+    breakable {
+
+      while(endIndex < length) {
+        val startX = xcoordinates(startIndex)
+        val startY = ycoordinates(startIndex)
+        val endX = xcoordinates(endIndex)
+        val endY = ycoordinates(endIndex)
+        // check if any segment intersects incoming line
+        if(polygon.intersects(Line(Point(startX, startY), Point(endX, endY)))) {
+          intersects = true
+          break
+        }
+        startIndex += 1
+        endIndex += 1
+      }
+    }
+    intersects
+  }
+
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 
   override def equals(other: Any): Boolean = other match {
