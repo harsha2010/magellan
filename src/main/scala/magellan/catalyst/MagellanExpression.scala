@@ -36,5 +36,8 @@ trait MagellanExpression {
     SERIALIZERS.get(shape.getType()).get.serialize(shape)
   }
 
+  def sqlType(klass: Class[_ <: Shape]): DataType = {
+    SERIALIZERS.get(klass.newInstance().getType()).get
+  }
 }
 

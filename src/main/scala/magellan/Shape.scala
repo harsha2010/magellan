@@ -204,6 +204,5 @@ object Shape {
   @inline final def ccw(a: Point, b: Point, c: Point) = {
     area(a, b, c) > 0
   }
-
 }
 
