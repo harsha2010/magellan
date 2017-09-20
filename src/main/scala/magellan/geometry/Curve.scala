@@ -15,7 +15,7 @@
   */
 package magellan.geometry
 
-import magellan.{Line, Point, Relate}
+import magellan.{Line, Point, Polygon, Relate}
 
 /**
   * A curve consists of a single chain of vertices represents a open curve on the plane.
@@ -43,4 +43,11 @@ trait Curve extends Serializable {
     */
   def intersects(line: Line): Boolean
 
+  /**
+    * Returns true if the polygon intersects (properly or vertex touching) loop, false otherwise.
+    *
+    * @param polygon
+    * @return
+    */
+  def intersects(polygon: Polygon): Boolean
 }

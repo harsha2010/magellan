@@ -106,14 +106,25 @@ class PolyLine extends Shape {
 
 
   /**
-    * A polygon intersects a line iff it is a proper intersection,
-    * or if either vertex of the line touches the polygon.
+    * A polyline intersects a line iff it is a proper intersection,
+    * or if either vertex of the line touches the polyline.
     *
     * @param line
     * @return
     */
   private [magellan] def intersects(line: Line): Boolean = {
     curves exists (_.intersects(line))
+  }
+
+  /**
+    * A polyline intersects a polygon iff it is a proper intersection,
+    * or if either vertex of the polygon touches the polyline.
+    *
+    * @param polygon
+    * @return
+    */
+  private [magellan] def intersects(polygon:Polygon):Boolean = {
+    curves exists( _.intersects(polygon))
   }
 
   @JsonIgnore
@@ -130,31 +141,6 @@ class PolyLine extends Shape {
   def getNumRings(): Int = indices.length
 
   def getRing(index: Int): Int = indices(index)
-
-  def intersects(polygon:Polygon):Boolean = {
-    var startIndex = 0
-    var endIndex = 1
-    var intersects = false
-    val length = xcoordinates.size
-
-    breakable {
-
-      while(endIndex < length) {
-        val startX = xcoordinates(startIndex)
-        val startY = ycoordinates(startIndex)
-        val endX = xcoordinates(endIndex)
-        val endY = ycoordinates(endIndex)
-        // check if any segment intersects incoming line
-        if(polygon.intersects(Line(Point(startX, startY), Point(endX, endY)))) {
-          intersects = true
-          break
-        }
-        startIndex += 1
-        endIndex += 1
-      }
-    }
-    intersects
-  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 
