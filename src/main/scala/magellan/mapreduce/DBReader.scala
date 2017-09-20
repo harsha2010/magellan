@@ -129,7 +129,8 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
       dis.readFully(f, 1, 10)
       f(0) = first
       val fieldName = new Text()
-      fieldName.append(f, 0, f.indexWhere(_ == 0))
+      val terminalIndex = f.indexWhere(_ == 0)
+      fieldName.append(f, 0, if (terminalIndex == -1) f.length else terminalIndex)
       val fieldType = dis.readByte()
       dis.readInt()
       val fieldLength = dis.readUnsignedByte()
