@@ -55,4 +55,22 @@ class DBReaderSuite extends FunSuite with TestSparkContext {
     val area = baseRdd.first()("SHAPE_area")
     assert(area.toDouble ~== 426442.116396 absTol 1.0)
   }
+
+  test("ISSUE-167") {
+    val path = this.getClass.getClassLoader.getResource("shapefiles/ISSUE-167/iri_shape.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    ).map { case (s: ShapeKey, v: MapWritable) =>
+      v.entrySet().map { kv =>
+        val k = kv.getKey.asInstanceOf[Text].toString
+        val v = kv.getValue.asInstanceOf[Text].toString
+        (k, v)
+      }.toMap
+    }
+    assert(baseRdd.count() == 22597)
+    assert(baseRdd.first()("route_ident").trim() === "[u'025A_BR_2498#_1']")
+  }
 }
