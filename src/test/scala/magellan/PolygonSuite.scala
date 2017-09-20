@@ -15,7 +15,7 @@
  */
 package magellan
 
-import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ESRIPolygon}
+import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyline}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
 import magellan.TestingUtils._
@@ -169,6 +169,30 @@ class PolygonSuite extends FunSuite {
 
     esriPoint.setXY(0.75, 0.75)
     assert(GeometryEngine.contains(esriPolygon, esriPoint, null))
+
+
+    var esriPolyLine =  new ESRIPolyline()
+    var polyline = PolyLine(Array(0), Array(Point(0.0, 0.0), Point(3.0, 3.0)))
+    esriPolyLine = toESRI(polyline)
+
+    assert(polygon.intersects(polyline))
+    assert(!GeometryEngine.disjoint(esriPolygon, esriPolyLine, null))
+
+
+    polyline = PolyLine(Array(0), Array(Point(0.75, 0.75), Point(0.90, 0.90)))
+    esriPolyLine = toESRI(polyline)
+
+    assert(polygon.intersects(polyline))
+    assert(!GeometryEngine.disjoint(esriPolygon, esriPolyLine, null))
+
+
+    polyline = PolyLine(Array(0), Array(Point(0.0, 0.0), Point(0.3, 0.0)))
+    esriPolyLine = toESRI(polyline)
+
+    assert(!polygon.intersects(polyline))
+    assert(GeometryEngine.disjoint(esriPolygon, esriPolyLine, null))
+
+
   }
 
   test("jackson serialization") {
@@ -243,6 +267,37 @@ class PolygonSuite extends FunSuite {
     line = Line(Point(0.0, 0.0), Point(0.5, 0.0))
     assert(polygon.intersects(line))
   }
+
+  test("polygon intersects polyline: no holes") {
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+    var polyline = PolyLine(Array(0), Array(Point(-2.0, 0.0), Point(2.0, 0.0)))
+    assert(polygon.intersects(polyline))
+
+    polyline = PolyLine(Array(0), Array(Point(1.0, 1.0), Point(1.0, -2.0)))
+    assert(polygon.intersects(polyline))
+
+    polyline = PolyLine(Array(0), Array(Point(0.0, 0.0), Point(0.5, 0.5)))
+    assert(polygon.intersects(polyline))
+  }
+
+  test("polygon intersects polyline: holes") {
+    val  ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
+      Point(0.5, 0), Point(0, 0.5), Point(-0.5, 0),
+      Point(0, -0.5), Point(0.5, 0)
+    )
+
+    val polygon = Polygon(Array(0, 5), ring)
+    var polyline = PolyLine(Array(0), Array(Point(-2.0, 0.0), Point(2.0, 0.0)))
+    assert(polygon.intersects(polyline))
+
+    polyline = PolyLine(Array(0), Array(Point(0.0, 0.0), Point(0.5, 0.0)))
+    assert(polygon.intersects(polyline))
+  }
+
+
 
   test("polygon intersects polygon") {
 

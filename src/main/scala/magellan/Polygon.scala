@@ -139,6 +139,18 @@ class Polygon extends Shape {
   }
 
   /**
+    * A polygon intersects a polyline iff it is a proper intersection,
+    * or if either vertex of the polyline touches the polygon.
+    *
+    * @param polyline
+    * @return
+    */
+  private [magellan] def intersects(polyline: PolyLine): Boolean = {
+    polyline.intersects(this)
+  }
+
+
+  /**
     * A polygon intersects another polygon iff at least one edge of the
     * other polygon intersects this polygon.
     *
