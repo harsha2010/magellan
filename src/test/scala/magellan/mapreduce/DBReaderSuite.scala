@@ -71,5 +71,6 @@ class DBReaderSuite extends FunSuite with TestSparkContext {
       }.toMap
     }
     assert(baseRdd.count() == 22597)
+    assert(baseRdd.first()("route_ident").trim() === "[u'025A_BR_2498#_1']")
   }
 }
