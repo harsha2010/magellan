@@ -37,7 +37,7 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
     Utils.injectRules(spark)
   }
 
-  test("spatial join in plan") {
+  test("spatial join in plan: within") {
 
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
@@ -59,6 +59,30 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
     assert(optimizedPlan.toString().contains("Generate inline(indexer"))
     assert(joined.count() === 1)
 
+  }
+
+  test("spatial join in plan: more complex within condition") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      ("1", Polygon(Array(0), ring))
+    )).toDF("id", "polygon")
+
+    val points = sc.parallelize(Seq(
+      ("a", 1, Point(0.0, 0.0)),
+      ("b" , 2, Point(2.0, 2.0))
+    )).toDF("name", "value", "point")
+
+    val joined = points.join(polygons index 5).
+      where($"point" within $"polygon").
+      where($"name" === "a")
+
+    val optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
+    assert(optimizedPlan.toString().contains("Generate inline(indexer"))
+    assert(joined.count() === 1)
   }
 
   test("use existing indices in spatial join") {
