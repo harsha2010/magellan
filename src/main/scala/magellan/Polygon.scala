@@ -128,8 +128,27 @@ class Polygon extends Shape {
     * @return
     */
   private [magellan] def intersects(line: Line): Boolean = {
-    loops.exists(_.intersects(line))
+    var intersects = false
+    if(this.contains(line.getStart()) || this.contains(line.getEnd())){
+      intersects = true
+    }
+    else{
+      intersects = loops.exists(_.intersects(line))
+    }
+    intersects
   }
+
+  /**
+    * A polygon intersects a polyline iff it is a proper intersection,
+    * or if either vertex of the polyline touches the polygon.
+    *
+    * @param polyline
+    * @return
+    */
+  private [magellan] def intersects(polyline: PolyLine): Boolean = {
+    polyline.intersects(this)
+  }
+
 
   /**
     * A polygon intersects another polygon iff at least one edge of the
@@ -189,6 +208,26 @@ class Polygon extends Shape {
   def getNumRings(): Int = indices.length
 
   def getRing(index: Int): Int = indices(index)
+
+  def getRingPolygon(index: Int): Polygon = {
+    var startindex = getRing(index)
+    if(indices.length==1){
+      this
+    }
+    else {
+      var endindex = {
+        if (startindex == indices.last) length
+        else getRing(index + 1)
+      }
+      val arrayPoints = new ArrayBuffer[Point]()
+
+      while (startindex < endindex) {
+        arrayPoints += getVertex(startindex)
+        startindex += 1
+      }
+      Polygon(Array(0), arrayPoints.toArray)
+    }
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Polygon]
 

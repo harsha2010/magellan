@@ -115,12 +115,12 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
       (2, Line(Point(0.0, 0.0), Point(1.0, 0.0))), // contained within and touches boundary, yes
       (3, Line(Point(1.0, 1.0), Point(1.0, 0.0))), // lies on boundary, yes
       (4, Line(Point(1.0, 1.0), Point(2.0, 2.0))), // touches, yes
-      (5, Line(Point(0.0, 0.0), Point(0.5, 0.5)))  // outside, no
+      (5, Line(Point(0.0, 0.0), Point(0.5, 0.5))), //  contained entirely within, yes
+      (6, Line(Point(2.0, 2.0), Point(3.0, 3.0)))  // outside, no
     )).toDF("id", "line")
 
     val joined = lines.join(polygons).where($"polygon" intersects  $"line")
-    assert(joined.select($"id").map { case Row(s: Int) => s }.collect().sorted === Array(1, 2, 3, 4))
-
+    assert(joined.select($"id").map { case Row(s: Int) => s }.collect().sorted === Array(1, 2, 3, 4, 5))
   }
 
   test("PolyLine intersects Line") {
@@ -166,6 +166,45 @@ class ExpressionSuite extends FunSuite with TestSparkContext {
 
     joined foreach { case (cond, line) => assert(cond || line.isEmpty)}
   }
+
+  test("PolyLine intersects Polygon") {
+
+    val polyline = PolyLine(Array(0), Array(Point(0.0, 0.0), Point(1.0, 1.0)))
+    val polygon1 = Polygon(Array(0), Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0)))
+    val polygon2 = Polygon(Array(0), Array(Point(3.0, 3.0), Point(3.0, 2.0),
+      Point(2.0, 2.0), Point(2.0, 3.0), Point(3.0, 3.0)))
+    val polygon3 = Polygon(Array(0), Array(Point(3.0, 3.0), Point(3.0, -3.0),
+      Point(-3.0, -3.0), Point(-3.0, 3.0), Point(3.0, 3.0)))
+
+    assert(polygon1.intersects(polyline) === true)
+    assert(polygon2.intersects(polyline) === false)
+    assert(polygon3.intersects(polyline) === true)
+
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+
+    val polylines = sc.parallelize(Seq(("1", polyline))).toDF("id", "polyline")
+
+    val polygons = sc.parallelize(Seq(
+      (true, polygon1),
+      (false, polygon2),
+      (true, polygon3))).toDF("cond", "polygon")
+
+    val joined = polygons.join(polylines, $"polygon" intersects  $"polyline", "leftOuter").
+      select("cond", "polyline").
+      collect().
+      map {
+        case Row(cond: Boolean, polyline: PolyLine) =>
+          (cond, Some(polyline))
+
+        case Row(cond: Boolean, null) =>
+          (cond, None)
+      }
+
+    joined foreach { case (cond, polyline) => assert(cond || polyline.isEmpty)}
+  }
+
 
   test("PolyLine contains Point") {
 

@@ -42,10 +42,10 @@ class PolyLine extends Shape {
   @JsonIgnore private var _boundingBox: BoundingBox = _
 
   private[magellan] def init(
-      indices: Array[Int],
-      xcoordinates: Array[Double],
-      ycoordinates: Array[Double],
-      boundingBox: BoundingBox): Unit = {
+                              indices: Array[Int],
+                              xcoordinates: Array[Double],
+                              ycoordinates: Array[Double],
+                              boundingBox: BoundingBox): Unit = {
 
     this.indices = indices
     this.xcoordinates = xcoordinates
@@ -130,6 +130,11 @@ class PolyLine extends Shape {
   def getNumRings(): Int = indices.length
 
   def getRing(index: Int): Int = indices(index)
+
+  def intersects(polygon:Polygon):Boolean = {
+    // a polyline intersects a polygon iff any line intersects a polygon
+    curves exists (_.iterator().exists(polygon intersects))
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 

@@ -190,6 +190,43 @@ object TestingUtils {
     l
   }
 
+  def toESRI(polyline: PolyLine): ESRIPolyLine = {
+    val l = new ESRIPolyLine()
+    val indices = polyline.getRings()
+    val length = polyline.length
+    if (length > 0) {
+      var startIndex = 0
+      var endIndex = 1
+      var currentRingIndex = 0
+      val startVertex = polyline.getVertex(startIndex)
+      l.startPath(
+        startVertex.getX(),
+        startVertex.getY())
+
+      while (endIndex < length) {
+        val endVertex = polyline.getVertex(endIndex)
+        l.lineTo(endVertex.getX(), endVertex.getY())
+        startIndex += 1
+        endIndex += 1
+        // if we reach a ring boundary skip it
+        val nextRingIndex = currentRingIndex + 1
+        if (nextRingIndex < indices.length) {
+          val nextRing = indices(nextRingIndex)
+          if (endIndex == nextRing) {
+            startIndex += 1
+            endIndex += 1
+            currentRingIndex = nextRingIndex
+            val startVertex = polyline.getVertex(startIndex)
+            l.startPath(
+              startVertex.getX(),
+              startVertex.getY())
+          }
+        }
+      }
+    }
+    l
+  }
+
   def toESRI(point: Point): ESRIPoint = {
     val esriPoint = new ESRIPoint()
     esriPoint.setXY(point.getX(), point.getY())
