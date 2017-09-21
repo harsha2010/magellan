@@ -50,4 +50,10 @@ trait Curve extends Serializable {
     * @return
     */
   def intersects(polygon: Polygon): Boolean
+    * Returns an iterator over the loop.
+    *
+    * @return
+    */
+  def iterator(): Iterator[Line]
+
 }
