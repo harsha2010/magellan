@@ -48,4 +48,72 @@ class R2LoopSuite extends FunSuite {
     val loop2 = makeLoop("0.0:0.0,2.0:0.0,2.0:-2.0,0.0:-2.0,0.0:0.0")
     assert(loop1 intersects loop2)
   }
+
+  test("Ray intersects line") {
+
+    /**
+      * Given
+      *     + + + + + + + +
+      *           .
+      *           .
+      *           P
+      *
+      * ray from P should  intersect line
+      */
+
+    assert(R2Loop.intersects(Point(0.0, -2.0), makeLine("-1.0:-1.0,1.0:-1.0")))
+
+    /**
+      * Given
+      *     +
+      *     +
+      *     +  .
+      *     +  .
+      *     +  P
+      *
+      * ray from P should not intersect line (parallel)
+      */
+    assert(!R2Loop.intersects(Point(0.0, 0.0), makeLine("-1.0:-1.0,-1.0:1.0")))
+
+    /**
+      * Given
+      *     +
+      *     +
+      *     +
+      *     +
+      *     P
+      *
+      * ray from P should not intersect line (collinear)
+      */
+
+    assert(!R2Loop.intersects(Point(-1.0, 0.0), makeLine("-1.0:-1.0,-1.0:1.0")))
+
+    /**
+      * Given
+      *     + + + +
+      *   + .
+      * +   .
+      *     .
+      *     P
+      *
+      * Ray from P should intersect polyline exactly once
+      */
+
+    assert(!R2Loop.intersects(Point(2.0, 0.0), makeLine("0.0:0.0,2.0:2.0")))
+    assert(R2Loop.intersects(Point(2.0, 0.0), makeLine("2.0:2.0,4.0:2.0")))
+
+    /**
+      * Given
+      *     + + + +
+      *   + .
+      * + + + + + +
+      *     .
+      *     P
+      *
+      * Ray from P should intersect the polyline exactly twice
+      */
+
+    assert(R2Loop.intersects(Point(2.0, 0.0), makeLine("1.0:1.0,4.0:1.0")))
+
+  }
 }
