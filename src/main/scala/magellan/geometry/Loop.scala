@@ -68,11 +68,4 @@ trait Loop extends Serializable with Curve {
     loop.iterator() exists (intersects(_))
   }
 
-  /**
-    * Returns an iterator over the loop.
-    *
-    * @return
-    */
-  def iterator(): Iterator[Line]
-
 }

@@ -83,7 +83,7 @@ class PolyLine extends Shape {
     row.update(7, new DoubleArrayData(ycoordinates))
     row
   }
-
+  
   @JsonProperty
   private def getXCoordinates(): Array[Double] = xcoordinates
 
@@ -141,6 +141,11 @@ class PolyLine extends Shape {
   def getNumRings(): Int = indices.length
 
   def getRing(index: Int): Int = indices(index)
+
+  def intersects(polygon:Polygon):Boolean = {
+    // a polyline intersects a polygon iff any line intersects a polygon
+    curves exists (_.iterator().exists(polygon intersects))
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]
 
