@@ -54,7 +54,7 @@ class R2Loop extends Loop {
     val loopIterator = new LoopIterator()
     while (loopIterator.hasNext && !touches) {
       val edge = loopIterator.next()
-      inside ^= intersects(point, edge)
+      inside ^= R2Loop.intersects(point, edge)
       touches |= edge.contains(point)
     }
     if (touches) Touches else if (inside) Contains else Disjoint
@@ -76,15 +76,6 @@ class R2Loop extends Loop {
     s" ${ycoordinates.mkString(",")}," +
     s" $startIndex," +
     s" $endIndex)"
-
-  @inline private def intersects(point: Point, line: Line): Boolean = {
-    val (start, end) = (line.getStart(), line.getEnd())
-    val slope = (end.getY() - start.getY())/ (end.getX() - start.getX())
-    val cond1 = (start.getX() <= point.getX()) && (point.getX() < end.getX())
-    val cond2 = (end.getX() <= point.getX()) && (point.getX() < start.getX())
-    val above = (point.getY() < slope * (point.getX() - start.getX()) + start.getY())
-    ((cond1 || cond2) && above )
-  }
 
   class LoopIterator extends Iterator[Line] {
 
@@ -109,5 +100,26 @@ class R2Loop extends Loop {
       j += 1
       edge
     }
+  }
+}
+
+private [geometry] object R2Loop {
+
+  /**
+    * Checks if the ray from a given point out to infinity on Y axis intersects
+    * this line. This function checks for strict intersection:
+    * a ray that is collinear with the line is not considered to intersect the line.
+    *
+    * @param point
+    * @param line
+    * @return
+    */
+  @inline def intersects(point: Point, line: Line): Boolean = {
+    val (start, end) = (line.getStart(), line.getEnd())
+    val slope = (end.getY() - start.getY())/ (end.getX() - start.getX())
+    val cond1 = (start.getX() <= point.getX()) && (point.getX() < end.getX())
+    val cond2 = (end.getX() <= point.getX()) && (point.getX() < start.getX())
+    val above = (point.getY() < slope * (point.getX() - start.getX()) + start.getY())
+    ((cond1 || cond2) && above )
   }
 }

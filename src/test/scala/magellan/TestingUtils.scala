@@ -18,7 +18,7 @@ package magellan
 
 import com.esri.core.geometry.{Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyLine}
 import com.google.common.base.Splitter
-import magellan.geometry.{Loop, R2Loop}
+import magellan.geometry.R2Loop
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.LeafExpression
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
@@ -196,7 +196,7 @@ object TestingUtils {
     esriPoint
   }
 
-  def makeLoop(str: String): Loop = {
+  def makeLoop(str: String): R2Loop = {
     val tokens = Splitter.on(',').split(str)
     val size = tokens.size
     val xcoordinates = Array.fill(size)(0.0)
