@@ -15,7 +15,7 @@
   */
 package magellan.geometry
 import magellan.Relate.{Contains, Disjoint, Touches}
-import magellan.{Line, Point, Polygon, Relate}
+import magellan.{Line, Point, Relate}
 
 class R2Loop extends Loop {
 
@@ -25,10 +25,10 @@ class R2Loop extends Loop {
   private var endIndex: Int = _
 
   private [magellan] def init(
-                               xcoordinates: Array[Double],
-                               ycoordinates: Array[Double],
-                               startIndex: Int,
-                               endIndex: Int): Unit = {
+      xcoordinates: Array[Double],
+      ycoordinates: Array[Double],
+      startIndex: Int,
+      endIndex: Int): Unit = {
     this.xcoordinates = xcoordinates
     this.ycoordinates = ycoordinates
     this.startIndex = startIndex
@@ -66,16 +66,6 @@ class R2Loop extends Loop {
     while (loopIterator.hasNext && !lineIntersects) {
       val edge = loopIterator.next()
       lineIntersects = edge.intersects(line)
-    }
-    lineIntersects
-  }
-
-  @inline override def intersects(polygon: Polygon): Boolean = {
-    var lineIntersects = false
-    val loopIterator = new LoopIterator()
-    while (loopIterator.hasNext && !lineIntersects) {
-      val edge = loopIterator.next()
-      lineIntersects = polygon.intersects(edge)
     }
     lineIntersects
   }
