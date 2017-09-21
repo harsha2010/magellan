@@ -216,15 +216,16 @@ class Polygon extends Shape {
     }
     else {
       var endindex = {
-        if (index == indices.last) length
+        if (startindex == indices.last) length
         else getRing(index + 1)
       }
-      var arrayPoints = Array.empty[Point]
+      val arrayPoints = new ArrayBuffer[Point]()
 
-      while (startindex <= endindex) {
-        arrayPoints :+ getVertex(startindex)
+      while (startindex < endindex) {
+        arrayPoints += getVertex(startindex)
+        startindex += 1
       }
-      Polygon(Array(0), arrayPoints)
+      Polygon(Array(0), arrayPoints.toArray)
     }
   }
 

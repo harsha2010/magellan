@@ -369,4 +369,21 @@ class PolygonSuite extends FunSuite {
     assert(!polygon1.intersects(polygon5))
 
   }
+
+  test("get ring as Polygon") {
+    val ring1 = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+
+    val ring2 = Array(Point(5.0, 5.0), Point(5.0, 4.0),
+      Point(4.0, 4.0), Point(4.0, 5.0), Point(5.0, 5.0))
+
+    val polygon = Polygon(Array(0, 5), ring1 ++ ring2)
+    val polygon1 = Polygon(Array(0),ring1)
+    val polygon2 = Polygon(Array(0), ring2)
+
+    val firstRing = polygon.getRingPolygon(0)
+    val secondRing = polygon.getRingPolygon(1)
+    assert(firstRing.equals(polygon1))
+    assert(secondRing.equals(polygon2))
+  }
 }
