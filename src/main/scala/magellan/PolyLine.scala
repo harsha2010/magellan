@@ -42,10 +42,10 @@ class PolyLine extends Shape {
   @JsonIgnore private var _boundingBox: BoundingBox = _
 
   private[magellan] def init(
-      indices: Array[Int],
-      xcoordinates: Array[Double],
-      ycoordinates: Array[Double],
-      boundingBox: BoundingBox): Unit = {
+                              indices: Array[Int],
+                              xcoordinates: Array[Double],
+                              ycoordinates: Array[Double],
+                              boundingBox: BoundingBox): Unit = {
 
     this.indices = indices
     this.xcoordinates = xcoordinates
@@ -83,7 +83,7 @@ class PolyLine extends Shape {
     row.update(7, new DoubleArrayData(ycoordinates))
     row
   }
-  
+
   @JsonProperty
   private def getXCoordinates(): Array[Double] = xcoordinates
 
@@ -106,25 +106,14 @@ class PolyLine extends Shape {
 
 
   /**
-    * A polyline intersects a line iff it is a proper intersection,
-    * or if either vertex of the line touches the polyline.
+    * A polygon intersects a line iff it is a proper intersection,
+    * or if either vertex of the line touches the polygon.
     *
     * @param line
     * @return
     */
   private [magellan] def intersects(line: Line): Boolean = {
     curves exists (_.intersects(line))
-  }
-
-  /**
-    * A polyline intersects a polygon iff it is a proper intersection,
-    * or if either vertex of the polygon touches the polyline.
-    *
-    * @param polygon
-    * @return
-    */
-  private [magellan] def intersects(polygon:Polygon):Boolean = {
-    curves exists( _.intersects(polygon))
   }
 
   @JsonIgnore
