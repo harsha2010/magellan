@@ -218,11 +218,16 @@ class Polygon extends Shape {
   def getRing(index: Int): Int = indices(index)
 
   def getVertexes():Array[Point]={
-    var i = 0
+    var ring = 0
     val vertexes =  new ArrayBuffer[Point]()
-    while(i < length() - 1){
-      vertexes += getVertex(i)
-      i += 1
+    while(ring < getNumRings()) {
+      var i = 0
+      var ringPolygon = getRingPolygon(ring)
+      while (i < ringPolygon.length() - 1) {
+        vertexes += ringPolygon.getVertex(i)
+        i += 1
+      }
+      ring += 1
     }
     vertexes.toArray
   }
