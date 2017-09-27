@@ -400,6 +400,9 @@ class PolygonSuite extends FunSuite {
     assert(polygon1.intersects(polygon7))
 
 
+
+    //polygon intesects itself
+    assert(polygon1.intersects(polygon1))
   }
 
   test("get ring as Polygon") {
