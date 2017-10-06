@@ -421,19 +421,4 @@ class PolygonSuite extends FunSuite {
     assert(firstRing.equals(polygon1))
     assert(secondRing.equals(polygon2))
   }
-
-
-  test("get vertexes of the Polygon"){
-    val ring1 = Array(Point(1.0, 1.0), Point(1.0, -1.0),
-      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
-    val polygon_simple = Polygon(Array(0),ring1)
-    assert(polygon_simple.getVertexes().length.equals(4))
-
-    val ring2 = Array(Point(5.0, 5.0), Point(5.0, 4.0),
-      Point(4.0, 4.0), Point(4.0, 5.0), Point(5.0, 5.0))
-
-    val polygon_complex = Polygon(Array(0, 5), ring1 ++ ring2)
-
-    assert(polygon_complex.getVertexes().length.equals(8))
-  }
 }

@@ -217,7 +217,7 @@ class Polygon extends Shape {
 
   def getRing(index: Int): Int = indices(index)
 
-  def getVertexes():Array[Point]={
+  private def getVertexes():Array[Point]={
     var ring = 0
     val vertexes =  new ArrayBuffer[Point]()
     while(ring < getNumRings()) {
