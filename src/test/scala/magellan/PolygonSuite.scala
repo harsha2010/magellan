@@ -368,6 +368,41 @@ class PolygonSuite extends FunSuite {
 
     assert(!polygon1.intersects(polygon5))
 
+    /**
+      *  +---------+ 1,1
+      *  + +----+  +
+      *  + +    +  +
+      *  + +----+  +
+      *  +---------+
+      *
+      */
+
+    val ring6 = Array(Point(0.5, 0.5), Point(0.5, -0.5),
+      Point(-0.5, -0.5), Point(-0.5, 0.5), Point(0.5, 0.5))
+    val polygon6 = Polygon(Array(0), ring6)
+
+    assert(polygon1.intersects(polygon6))
+
+
+    /**
+      *  +---------+ 1.5,1.5
+      *  + +----+  +
+      *  + +    +  +
+      *  + +----+  +
+      *  +---------+
+      *
+      */
+
+    val ring7 = Array(Point(1.5, 1.5), Point(1.5, -1.5),
+      Point(-1.5, -1.5), Point(-1.5, 1.5), Point(1.5, 1.5))
+    val polygon7 = Polygon(Array(0), ring7)
+
+    assert(polygon1.intersects(polygon7))
+
+
+
+    //polygon intesects itself
+    assert(polygon1.intersects(polygon1))
   }
 
   test("get ring as Polygon") {
