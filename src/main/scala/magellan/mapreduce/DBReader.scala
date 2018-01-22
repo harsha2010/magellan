@@ -17,15 +17,14 @@
 package magellan.mapreduce
 
 import java.io.DataInputStream
+import java.util.GregorianCalendar
 
 import scala.collection.mutable.ListBuffer
-
 import org.apache.commons.io.EndianUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
-
 import magellan.io.ShapeKey
 
 private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
@@ -85,13 +84,53 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
           fld.set(new String(b))
           fld
         }
-
+        case 'D' =>{
+          val b = Array.fill[Byte](length)(0)
+          dis.readFully(b)
+          val fld = new Text()
+          fld.clear()
+          fld.set(readDate(b))
+          fld
+        }
+        case 'L' =>{
+          val b = Array.fill[Byte](length)(0)
+          dis.readFully(b)
+          val fld = new Text()
+          fld.clear()
+          fld.set(readLogical(b))
+          fld
+        }
         case _ => ???
       }
       value.put(fieldName, v)
     }
     recordsRead += 1
     key.setRecordIndex(key.getRecordIndex() + 1)
+  }
+
+
+  private def parseInt(bytes: Array[Byte], from: Int, to: Int) = {
+    var result = 0
+    var i = from
+    while (i < to && i < bytes.length) {
+      result *= 10
+      result += bytes(i) - '0'
+        i += 1
+    }
+    result
+  }
+
+  private def readDate(bytes: Array[Byte]): String = {
+    val year = parseInt(bytes, 0, 4)
+    val month = parseInt(bytes, 4, 6)
+    val day = parseInt(bytes, 6, 8)
+    year + "-" +  (if(month<=9) "0"+month else month) + "-" + (if(day<=9) "0"+ day else day)
+  }
+
+
+  private def readLogical(bytes: Array[Byte]): String = {
+    if(bytes(0) == 'Y' || bytes(0) == 'y' || bytes(0) == 'T' || bytes(0) == 't') "true"
+    else "false"
   }
 
   override def getCurrentValue: MapWritable = {

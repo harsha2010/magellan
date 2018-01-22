@@ -115,7 +115,7 @@ trait Shape extends DataType with Serializable {
       (this, other) match {
 
         case (p: Point, q: Point) => p.equals(q)
-        case (p: Point, q: Line) => false
+        case (p: Point, q: Line) => q.contains(p)
         case (p: Point, q: Polygon) => false
         case (p: Point, q: PolyLine) => false
 

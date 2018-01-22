@@ -73,4 +73,42 @@ class DBReaderSuite extends FunSuite with TestSparkContext {
     assert(baseRdd.count() == 22597)
     assert(baseRdd.first()("route_ident").trim() === "[u'025A_BR_2498#_1']")
   }
+
+  test("Boolean field"){
+    //"C:\Users\xr_xa\Documents\GitHub\magellan\src\test\resources\shapefiles\field_test\shapefile-test.dbf"
+    val path = this.getClass.getClassLoader.getResource("shapefiles/field_test/shapefile-test.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    ).map { case (s: ShapeKey, v: MapWritable) =>
+      v.entrySet().map { kv =>
+        val k = kv.getKey.asInstanceOf[Text].toString
+        val v = kv.getValue.asInstanceOf[Text].toString
+        (k, v)
+      }.toMap
+    }
+    assert(baseRdd.first()("IS_RIGHT") === "false")
+    assert(baseRdd.collect().last("IS_RIGHT") === "true")
+  }
+
+  test("Date field"){
+    //"C:\Users\xr_xa\Documents\GitHub\magellan\src\test\resources\shapefiles\field_test\shapefile-test.dbf"
+    val path = this.getClass.getClassLoader.getResource("shapefiles/field_test/shapefile-test.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    ).map { case (s: ShapeKey, v: MapWritable) =>
+      v.entrySet().map { kv =>
+        val k = kv.getKey.asInstanceOf[Text].toString
+        val v = kv.getValue.asInstanceOf[Text].toString
+        (k, v)
+      }.toMap
+    }
+    assert(baseRdd.first()("DATE") === "2018-01-01")
+    assert(baseRdd.collect().last("DATE") === "2018-12-12")
+  }
 }
