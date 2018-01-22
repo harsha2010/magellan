@@ -92,8 +92,14 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
           fld.set(readTimeInMillis(b))
           fld
         }
-        
-
+        case 'L' =>{
+          val b = Array.fill[Byte](length)(0)
+          dis.readFully(b)
+          val fld = new Text()
+          fld.clear()
+          fld.set(readLogical(b))
+          fld
+        }
         case _ => ???
       }
       value.put(fieldName, v)
@@ -114,11 +120,17 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
     result
   }
 
-  private def readTimeInMillis(bytes: Array[Byte]) = {
+  private def readTimeInMillis(bytes: Array[Byte]): String = {
     val year = parseInt(bytes, 0, 4)
     val month = parseInt(bytes, 4, 6)
     val day = parseInt(bytes, 6, 8)
     year + "-" +  month + "-" + day
+  }
+
+
+  private def readLogical(bytes: Array[Byte]): String = {
+    if(bytes(0) == 'Y' || bytes(0) == 'y' || bytes(0) == 'T' || bytes(0) == 't') "true"
+    else "false"
   }
 
   override def getCurrentValue: MapWritable = {
