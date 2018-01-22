@@ -89,7 +89,7 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
           dis.readFully(b)
           val fld = new Text()
           fld.clear()
-          fld.set(readTimeInMillis(b))
+          fld.set(readDate(b))
           fld
         }
         case 'L' =>{
@@ -120,11 +120,11 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
     result
   }
 
-  private def readTimeInMillis(bytes: Array[Byte]): String = {
+  private def readDate(bytes: Array[Byte]): String = {
     val year = parseInt(bytes, 0, 4)
     val month = parseInt(bytes, 4, 6)
     val day = parseInt(bytes, 6, 8)
-    year + "-" +  month + "-" + day
+    year + "-" +  (if(month<=9) "0"+month else month) + "-" + (if(day<=9) "0"+ day else day)
   }
 
 
