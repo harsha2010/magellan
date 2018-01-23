@@ -17,8 +17,6 @@
 package magellan.mapreduce
 
 import java.io.DataInputStream
-import java.util.GregorianCalendar
-
 import scala.collection.mutable.ListBuffer
 import org.apache.commons.io.EndianUtils
 import org.apache.hadoop.conf.Configuration
