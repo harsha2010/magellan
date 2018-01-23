@@ -158,15 +158,7 @@ class Polygon extends Shape {
     * @return
     */
   private [magellan] def intersects(polygon: Polygon): Boolean = {
-    var intersects = false
-    if(polygon.getVertexes().exists(other => this.contains(other))
-      || this.getVertexes().exists(vertex => polygon.contains(vertex))){
-        intersects = true
-      }
-    else{
-       intersects =  polygon.loops.exists(otherLoop => this.loops.exists(_.intersects(otherLoop)))
-      }
-    intersects
+    polygon.loops.exists(otherLoop => this.loops.exists(_.intersects(otherLoop))) 
   }
 
   private [magellan] def contains(box: BoundingBox): Boolean = {
@@ -216,21 +208,6 @@ class Polygon extends Shape {
   def getNumRings(): Int = indices.length
 
   def getRing(index: Int): Int = indices(index)
-
-  private def getVertexes():Array[Point]={
-    var ring = 0
-    val vertexes =  new ArrayBuffer[Point]()
-    while(ring < getNumRings()) {
-      var i = 0
-      var ringPolygon = getRingPolygon(ring)
-      while (i < ringPolygon.length() - 1) {
-        vertexes += ringPolygon.getVertex(i)
-        i += 1
-      }
-      ring += 1
-    }
-    vertexes.toArray
-  }
 
   def getRingPolygon(index: Int): Polygon = {
     var startindex = getRing(index)
