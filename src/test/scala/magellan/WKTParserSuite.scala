@@ -24,7 +24,7 @@ class WKTParserSuite extends FunSuite {
   test("parse int") {
     val parsed = WKTParser.int.parse("-30")
     assert(parsed.index === 3)
-    assert(parsed.get.value ===  "-30")
+    assert(parsed.get.value === "-30")
   }
 
   test("parse float") {
@@ -45,6 +45,43 @@ class WKTParserSuite extends FunSuite {
     assert(p.getY() === 10.0)
   }
 
+  test("parse multipoint, single value") {
+    val parsed = WKTParser.multipoint.parse("MULTIPOINT (30 10)")
+    assert(parsed.index == 18)
+    val p = parsed.get.value
+
+    assert(p.length === 1)
+
+    assert(p(0).getX() === 30.0)
+    assert(p(0).getY() === 10.0)
+  }
+
+  test("parse multipoint, two values") {
+    val parsed = WKTParser.multipoint.parse("MULTIPOINT(30 10, 40 20)")
+    assert(parsed.index == 24)
+    val p = parsed.get.value
+
+    assert(p.length === 2)
+
+    assert(p(0).getX() === 30.0)
+    assert(p(0).getY() === 10.0)
+    assert(p(1).getX() === 40.0)
+    assert(p(1).getY() === 20.0)
+  }
+
+  test("parse multipoint, two bracketed values") {
+    val parsed = WKTParser.multipoint.parse("MULTIPOINT((30 10), (40 20))")
+    assert(parsed.index == 28)
+    val p = parsed.get.value
+
+    assert(p.length === 2)
+
+    assert(p(0).getX() === 30.0)
+    assert(p(0).getY() === 10.0)
+    assert(p(1).getX() === 40.0)
+    assert(p(1).getY() === 20.0)
+  }
+
   test("parse linestring") {
     var parsed = WKTParser.linestring.parse("LINESTRING (30 10, 10 30, 40 40)")
     var p: PolyLine = parsed.get.value
@@ -59,10 +96,37 @@ class WKTParserSuite extends FunSuite {
 
   }
 
+  test("parse multilinestring, single value") {
+    val parsed = WKTParser.multilinestring.parse("MULTILINESTRING((30 10, 10 30, 40 40))")
+    assert(parsed.index == 38)
+    val p = parsed.get.value
+
+    assert(p.length === 1)
+
+    assert(p(0).length() === 3)
+  }
+
+  test("parse multilinestring, two values") {
+    val parsed = WKTParser.multilinestring.parse("MULTILINESTRING((30 10, 10 30, 40 40),(-79.470579 35.442827,-79.469465 35.444889,-79.468907 35.445829,-79.468294 35.446608,-79.46687 35.447893))")
+    assert(parsed.index == 144)
+    val p = parsed.get.value
+
+    assert(p.length === 2)
+
+    assert(p(0).length() === 3)
+    assert(p(1).length() === 5)
+  }
+
   test("parse polygon without holes") {
     var parsed = WKTParser.polygonWithoutHoles.parse("POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))")
     val p: Polygon = parsed.get.value
     assert(p.length === 5)
+    assert(p.getNumRings() === 1)
+    assert(p.getVertex(0) === Point(30, 10))
+    assert(p.getVertex(1) === Point(40, 40))
+    assert(p.getVertex(2) === Point(20, 40))
+    assert(p.getVertex(3) === Point(10, 20))
+    assert(p.getVertex(4) === Point(30, 10))
   }
 
   test("parse polygon with holes") {
@@ -84,18 +148,52 @@ class WKTParserSuite extends FunSuite {
     assert(p.getVertex(5) === Point(20.0, 30.0))
   }
 
+  test("parse multipolygon") {
+    val parsed = WKTParser.multipolygon.parse("MULTIPOLYGON(((30 10, 40 40, 20 40, 10 20, 30 10)), ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30)))")
+    val p = parsed.get.value
+
+    assert(p.length === 2)
+
+    assert(p(0).length === 5)
+    assert(p(0).getNumRings() === 1)
+    assert(p(0).getVertex(0) === Point(30, 10))
+    assert(p(0).getVertex(1) === Point(40, 40))
+    assert(p(0).getVertex(2) === Point(20, 40))
+    assert(p(0).getVertex(3) === Point(10, 20))
+    assert(p(0).getVertex(4) === Point(30, 10))
+
+    assert(p(1).getNumRings() == 2)
+    assert(p(1).getRing(1) == 5)
+    assert(p(1).getVertex(4) === Point(35.0, 10.0))
+    assert(p(1).getVertex(5) === Point(20.0, 30.0))
+  }
+
+
   test("parse") {
     val shape = WKTParser.parseAll("LINESTRING (30 10, 10 30, 40 40)")
     assert(shape.isInstanceOf[PolyLine])
+  }
+
+  test("parse array") {
+    val shape = WKTParser.parseAllArray("LINESTRING (30 10, 10 30, 40 40)")
+    assert(shape.length === 1)
+    assert(shape(0).isInstanceOf[PolyLine])
+  }
+
+  test("parse multi array") {
+    val shape = WKTParser.parseAllArray("MULTILINESTRING ((30 10, 10 30, 40 40),(30 10, 10 30, 40 40))")
+    assert(shape.length === 2)
+    assert(shape(0).isInstanceOf[PolyLine])
+    assert(shape(1).isInstanceOf[PolyLine])
   }
 
   test("perf") {
 
     def time[R](block: => R): R = {
       val t0 = System.nanoTime()
-      val result = block    // call-by-name
+      val result = block // call-by-name
       val t1 = System.nanoTime()
-      println("Elapsed time: " + (t1 - t0)/1E6 + "ms")
+      println("Elapsed time: " + (t1 - t0) / 1E6 + "ms")
       result
     }
 

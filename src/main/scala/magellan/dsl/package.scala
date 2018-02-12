@@ -48,10 +48,12 @@ package object dsl {
 
       def withinRange(origin: Point, radius: Double): Column = Column(WithinCircleRange(c.expr, origin, radius))
     }
-    
+
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
     implicit def wkt(x: Column) = Column(WKT(x.expr))
+
+    implicit def wktArray(x: Column) = Column(WKTArray(x.expr))
 
     implicit class DslDataset[T](c: Dataset[T]) {
       def df: Dataset[T] = c

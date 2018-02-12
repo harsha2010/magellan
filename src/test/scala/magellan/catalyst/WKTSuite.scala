@@ -20,8 +20,10 @@ import com.esri.core.geometry.GeometryEngine
 import magellan.TestingUtils._
 import magellan.{Point, Polygon, TestSparkContext}
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
+
 
 class WKTSuite extends FunSuite with TestSparkContext {
 
@@ -29,12 +31,43 @@ class WKTSuite extends FunSuite with TestSparkContext {
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
     val df = sc.parallelize(Seq(
-        (1, "POINT (3 15)"),
-        (2, "POINT (25 5)"),
-        (3, "POINT (30 10)")
-      )).toDF("id", "text")
+      (1, "POINT (3 15)"),
+      (2, "POINT (25 5)"),
+      (3, "POINT (30 10)")
+    )).toDF("id", "text")
 
-    val points = df.withColumn("shape", wkt($"text")).select($"shape"("point"))
+    val points = df.withColumn("shape", wkt($"text")).select($"shape" ("point"))
+    assert(points.count() === 3)
+    val point = points.first()(0).asInstanceOf[Point]
+    assert(point.getX() === 3.0)
+    assert(point.getY() === 15.0)
+  }
+
+  test("convert points to WKT Array") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val df = sc.parallelize(Seq(
+      (1, "POINT (3 15)"),
+      (2, "POINT (25 5)"),
+      (3, "POINT (30 10)")
+    )).toDF("id", "text")
+
+    val points = df.withColumn("shape", explode(wktArray($"text"))).select($"shape" ("point"))
+    assert(points.count() === 3)
+    val point = points.first()(0).asInstanceOf[Point]
+    assert(point.getX() === 3.0)
+    assert(point.getY() === 15.0)
+  }
+
+  test("convert multipoints to WKT Array") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val df = sc.parallelize(Seq(
+      (1, "MULTIPOINT ((3 15),(25 5))"),
+      (2, "MULTIPOINT (30 10)")
+    )).toDF("id", "text")
+
+    val points = df.withColumn("shape", explode(wktArray($"text"))).select($"shape" ("point"))
     assert(points.count() === 3)
     val point = points.first()(0).asInstanceOf[Point]
     assert(point.getX() === 3.0)
@@ -69,7 +102,7 @@ class WKTSuite extends FunSuite with TestSparkContext {
       (polygonId, value, text)
     }.toDF("polygonId", "value", "text")
       .withColumn("polygon", wkt($"text")("polygon"))
-    
+
     val actual = points.join(polygons)
       .where($"point" within $"polygon")
       .select($"pointId", $"polygonId")
@@ -89,7 +122,7 @@ class WKTSuite extends FunSuite with TestSparkContext {
     val esriResults = polygons.flatMap {
       case Row(polygonId: String, value: String, text: String, polygon: Polygon) =>
         val esriPolygon = toESRI(polygon)
-        esriPoints.map {case (pointId, esriPoint) =>
+        esriPoints.map { case (pointId, esriPoint) =>
           val within = GeometryEngine.contains(esriPolygon, esriPoint, null)
           (within, pointId, polygonId)
         }.filter(_._1)
