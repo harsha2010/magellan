@@ -18,7 +18,7 @@ package org.apache.spark.sql.catalyst.expressions
 
 import magellan.catalyst.MagellanExpression
 import magellan.index.{ZOrderCurve, ZOrderCurveIndexer}
-import magellan.{Point, Relate, Shape}
+import magellan.{Point, Relate, Shape, WKTParser}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.util.GenericArrayData
@@ -152,6 +152,97 @@ case class WKT(override val child: Expression)
     StructType(List(StructField("point", new PointUDT(), true),
       StructField("polyline", new PolyLineUDT(), true),
       StructField("polygon", new PolygonUDT(), true)))
+  }
+
+}
+
+/**
+  * Extracts shapes from WKT Text.
+  *
+  * @param child
+  */
+case class WKTArray(override val child: Expression)
+  extends UnaryExpression with MagellanExpression {
+
+  private val pointUDT = new PointUDT()
+  private val lineUDT = new LineUDT()
+  private val polyLineUDT = new PolyLineUDT()
+  private val polygonUDT = new PolygonUDT()
+
+  override protected def nullSafeEval(input: Any): Any = {
+
+    val text = input.asInstanceOf[UTF8String]
+    val shapes = WKTParser.parseAllArray(text.toString)
+    new GenericArrayData(
+      shapes.map(s => {
+        val (udt: UserDefinedType[Shape], indexVar) = s.getType() match {
+          case 1 => (pointUDT, 0)
+          case 2 => (lineUDT, 1)
+          case 3 => (polyLineUDT, 1)
+          case 5 => (polygonUDT, 2)
+        }
+
+        val row = new GenericInternalRow(3)
+        row.update(indexVar, udt.serialize(s))
+        row
+      })
+    )
+  }
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val serializersVar = ctx.freshName("serializers")
+
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
+      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+        "")
+
+    val childTypeVar = ctx.freshName("childType")
+    val childShapeVar = ctx.freshName("childShape")
+    val serializerVar = ctx.freshName("serializer")
+
+    val indexVar = ctx.freshName("index")
+    val resultVar = ctx.freshName("result")
+
+    val j = ctx.freshName("j")
+    val n = ctx.freshName("n")
+    val values = ctx.freshName("values")
+    val arrayClass = classOf[GenericArrayData].getName
+    val internalRowClass = classOf[InternalRow].getName
+    val genericInternalRowClass = classOf[GenericInternalRow].getName
+
+    nullSafeCodeGen(ctx, ev, (c1) => {
+      s"" +
+        s"String text = ${c1}.toString();\n" +
+        s"magellan.Shape[] $childShapeVar = (magellan.Shape[]) " +
+        s"magellan.WKTParser.parseAllArray(text);\n" +
+        s"final int $n = $childShapeVar.length;\n" +
+        s"final $internalRowClass[] $values = new $internalRowClass[$n];\n" +
+        s"for (int $j = 0; $j < $n; $j++) {\n" +
+        s"Integer $childTypeVar = $childShapeVar[$j].getType();\n" +
+        s"org.apache.spark.sql.types.UserDefinedType<magellan.Shape> $serializerVar =" +
+        s" (org.apache.spark.sql.types.UserDefinedType<magellan.Shape>) $serializersVar.get($childTypeVar);\n" +
+        s"Integer $indexVar = -1; \n" +
+        s"if ($childTypeVar == 1) {$indexVar = 0;}\n" +
+        s"else if ($childTypeVar == 2 || $childTypeVar == 3) {$indexVar = 1;} \n" +
+        s"else {$indexVar = 2;} \n" +
+        s"$genericInternalRowClass $resultVar = new $genericInternalRowClass(3);\n" +
+        s"$resultVar.update($indexVar, $serializerVar.serialize($childShapeVar[$j])); \n" +
+        s"$values[$j] = $resultVar;\n" +
+        s"}\n" +
+        s"${ev.value} =  new $arrayClass($values); \n"
+    })
+  }
+
+  override def dataType: DataType = {
+    ArrayType(
+      StructType(List(StructField("point", new PointUDT(), true),
+        StructField("polyline", new PolyLineUDT(), true),
+        StructField("polygon", new PolygonUDT(), true))
+      ))
   }
 
 }
