@@ -18,11 +18,13 @@ package magellan.catalyst
 
 import com.esri.core.geometry.GeometryEngine
 import magellan.TestingUtils._
-import magellan.{Point, Polygon, TestSparkContext}
+import magellan._
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.magellan.dsl.expressions._
 import org.scalatest.FunSuite
+
+import scala.collection.mutable
 
 
 class WKTSuite extends FunSuite with TestSparkContext {
@@ -59,7 +61,7 @@ class WKTSuite extends FunSuite with TestSparkContext {
     assert(point.getY() === 15.0)
   }
 
-  test("convert multipoints to WKT Array") {
+  test("convert multipoints to exploded WKT Array") {
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
     val df = sc.parallelize(Seq(
@@ -72,6 +74,54 @@ class WKTSuite extends FunSuite with TestSparkContext {
     val point = points.first()(0).asInstanceOf[Point]
     assert(point.getX() === 3.0)
     assert(point.getY() === 15.0)
+  }
+
+  test("convert multipolygon to exploded WKT Array") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val df = sc.parallelize(Seq(
+      (1, "MULTIPOLYGON(((30 10, 40 40, 20 40, 10 20, 30 10)), ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30)))")
+    )).toDF("id", "text")
+
+    val polygons = df.withColumn("shape", explode(wktArray($"text"))).select($"shape" ("polygon")).collect()
+    assert(polygons.length === 2)
+    val polygon1 = polygons(0)(0).asInstanceOf[Polygon]
+    val polygon2 = polygons(1)(0).asInstanceOf[Polygon]
+    assert(polygon1.getNumRings() === 1)
+    assert(polygon2.getNumRings() === 2)
+  }
+
+  test("convert multilinestring to exploded WKT Array") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val df = sc.parallelize(Seq(
+      (1, "MULTILINESTRING((30 10, 10 30, 40 40),(-79.470579 35.442827,-79.469465 35.444889,-79.468907 35.445829,-79.468294 35.446608,-79.46687 35.447893))")
+    )).toDF("id", "text")
+
+    val lines = df.withColumn("shape", explode(wktArray($"text"))).select($"shape" ("polyline")).collect()
+    assert(lines.length === 2)
+    val line1 = lines(0)(0).asInstanceOf[PolyLine]
+    val line2 = lines(1)(0).asInstanceOf[PolyLine]
+    assert(line1.getVertex(0) === Point(30 ,10))
+    assert(line1.getVertex(1) === Point(10, 30))
+    assert(line1.getVertex(2) === Point(40 ,40))
+    assert(line2.getVertex(0) === Point(-79.470579, 35.442827))
+  }
+
+  test("convert multipoints to WKT Array") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val df = sc.parallelize(Seq(
+      (1, "MULTIPOINT ((3 15),(25 5))"),
+      (2, "MULTIPOINT (30 10)")
+    )).toDF("id", "text")
+
+    val points = df.withColumn("shape", wktArray($"text")).select($"shape" ("point"))
+    assert(points.count() === 2)
+    val point = points.first()(0).asInstanceOf[mutable.WrappedArray[Point]]
+    assert(point.length === 2)
+    assert(point(0).getX() === 3.0)
+    assert(point(0).getY() === 15.0)
   }
 
   test("ISSUE-108") {
