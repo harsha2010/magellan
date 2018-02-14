@@ -45,6 +45,14 @@ class WKTParserSuite extends FunSuite {
     assert(p.getY() === 10.0)
   }
 
+  test("parse empty point") {
+    val parsed = WKTParser.pointEmpty.parse("POINT EMPTY")
+    assert(parsed.index == 11)
+    val p = parsed.get.value
+    assert(p === NullShape)
+
+  }
+
   test("parse multipoint, single value") {
     val parsed = WKTParser.multipoint.parse("MULTIPOINT (30 10)")
     assert(parsed.index == 18)
@@ -168,7 +176,6 @@ class WKTParserSuite extends FunSuite {
     assert(p(1).getVertex(5) === Point(20.0, 30.0))
   }
 
-
   test("parse") {
     val shape = WKTParser.parseAll("LINESTRING (30 10, 10 30, 40 40)")
     assert(shape.isInstanceOf[PolyLine])
@@ -185,6 +192,29 @@ class WKTParserSuite extends FunSuite {
     assert(shape.length === 2)
     assert(shape(0).isInstanceOf[PolyLine])
     assert(shape(1).isInstanceOf[PolyLine])
+  }
+
+  test("parse failure") {
+    try {
+      WKTParser.parseAll("MULTILINESTRING ((30 10, 10 30, 40 40),30 10, 10 30, 40 40)")
+      fail()
+    }
+    catch {
+      case _: RuntimeException => // Expected, so continue
+    }
+
+  }
+
+
+  test("parse array failure") {
+    try {
+      WKTParser.parseAll("LINESTRING (30 10, (10 30), 40 40)")
+      fail()
+    }
+    catch {
+      case _: RuntimeException => // Expected, so continue
+    }
+
   }
 
   test("perf") {
