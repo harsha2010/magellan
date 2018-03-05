@@ -16,7 +16,9 @@
 
 package magellan
 
+import com.esri.core.geometry.OperatorBuffer
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
+import magellan.esri.ESRIUtil
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 
@@ -173,6 +175,14 @@ trait Shape extends DataType with Serializable {
    */
   @JsonIgnore
   def isEmpty(): Boolean
+
+  def buffer(distance: Double): Polygon = {
+    val esriGeometry = ESRIUtil.toESRIGeometry(this)
+    val bufferedEsriGeometry = OperatorBuffer.local()
+      .execute(esriGeometry, null, distance, null)
+
+    ESRIUtil.fromESRIGeometry(bufferedEsriGeometry).asInstanceOf[Polygon]
+  }
 }
 
 /**

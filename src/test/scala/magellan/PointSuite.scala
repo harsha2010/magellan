@@ -69,6 +69,16 @@ class PointSuite extends FunSuite with TestSparkContext {
   test("within circle") {
     assert(Point(0.0, 0.0) withinCircle (Point(0.5, 0.5), 0.75))
     assert(!(Point(0.0, 0.0) withinCircle (Point(0.5, 0.5), 0.5)))
+  }
 
+  test("buffer point") {
+    val polygon = Point(0.0, 1.0).buffer(0.5)
+    assert(polygon.getNumRings() === 1)
+    // check that [0.0, 0.75] is within this polygon
+    assert(polygon.contains(Point(0.0, 0.75)))
+    // check that [0.4, 1.0] is within this polygon
+    assert(polygon.contains(Point(0.4, 1.0)))
+    // check that [0.6, 1.0] is outside this polygon
+    assert(!polygon.contains(Point(0.6, 1.0)))
   }
 }

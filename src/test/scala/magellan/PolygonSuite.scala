@@ -19,6 +19,7 @@ import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ES
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
 import magellan.TestingUtils._
+import magellan.esri.ESRIUtil
 import org.scalatest.FunSuite
 
 
@@ -60,7 +61,7 @@ class PolygonSuite extends FunSuite {
 
     // contains is a strict check. agrees with definition in ESRI
 
-    val esriPolygon = toESRI(polygon)
+    val esriPolygon = ESRIUtil.toESRIGeometry(polygon)
 
     assert(!polygon.contains(Point(1.0, 1.0)))
     assert(!GeometryEngine.contains(esriPolygon, new ESRIPoint(1.0, 1.0), null))
@@ -82,7 +83,7 @@ class PolygonSuite extends FunSuite {
 
     // contains is a strict check. agrees with definition in ESRI
 
-    val esriPolygon = toESRI(polygon)
+    val esriPolygon = ESRIUtil.toESRIGeometry(polygon)
 
     assert(!polygon.contains(Point(1.0, 1.0)))
     assert(!GeometryEngine.contains(esriPolygon, new ESRIPoint(1.0, 1.0), null))
@@ -92,53 +93,13 @@ class PolygonSuite extends FunSuite {
 
   }
 
-  test("fromESRI") {
-    val esriPolygon = new ESRIPolygon()
-    // outer ring1
-    esriPolygon.startPath(-200, -100)
-    esriPolygon.lineTo(200, -100)
-    esriPolygon.lineTo(200, 100)
-    esriPolygon.lineTo(-190, 100)
-    esriPolygon.lineTo(-190, 90)
-    esriPolygon.lineTo(-200, 90)
-
-    // hole
-    esriPolygon.startPath(-100, 50)
-    esriPolygon.lineTo(100, 50)
-    esriPolygon.lineTo(100, -40)
-    esriPolygon.lineTo(90, -40)
-    esriPolygon.lineTo(90, -50)
-    esriPolygon.lineTo(-100, -50)
-
-    // island
-    esriPolygon.startPath(-10, -10)
-    esriPolygon.lineTo(10, -10)
-    esriPolygon.lineTo(10, 10)
-    esriPolygon.lineTo(-10, 10)
-
-    esriPolygon.reverseAllPaths()
-
-    val polygon = fromESRI(esriPolygon)
-    assert(polygon.getRings() === Array(0, 6, 12))
-    assert(polygon.getVertex(6) === Point(-200.0, -100.0))
-    assert(polygon.getVertex(13) === Point(-100.0, 50.0))
-  }
-
-  test("toESRI") {
+  test("check within matches esri within") {
 
     // no hole
     var ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
     var polygon = Polygon(Array(0), ring)
-    var esriPolygon = toESRI(polygon)
-    assert(esriPolygon.calculateRingArea2D(0) ~== 4.0 absTol 0.001)
-    assert(esriPolygon.getPathCount === 1)
-    assert(esriPolygon.getPoint(0).getX === 1.0)
-    assert(esriPolygon.getPoint(0).getY === 1.0)
-    assert(esriPolygon.getPoint(1).getX === 1.0)
-    assert(esriPolygon.getPoint(1).getY === -1.0)
-    assert(esriPolygon.getPoint(3).getX === -1.0)
-    assert(esriPolygon.getPoint(3).getY === 1.0)
+    var esriPolygon = ESRIUtil.toESRI(polygon)
 
     val esriPoint = new ESRIPoint()
 
@@ -158,7 +119,7 @@ class PolygonSuite extends FunSuite {
     )
 
     polygon = Polygon(Array(0, 5), ring)
-    esriPolygon = toESRI(polygon)
+    esriPolygon = ESRIUtil.toESRI(polygon)
 
     assert(esriPolygon.calculateRingArea2D(0) ~== 4.0 absTol 0.001)
     assert(esriPolygon.calculateRingArea2D(1) ~== -0.5 absTol 0.001)
@@ -173,21 +134,21 @@ class PolygonSuite extends FunSuite {
 
     var esriPolyLine =  new ESRIPolyline()
     var polyline = PolyLine(Array(0), Array(Point(0.0, 0.0), Point(3.0, 3.0)))
-    esriPolyLine = toESRI(polyline)
+    esriPolyLine = ESRIUtil.toESRI(polyline)
 
     assert(polygon.intersects(polyline))
     assert(!GeometryEngine.disjoint(esriPolygon, esriPolyLine, null))
 
 
     polyline = PolyLine(Array(0), Array(Point(0.75, 0.75), Point(0.90, 0.90)))
-    esriPolyLine = toESRI(polyline)
+    esriPolyLine = ESRIUtil.toESRI(polyline)
 
     assert(polygon.intersects(polyline))
     assert(!GeometryEngine.disjoint(esriPolygon, esriPolyLine, null))
 
 
     polyline = PolyLine(Array(0), Array(Point(0.0, 0.0), Point(0.3, 0.0)))
-    esriPolyLine = toESRI(polyline)
+    esriPolyLine = ESRIUtil.toESRI(polyline)
 
     assert(!polygon.intersects(polyline))
     assert(GeometryEngine.disjoint(esriPolygon, esriPolyLine, null))
@@ -420,5 +381,24 @@ class PolygonSuite extends FunSuite {
     val secondRing = polygon.getRingPolygon(1)
     assert(firstRing.equals(polygon1))
     assert(secondRing.equals(polygon2))
+  }
+
+  test("buffer polygon") {
+    /**
+     *  +---------+ 1.5,1.5
+     *  + +----+  +
+     *  + +    +  +
+     *  + +----+  +
+     *  +---------+
+     *
+     */
+
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val polygon = Polygon(Array(0), ring)
+
+    val bufferedPolygon = polygon.buffer(0.5)
+    assert(bufferedPolygon.getNumRings() === 1)
+    assert(bufferedPolygon.contains(Point(1.3, 1.3)))
   }
 }

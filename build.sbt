@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
   "com.lihaoyi" % "fastparse_2.11" % "0.4.3" % "provided",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
   "com.vividsolutions" % "jts" % "1.13" % "test",
-  "com.esri.geometry" % "esri-geometry-api" % "1.2.1" % "test"
+  "com.esri.geometry" % "esri-geometry-api" % "1.2.1"
 )
 
 libraryDependencies ++= Seq(
