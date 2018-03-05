@@ -17,6 +17,7 @@
 package magellan
 
 import org.apache.spark.sql.Row
+import org.json4s.jackson.JsonMethods.parse
 import org.scalatest.FunSuite
 
 class GeoJSONSuite extends FunSuite with TestSparkContext {
@@ -186,5 +187,67 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     assert(angola.filter { row => row match {
       case Row(p: Polygon, name: String) => p.contains(luanda)
     }}.count() === 1)
+  }
+
+  test("Write GeoJSON Point") {
+    val point = Point(0.5, 0.0)
+    val json = s"""
+        {
+          "type": "Feature",
+          "geometry": ${GeoJSON.writeJson(point)},
+          "properties": {}
+        }
+       """
+
+    implicit val formats = org.json4s.DefaultFormats
+    val result = parse(json).extract[Feature]
+    val shapes = result.geometry.shapes
+    // expect a single point
+    assert(shapes.size == 1)
+    assert(shapes.head.asInstanceOf[Point] === point)
+  }
+
+  test("Write GeoJSON Polygon") {
+    val ring1 = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+
+    val ring2 = Array(Point(5.0, 5.0), Point(5.0, 4.0),
+      Point(4.0, 4.0), Point(4.0, 5.0), Point(5.0, 5.0))
+
+    val polygon = Polygon(Array(0, 5), ring1 ++ ring2)
+
+    val json = s"""
+        {
+          "type": "Feature",
+          "geometry": ${GeoJSON.writeJson(polygon)},
+          "properties": {}
+        }
+       """
+
+    implicit val formats = org.json4s.DefaultFormats
+    val result = parse(json).extract[Feature]
+    val shapes = result.geometry.shapes
+    // expect a single polygon
+    assert(shapes.size == 1)
+    assert(shapes.head.asInstanceOf[Polygon] === polygon)
+  }
+
+  test("Write GeoJSON PolyLine") {
+    val polyline = PolyLine(Array(0), Array(Point(0.0, 1.0), Point(1.0, 0.5)))
+
+    val json = s"""
+        {
+          "type": "Feature",
+          "geometry": ${GeoJSON.writeJson(polyline)},
+          "properties": {}
+        }
+       """
+
+    implicit val formats = org.json4s.DefaultFormats
+    val result = parse(json).extract[Feature]
+    val shapes = result.geometry.shapes
+    // expect a single polyline
+    assert(shapes.size == 1)
+    assert(shapes.head.asInstanceOf[PolyLine] === polyline)
   }
 }
