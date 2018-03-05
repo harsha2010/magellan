@@ -47,11 +47,15 @@ package object dsl {
       def withinRange(boundingBox: BoundingBox): Column = Column(WithinRange(c.expr, boundingBox))
 
       def withinRange(origin: Point, radius: Double): Column = Column(WithinCircleRange(c.expr, origin, radius))
+
+      def asGeoJSON(): Column = Column(AsGeoJSON(c.expr))
     }
     
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
 
     implicit def wkt(x: Column) = Column(WKT(x.expr))
+
+    implicit def asGeoJSON(x: Column) = Column(AsGeoJSON(x.expr))
 
     implicit class DslDataset[T](c: Dataset[T]) {
       def df: Dataset[T] = c

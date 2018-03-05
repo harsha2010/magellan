@@ -18,7 +18,7 @@ package org.apache.spark.sql.catalyst.expressions
 
 import magellan.catalyst.MagellanExpression
 import magellan.index.{ZOrderCurve, ZOrderCurveIndexer}
-import magellan.{Point, Relate, Shape}
+import magellan.{GeoJSON, Point, Relate, Shape}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.util.GenericArrayData
@@ -108,7 +108,7 @@ case class Transformer(
   * @param child
   */
 case class WKT(override val child: Expression)
-  extends UnaryExpression with MagellanExpression{
+  extends UnaryExpression with MagellanExpression {
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val serializersVar = ctx.freshName("serializers")
@@ -239,6 +239,48 @@ case class Indexer(
         s"  $resultsVar.add(row); \n" +
         s"}\n" +
         s"${ev.value} = new org.apache.spark.sql.catalyst.util.GenericArrayData($resultsVar); \n"
+    })
+  }
+}
+
+case class AsGeoJSON(override val child: Expression)
+  extends UnaryExpression with MagellanExpression {
+
+  override def nullable: Boolean = false
+
+  override def dataType: DataType = StringType
+
+  override protected def nullSafeEval(input: Any): Any = {
+    val shape = newInstance(input.asInstanceOf[InternalRow])
+    val json = GeoJSON.writeJson(shape)
+    org.apache.spark.unsafe.types.UTF8String.fromString(json)
+  }
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val childTypeVar = ctx.freshName("childType")
+    val childShapeVar = ctx.freshName("childShape")
+    val shapeSerializerVar = ctx.freshName("shapeSerializer")
+    val resultVar = ctx.freshName("result")
+    val serializersVar = ctx.freshName("serializers")
+
+    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
+      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+        "")
+
+    nullSafeCodeGen(ctx, ev, (c1) => {
+      s"" +
+        s"Integer $childTypeVar = $c1.getInt(0); \n" +
+        s"org.apache.spark.sql.types.UserDefinedType<magellan.Shape> $shapeSerializerVar = " +
+        s"((org.apache.spark.sql.types.UserDefinedType<magellan.Shape>)" +
+        s"$serializersVar.get($childTypeVar)); \n" +
+        s"magellan.Shape $childShapeVar = (magellan.Shape)" +
+        s"$shapeSerializerVar.deserialize($c1); \n" +
+        s"java.lang.String $resultVar = magellan.GeoJSON.writeJson($childShapeVar); \n" +
+        s"${ev.value} = org.apache.spark.unsafe.types.UTF8String.fromString($resultVar); \n"
     })
   }
 }
