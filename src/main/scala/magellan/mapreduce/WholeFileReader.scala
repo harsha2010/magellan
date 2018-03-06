@@ -21,7 +21,7 @@ import java.io.InputStream
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
-import org.apache.hadoop.io.compress.{CodecPool, CompressionCodecFactory}
+import org.apache.hadoop.io.compress.{CodecPool, CompressionCodecFactory, Decompressor}
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
@@ -43,12 +43,13 @@ class WholeFileReader extends RecordReader[NullWritable, Text] {
     } else {
       val fs = path.getFileSystem(conf)
       var is: FSDataInputStream = null
+      var in: InputStream = null
+      var decompressor: Decompressor = null
       try {
         is = fs.open(split.getPath)
-        var in: InputStream = null
         val codec = new CompressionCodecFactory(conf).getCodec(path)
         if (codec != null) {
-          val decompressor = CodecPool.getDecompressor(codec)
+          decompressor = CodecPool.getDecompressor(codec)
           in = codec.createInputStream(is, decompressor)
         } else {
           in = is
@@ -59,8 +60,11 @@ class WholeFileReader extends RecordReader[NullWritable, Text] {
         done = true
         true
       } finally {
-        if (is != null) {
-          IOUtils.closeQuietly(is)
+        if (in != null) {
+          IOUtils.closeQuietly(in)
+        }
+        if (decompressor != null) {
+          CodecPool.returnDecompressor(decompressor)
         }
       }
     }
