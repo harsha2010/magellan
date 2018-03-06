@@ -250,4 +250,17 @@ class GeoJSONSuite extends FunSuite with TestSparkContext {
     assert(shapes.size == 1)
     assert(shapes.head.asInstanceOf[PolyLine] === polyline)
   }
+
+  test("Read compressed geojson") {
+    val sqlCtx = this.sqlContext
+    val path = this.getClass.getClassLoader.getResource("geojson/compressed/example.geojson.gz").getPath
+    val df = sqlCtx.read
+      .format("magellan")
+      .option("type", "geojson")
+      .load(path)
+
+    import sqlCtx.implicits._
+    val p = df.select($"polygon").first()(0).asInstanceOf[Polygon]
+    assert(p.getVertex(0) === Point(100, 0))
+  }
 }

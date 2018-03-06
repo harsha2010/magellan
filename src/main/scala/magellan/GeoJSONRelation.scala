@@ -17,6 +17,7 @@
 package magellan
 
 import magellan.mapreduce.WholeFileInputFormat
+import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
@@ -45,6 +46,8 @@ case class GeoJSONRelation(
   extends SpatialRelation {
 
   protected override def _buildScan(): RDD[Array[Any]] = {
+    val conf = sc.hadoopConfiguration
+    FileSystem.getLocal(conf)
     sc.newAPIHadoopFile(
       path,
       classOf[WholeFileInputFormat],
