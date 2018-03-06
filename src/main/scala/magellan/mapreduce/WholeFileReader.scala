@@ -16,9 +16,12 @@
 
 package magellan.mapreduce
 
+import java.io.InputStream
+
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
+import org.apache.hadoop.io.compress.{CodecPool, CompressionCodecFactory}
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
@@ -38,13 +41,19 @@ class WholeFileReader extends RecordReader[NullWritable, Text] {
     if (done){
       false
     } else {
-      val len = split.getLength.toInt
-      val result = new Array[Byte](len)
       val fs = path.getFileSystem(conf)
       var is: FSDataInputStream = null
       try {
         is = fs.open(split.getPath)
-        IOUtils.readFully(is, result)
+        var in: InputStream = null
+        val codec = new CompressionCodecFactory(conf).getCodec(path)
+        if (codec != null) {
+          val decompressor = CodecPool.getDecompressor(codec)
+          in = codec.createInputStream(is, decompressor)
+        } else {
+          in = is
+        }
+        val result = IOUtils.toByteArray(in)
         value.clear()
         value.set(result)
         done = true
