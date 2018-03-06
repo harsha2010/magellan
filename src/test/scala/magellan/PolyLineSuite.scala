@@ -115,4 +115,24 @@ class PolyLineSuite extends FunSuite with TestSparkContext {
     val y = PolyLine(Array(0), Array(Point(0.5, 0.0), Point(0.0, 0.5)))
     assert(y.contains(Point(0.5, 0.0)))
   }
+
+  test("buffer polyline") {
+    /**
+     *    +-------+ 1.5,1.5
+     *    +----+  +
+     *         +  +
+     *    +----+  +
+     *    +-------+
+     *
+     */
+
+    val ring = Array(Point(-1.0, 1.0), Point(1.0, 1.0),
+      Point(1.0, -1.0), Point(-1.0, -1.0))
+    val polyline = PolyLine(Array(0), ring)
+
+    val bufferedPolygon = polyline.buffer(0.5)
+    assert(bufferedPolygon.getNumRings() === 1)
+    assert(bufferedPolygon.contains(Point(1.3, 1.3)))
+    assert(!bufferedPolygon.contains(Point(0.5, 0.5)))
+  }
 }

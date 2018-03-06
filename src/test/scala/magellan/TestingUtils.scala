@@ -16,7 +16,6 @@
 
 package magellan
 
-import com.esri.core.geometry.{Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyLine}
 import com.google.common.base.Splitter
 import magellan.geometry.R2Loop
 import org.apache.spark.sql.catalyst.InternalRow
@@ -26,7 +25,6 @@ import org.apache.spark.sql.types.{PointUDT, PolygonUDT}
 import org.scalatest.exceptions.TestFailedException
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
 
 object TestingUtils {
 
@@ -113,124 +111,6 @@ object TestingUtils {
       CompareDoubleRightSide(RelativeErrorComparison, x, eps, REL_TOL_MSG)
 
     override def toString: String = x.toString
-  }
-
-  def fromESRI(esriPolygon: ESRIPolygon): Polygon = {
-    val length = esriPolygon.getPointCount
-    if (length == 0) {
-      Polygon(Array[Int](), Array[Point]())
-    } else {
-      val indices = ArrayBuffer[Int]()
-      indices.+=(0)
-      val points = ArrayBuffer[Point]()
-      var start = esriPolygon.getPoint(0)
-      var currentRingIndex = 0
-      points.+=(Point(start.getX(), start.getY()))
-
-      for (i <- (1 until length)) {
-        val p = esriPolygon.getPoint(i)
-        val j = esriPolygon.getPathEnd(currentRingIndex)
-        if (j < length) {
-          val end = esriPolygon.getPoint(j)
-          if (p.getX == end.getX && p.getY == end.getY) {
-            indices.+=(i)
-            currentRingIndex += 1
-            // add start point
-            points.+= (Point(start.getX(), start.getY()))
-            start = end
-          }
-        }
-        points.+=(Point(p.getX(), p.getY()))
-      }
-      Polygon(indices.toArray, points.toArray)
-    }
-  }
-
-  def toESRI(polygon: Polygon): ESRIPolygon = {
-    val p = new ESRIPolygon()
-    val indices = polygon.getRings()
-    val length = polygon.length
-    if (length > 0) {
-      var startIndex = 0
-      var endIndex = 1
-      var currentRingIndex = 0
-      val startVertex = polygon.getVertex(startIndex)
-      p.startPath(
-        startVertex.getX(),
-        startVertex.getY())
-
-      while (endIndex < length) {
-        val endVertex = polygon.getVertex(endIndex)
-        p.lineTo(endVertex.getX(), endVertex.getY())
-        startIndex += 1
-        endIndex += 1
-        // if we reach a ring boundary skip it
-        val nextRingIndex = currentRingIndex + 1
-        if (nextRingIndex < indices.length) {
-          val nextRing = indices(nextRingIndex)
-          if (endIndex == nextRing) {
-            startIndex += 1
-            endIndex += 1
-            currentRingIndex = nextRingIndex
-            val startVertex = polygon.getVertex(startIndex)
-            p.startPath(
-              startVertex.getX(),
-              startVertex.getY())
-          }
-        }
-      }
-    }
-    p
-  }
-
-  def toESRI(line: Line): ESRIPolyLine = {
-    val l = new ESRIPolyLine()
-    l.startPath(line.getStart().getX(), line.getStart().getY())
-    l.lineTo(line.getEnd().getX(), line.getEnd().getY())
-    l
-  }
-
-  def toESRI(polyline: PolyLine): ESRIPolyLine = {
-    val l = new ESRIPolyLine()
-    val indices = polyline.getRings()
-    val length = polyline.length
-    if (length > 0) {
-      var startIndex = 0
-      var endIndex = 1
-      var currentRingIndex = 0
-      val startVertex = polyline.getVertex(startIndex)
-      l.startPath(
-        startVertex.getX(),
-        startVertex.getY())
-
-      while (endIndex < length) {
-        val endVertex = polyline.getVertex(endIndex)
-        l.lineTo(endVertex.getX(), endVertex.getY())
-        startIndex += 1
-        endIndex += 1
-        // if we reach a ring boundary skip it
-        val nextRingIndex = currentRingIndex + 1
-        if (nextRingIndex < indices.length) {
-          val nextRing = indices(nextRingIndex)
-          if (endIndex == nextRing) {
-            startIndex += 1
-            endIndex += 1
-            currentRingIndex = nextRingIndex
-            val startVertex = polyline.getVertex(startIndex)
-            l.startPath(
-              startVertex.getX(),
-              startVertex.getY())
-          }
-        }
-      }
-    }
-    l
-  }
-
-  def toESRI(point: Point): ESRIPoint = {
-    val esriPoint = new ESRIPoint()
-    esriPoint.setXY(point.getX(), point.getY())
-    esriPoint
   }
 
   def makeLoop(str: String): R2Loop = {

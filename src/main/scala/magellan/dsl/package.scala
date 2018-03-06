@@ -49,6 +49,8 @@ package object dsl {
       def withinRange(origin: Point, radius: Double): Column = Column(WithinCircleRange(c.expr, origin, radius))
 
       def asGeoJSON(): Column = Column(AsGeoJSON(c.expr))
+
+      def buffer(distance: Double): Column = Column(Buffer(c.expr, distance))
     }
     
     implicit def point(x: Column, y: Column) = Column(PointConverter(x.expr, y.expr))
@@ -56,6 +58,8 @@ package object dsl {
     implicit def wkt(x: Column) = Column(WKT(x.expr))
 
     implicit def asGeoJSON(x: Column) = Column(AsGeoJSON(x.expr))
+
+    implicit def buffer(x: Column, distance: Double) = Column(Buffer(x.expr, distance))
 
     implicit class DslDataset[T](c: Dataset[T]) {
       def df: Dataset[T] = c

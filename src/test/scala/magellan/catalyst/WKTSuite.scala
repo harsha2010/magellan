@@ -17,7 +17,7 @@
 package magellan.catalyst
 
 import com.esri.core.geometry.GeometryEngine
-import magellan.TestingUtils._
+import magellan.esri.ESRIUtil
 import magellan.{Point, Polygon, TestSparkContext}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.magellan.dsl.expressions._
@@ -82,13 +82,13 @@ class WKTSuite extends FunSuite with TestSparkContext {
     // compare with ESRI
 
     val esriPoints = points.collect().map { case Row(id: String, point: Point) =>
-      val esriPoint = toESRI(point)
+      val esriPoint = ESRIUtil.toESRIGeometry(point)
       (id, esriPoint)
     }
 
     val esriResults = polygons.flatMap {
       case Row(polygonId: String, value: String, text: String, polygon: Polygon) =>
-        val esriPolygon = toESRI(polygon)
+        val esriPolygon = ESRIUtil.toESRIGeometry(polygon)
         esriPoints.map {case (pointId, esriPoint) =>
           val within = GeometryEngine.contains(esriPolygon, esriPoint, null)
           (within, pointId, polygonId)
@@ -96,7 +96,7 @@ class WKTSuite extends FunSuite with TestSparkContext {
     }
     val expected = esriResults.collect().sortBy(_._2)
 
-    assert(expected.size === actual.size)
+    assert(expected.length === actual.length)
     assert(expected.map(x => (x._2, x._3)).deep === actual.deep)
   }
 }
