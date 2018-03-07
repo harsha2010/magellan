@@ -17,6 +17,7 @@
 package magellan.catalyst
 
 import magellan.{Point, Polygon, TestSparkContext, Utils}
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.optimizer.PushPredicateThroughJoin
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.RuleExecutor
@@ -178,23 +179,34 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
   test("Optimize Left Outer Join") {
     val sqlCtx = this.sqlContext
     import sqlCtx.implicits._
-    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+    val ring1 = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0),
       Point(1.0, 1.0))
+
+    val ring2 = Array(Point(1.1, -1.0), Point(2.0, -1.0),
+      Point(2.0, -2.0), Point(1.1, -2.0), Point(1.1, -1.0))
+
     val polygons = sc.parallelize(Seq(
-      ("1", Polygon(Array(0), ring))
+      ("1", Polygon(Array(0), ring1)),
+      ("2", Polygon(Array(0), ring2))
     )).toDF("id", "polygon")
 
     val points = sc.parallelize(Seq(
       ("a", 1, Point(0.0, 0.0)),
-      ("b" , 2, Point(2.0, 2.0))
+      ("b", 2, Point(1.5, -1.5)),
+      ("c" , 3, Point(2.0, 2.0))
     )).toDF("name", "value", "point")
 
     val joined = points.join(polygons index 5,
       points("point") within polygons("polygon"), "left_outer")
     val optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
     assert(optimizedPlan.toString().contains("Generate inline(indexer"))
-    assert(joined.count() === 2)
+    assert(joined.count() === 3)
+    val unmatched = joined.filter($"polygon" isNull).
+      select("name").
+      map { case Row(s: String) => s}.collect()
+
+    assert(unmatched === Array("c"))
   }
 
   test("Complex Join Condition") {
