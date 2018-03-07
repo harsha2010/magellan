@@ -15,7 +15,7 @@
  */
 package magellan
 
-import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polygon => ESRIPolygon, Polyline => ESRIPolyline}
+import com.esri.core.geometry.{GeometryEngine, Point => ESRIPoint, Polyline => ESRIPolyline}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
 import magellan.TestingUtils._

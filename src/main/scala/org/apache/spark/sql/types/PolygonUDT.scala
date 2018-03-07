@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 
 class PolygonUDT extends UserDefinedType[Polygon] with GeometricUDT {
 
-  override val sqlType: DataType = StructType(Seq(
+  override val sqlType: StructType = StructType(Seq(
     StructField("type", IntegerType, nullable = false),
     StructField("xmin", DoubleType, nullable = false),
     StructField("ymin", DoubleType, nullable = false),

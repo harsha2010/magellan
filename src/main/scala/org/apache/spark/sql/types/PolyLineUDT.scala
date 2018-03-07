@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 
 class PolyLineUDT extends UserDefinedType[PolyLine] with GeometricUDT {
 
-  override val sqlType: DataType = StructType(
+  override val sqlType: StructType = StructType(
     Seq(
       StructField("type", IntegerType, nullable = false),
       StructField("xmin", DoubleType, nullable = false),
