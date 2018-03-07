@@ -55,9 +55,9 @@ class PolyLine extends Shape {
     val offsets = indices.zip(indices.drop(1) ++ Array(xcoordinates.length))
     for ((start, end) <- offsets) {
       curves += ({
-        val curves = new R2Loop()
-        curves.init(xcoordinates, ycoordinates, start, end - 1)
-        curves
+        val curve = new R2Loop()
+        curve.init(xcoordinates, ycoordinates, start, end - 1)
+        curve
       })
     }
   }
@@ -166,12 +166,11 @@ class PolyLine extends Shape {
     ???
   }
 
-  /*override def jsonValue: JValue =
-    ("type" -> "udt") ~
-      ("class" -> this.getClass.getName) ~
-      ("pyClass" -> "magellan.types.PolyLineUDT") ~
-      ("indices" -> JArray(indices.map(index => JInt(index)).toList)) ~
-      ("points" -> JArray(points.map(_.jsonValue).toList))*/
+  def readResolve(): AnyRef = {
+    curves = new ArrayBuffer[Curve]()
+    this.init(indices, xcoordinates, ycoordinates, boundingBox)
+    this
+  }
 }
 
 object PolyLine {
