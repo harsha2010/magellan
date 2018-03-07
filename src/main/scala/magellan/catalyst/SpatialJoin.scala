@@ -42,8 +42,9 @@ private[magellan] case class SpatialJoin(session: SparkSession)
       case p@Join(
       Generate(Inline(_: Indexer), _, _, _, _, _),
       Generate(Inline(_: Indexer), _, _, _, _, _), _, _) => p
-      case p@Join(l, r, Inner, Some(cond@Within(a, b))) =>
-        if (!matchesTrigger(cond)) p else {
+      case p@Join(l, r, joinType @ (Inner | LeftOuter), Some(cond)) =>
+        val trigger = matchesTrigger(cond)
+        if (trigger.isEmpty) p else {
           /**
             * Given a Logical Query Plan of the form
             * 'Project [...]
@@ -61,7 +62,7 @@ private[magellan] case class SpatialJoin(session: SparkSession)
             *
             */
 
-
+          val Some(Within(a, b)) = trigger
           // determine which is the left project and which is the right projection in Within
           val (leftProjection, rightProjection) =
           l.outputSet.find(a.references.contains(_)) match {
@@ -97,7 +98,7 @@ private[magellan] case class SpatialJoin(session: SparkSession)
           val join = Join(
             Generate(Inline(leftIndexer), true, false, None, Seq(c1, r1), l),
             Generate(Inline(rightIndexer), true, false, None, Seq(c2, r2), r),
-            Inner,
+            joinType,
             Some(And(EqualTo(c1, c2), transformedCondition)))
 
           Project(p.outputSet.toSeq, join)
@@ -129,12 +130,11 @@ private[magellan] case class SpatialJoin(session: SparkSession)
 
   }
 
-  private def matchesTrigger(cond: Expression): Boolean = cond find {
-    case p @ Within(left, right) =>
+  private def matchesTrigger(cond: Expression) = cond find {
+    case p @ Within(left, _) =>
       val pointType = sqlType(classOf[Point])
-      val polygonType = sqlType(classOf[Polygon])
-      val types = Set(left.dataType, right.dataType)
-      val candidateTypes = Set(pointType, polygonType)
-      types.intersect(candidateTypes).size == 2
-  } isDefined
+      left.dataType == pointType
+
+    case _ => false
+  }
 }

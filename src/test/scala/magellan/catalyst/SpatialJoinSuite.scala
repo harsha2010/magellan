@@ -174,4 +174,56 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
     //polygon, name, point, city
     assert(results.length === 4)
   }
+
+  test("Optimize Left Outer Join") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      ("1", Polygon(Array(0), ring))
+    )).toDF("id", "polygon")
+
+    val points = sc.parallelize(Seq(
+      ("a", 1, Point(0.0, 0.0)),
+      ("b" , 2, Point(2.0, 2.0))
+    )).toDF("name", "value", "point")
+
+    val joined = points.join(polygons index 5,
+      points("point") within polygons("polygon"), "left_outer")
+    val optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
+    assert(optimizedPlan.toString().contains("Generate inline(indexer"))
+    assert(joined.count() === 2)
+  }
+
+  test("Complex Join Condition") {
+    val sqlCtx = this.sqlContext
+    import sqlCtx.implicits._
+    val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0),
+      Point(1.0, 1.0))
+    val polygons = sc.parallelize(Seq(
+      ("1", Polygon(Array(0), ring))
+    )).toDF("id", "polygon")
+
+    val points = sc.parallelize(Seq(
+      ("a", 1, Point(0.0, 0.0)),
+      ("b" , 2, Point(2.0, 2.0))
+    )).toDF("name", "value", "point")
+
+    var joined = points.join(polygons index 5,
+      points("point") within polygons("polygon")).filter(points("name") === "a")
+
+    var optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
+    assert(optimizedPlan.toString().contains("Generate inline(indexer"))
+    assert(joined.count() === 1)
+
+    joined = points.join(polygons index 5).
+      where(points("name") === "a" && (points("point") within polygons("polygon")))
+
+    optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
+    assert(optimizedPlan.toString().contains("Generate inline(indexer"))
+    assert(joined.count() === 1)
+  }
 }
