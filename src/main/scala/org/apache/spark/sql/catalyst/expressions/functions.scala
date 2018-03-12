@@ -343,6 +343,6 @@ object Indexer {
   val indexUDT = new ZOrderCurveUDT()
 
   val dataType = ArrayType(new StructType()
-    .add("curve", indexUDT, false)
-    .add("relation", StringType, false))
+    .add("curve", indexUDT)
+    .add("relation", StringType))
 }

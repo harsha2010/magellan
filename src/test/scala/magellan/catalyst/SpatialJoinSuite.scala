@@ -16,6 +16,8 @@
 
 package magellan.catalyst
 
+import java.nio.file.Files
+
 import magellan.{Point, Polygon, TestSparkContext, Utils}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.optimizer.PushPredicateThroughJoin
@@ -92,7 +94,7 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0),
       Point(1.0, 1.0))
-    val polygons = sc.parallelize(Seq(
+    var polygons = sc.parallelize(Seq(
       ("1", Polygon(Array(0), ring))
     )).toDF("id", "polygon").withColumn("index", $"polygon" index 30)
 
@@ -100,6 +102,14 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
       ("a", 1, Point(0.0, 0.0)),
       ("b" , 2, Point(2.0, 2.0))
     )).toDF("name", "value", "point")
+
+    val outputDir = Files.createTempDirectory("output").toUri.getPath
+
+    val polygonsDir = s"$outputDir/polygons"
+
+    polygons.write.parquet(polygonsDir)
+
+    polygons = spark.read.parquet(polygonsDir)
 
     val joined = polygons.join(points index 5).where($"point" within $"polygon")
 
