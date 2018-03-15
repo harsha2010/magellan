@@ -178,7 +178,7 @@ class Polygon extends Shape {
     */
   private [magellan] def contains(line: Line): Boolean = {
     if (loops.exists(_.intersects(line))) {
-      false
+      return false
     }
     this.contains(line.getStart()) || this.contains(line.getEnd())
   }
