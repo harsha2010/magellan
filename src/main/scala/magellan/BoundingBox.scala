@@ -112,14 +112,18 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
       Line(Point(xmin, ymax), Point(xmax, ymin))
     )
 
-    val lineIntersections = (lines filter (shape intersects _)).size
-    val vertexContained = (vertices filter (shape contains _)).size
-
     if (contains(shape.boundingBox)) {
-      Contains
-    } else if (lineIntersections == 0 && vertexContained == 4) {
-      Within
-    } else if (lineIntersections > 0 || vertexContained > 0) {
+      return Contains
+    }
+
+    val linesContained = (lines filter (shape contains _)).size
+    val vertexContained = (vertices filter (shape contains _)).size
+    if (linesContained == lines.length && vertexContained == 4) {
+      return Within
+    }
+
+    val lineIntersections = (lines filter (shape intersects _)).size
+    if (lineIntersections > 0 || vertexContained > 0) {
       Intersects
     } else {
       Disjoint

@@ -169,6 +169,20 @@ class Polygon extends Shape {
     intersects
   }
 
+  /**
+    * A polygon wholly contains a line if none of its edges intersect the line
+     AND contains one of the line endpoints.
+    *
+    * @param line
+    * @return
+    */
+  private [magellan] def contains(line: Line): Boolean = {
+    if (loops.exists(_.intersects(line))) {
+      false
+    }
+    this.contains(line.getStart()) || this.contains(line.getEnd())
+  }
+
   private [magellan] def contains(box: BoundingBox): Boolean = {
     val BoundingBox(xmin, ymin, xmax, ymax) = box
     val lines = Array(
