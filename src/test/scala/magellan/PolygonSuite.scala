@@ -401,4 +401,31 @@ class PolygonSuite extends FunSuite {
     assert(bufferedPolygon.getNumRings() === 1)
     assert(bufferedPolygon.contains(Point(1.3, 1.3)))
   }
+
+  test("strict intersection") {
+    // polygon - line
+    val outerRing = Array(Point(1.0, 1.0), Point(1.0, -1.0),
+      Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0))
+    val outerPolygon = Polygon(Array(0), outerRing)
+
+    val innerRing = Array(Point(0.5, 0.5), Point(0.5, -0.5),
+      Point(-0.5, -0.5), Point(-0.5, 0.5), Point(0.5, 0.5))
+    val innerPolygon = Polygon(Array(0), innerRing)
+
+    assert(outerPolygon.intersects(Line(Point(0.0, 0.0), Point(2.0, 2.0)), strict = true))
+    assert(outerPolygon.intersects(Line(Point(0.0, 0.0), Point(1.0, 1.0)), strict = true))
+    assert(outerPolygon.intersects(Line(Point(1.0, 1.0), Point(1.0, -1.0)), strict = true))
+
+    // interior of polygon contains line (disallowed in strict intersection)
+    assert(!outerPolygon.intersects(Line(Point(0.0, 0.0), Point(0.5, 0.5)), strict = true))
+
+    // polygon - polygon
+    assert(!outerPolygon.intersects(innerPolygon, strict = true))
+    assert(outerPolygon.intersects(innerPolygon))
+
+    // polygon - polyline
+    val innerPolyline = PolyLine(Array(0), innerRing.dropRight(1))
+    assert(!outerPolygon.intersects(innerPolyline,strict = true))
+    assert(outerPolygon.intersects(innerPolyline))
+  }
 }

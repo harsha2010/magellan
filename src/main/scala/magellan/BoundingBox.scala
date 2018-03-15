@@ -103,6 +103,8 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
       Point(xmin, ymax)
     )
 
+    // include both edges and diagonals
+    // diagonals catch corner cases of bounding box in annulus
     val lines = Array(
       Line(Point(xmin, ymin), Point(xmax, ymin)),
       Line(Point(xmin, ymin), Point(xmin, ymax)),
@@ -112,18 +114,15 @@ case class BoundingBox(xmin: Double, ymin: Double, xmax: Double, ymax: Double) {
       Line(Point(xmin, ymax), Point(xmax, ymin))
     )
 
+    // look for strict intersections between the edges of the bounding box and the shape
+    val lineIntersections = lines count (shape intersects (_, true))
+    val vertexContained = vertices count (shape contains _)
+
     if (contains(shape.boundingBox)) {
-      return Contains
-    }
-
-    val linesContained = (lines filter (shape contains _)).size
-    if (linesContained == lines.length) {
-      return Within
-    }
-
-    val lineIntersections = (lines filter (shape intersects _)).size
-    val vertexContained = (vertices filter (shape contains _)).size
-    if (lineIntersections > 0 || vertexContained > 0) {
+      Contains
+    } else if (lineIntersections == 0 && vertexContained == 4) {
+      Within
+    } else if (lineIntersections > 0 || vertexContained > 0) {
       Intersects
     } else {
       Disjoint
