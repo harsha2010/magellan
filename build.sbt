@@ -81,11 +81,10 @@ spName := "harsha2010/magellan"
 
 parallelExecution in Test := false
 
-coverageMinimum := 85
-
-coverageFailOnMinimum := false
-
-coverageHighlighting := true
+ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
+  if (scalaBinaryVersion.value == "2.10") false
+  else true
+}
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
 
