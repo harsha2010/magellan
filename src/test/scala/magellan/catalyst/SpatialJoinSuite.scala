@@ -16,6 +16,8 @@
 
 package magellan.catalyst
 
+import java.nio.file.Files
+
 import magellan.{Point, Polygon, TestSparkContext, Utils}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.optimizer.PushPredicateThroughJoin
@@ -92,23 +94,37 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0),
       Point(1.0, 1.0))
-    val polygons = sc.parallelize(Seq(
+    var polygons = sc.parallelize(Seq(
       ("1", Polygon(Array(0), ring))
-    )).toDF("id", "polygon").withColumn("index", $"polygon" index 30)
+    )).toDF("id", "polygon")
+      .withColumn("index", $"polygon" index 5)
 
-    val points = sc.parallelize(Seq(
+    var points = sc.parallelize(Seq(
       ("a", 1, Point(0.0, 0.0)),
       ("b" , 2, Point(2.0, 2.0))
     )).toDF("name", "value", "point")
+      .withColumn("index", $"point" index 5)
 
-    val joined = polygons.join(points index 5).where($"point" within $"polygon")
+    val outputDir = Files.createTempDirectory("output").toUri.getPath
+
+    val polygonsDir = s"$outputDir/polygons"
+
+    polygons.write.parquet(polygonsDir)
+
+    val pointsDir = s"$outputDir/points"
+
+    points.write.parquet(pointsDir)
+
+    points = spark.read.parquet(pointsDir)
+
+    polygons = spark.read.parquet(polygonsDir)
+
+    val joined = polygons.join(points).where($"point" within $"polygon")
 
     val optimizedPlan = Optimize.execute(joined.queryExecution.analyzed)
 
-    assert(joined.queryExecution.analyzed.toString().contains("SpatialJoinHint"))
-    assert(!optimizedPlan.toString().contains("SpatialJoinHint"))
     assert(optimizedPlan.toString().contains("Generate inline(index#"))
-    assert(optimizedPlan.toString().contains("Generate inline(indexer"))
+    assert(optimizedPlan.toString().contains("Generate inline(index#"))
     assert(joined.count() === 1)
   }
 
