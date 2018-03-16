@@ -106,13 +106,12 @@ class PolyLine extends Shape {
 
 
   /**
-    * A polygon intersects a line iff it is a proper intersection,
-    * or if either vertex of the line touches the polygon.
+    * A polyline intersects a line iff it is a proper intersection
     *
     * @param line
     * @return
     */
-  private [magellan] def intersects(line: Line): Boolean = {
+  private [magellan] def intersects(line: Line, strict: Boolean): Boolean = {
     curves exists (_.intersects(line))
   }
 
@@ -131,9 +130,15 @@ class PolyLine extends Shape {
 
   def getRing(index: Int): Int = indices(index)
 
-  def intersects(polygon:Polygon):Boolean = {
-    // a polyline intersects a polygon iff any line intersects a polygon
-    curves exists (_.iterator().exists(polygon intersects))
+  /**
+   * A polygon intersects a polyline iff any line intersects a polygon
+   *
+   * @param polygon
+   * @param strict   is this a strict intersection?
+   * @return
+   */
+  def intersects(polygon:Polygon, strict: Boolean):Boolean = {
+    curves exists (_.iterator().exists(line => polygon intersects (line, strict)))
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[PolyLine]

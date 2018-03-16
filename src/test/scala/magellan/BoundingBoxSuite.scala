@@ -74,4 +74,93 @@ class BoundingBoxSuite extends FunSuite {
     assert(!x.withinCircle(Point(0.5, 0.75), 0.5))
     assert(!x.withinCircle(Point(0.5, 0.5), 0.2))
   }
+
+  test("Relate") {
+    /**
+     *  +---------+ 1,1
+     *  + +----+  +
+     *  + +    +  +
+     *  + +----+  +
+     *  +---------+
+     *
+     */
+    val box = BoundingBox(0.0, 0.0, 0.5, 0.5)
+
+    val outerPolygon = Polygon(
+      Array(0),
+      Array(Point(1.0, 1.0), Point(1.0, -1.0),
+        Point(-1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0)))
+
+    assert(box.relate(outerPolygon) === Relate.Within)
+
+    /**
+     *  +---------+ 1,1
+     *  +         +
+     *  +         +
+     *  +         +
+     *  +-----+---+
+     *             +----+
+     *             +    +
+     *             +----+
+     */
+
+    val disjointPolygon = Polygon(
+      Array(0),
+      Array(Point(1.1, -1.0), Point(2.0, -1.0),
+        Point(2.0, -2.0), Point(1.1, -2.0), Point(1.1, -1.0)))
+
+    assert(box.relate(disjointPolygon) === Relate.Disjoint)
+
+    /**
+     *  +---------+ 1,1
+     *  +         +
+     *  +         +
+     *  +         +
+     *  +-----+---+----+
+     *            +    +
+     *            +----+
+     */
+
+
+    val touchesPolygon = Polygon(
+      Array(0),
+      Array(Point(1.0, -1.0), Point(2.0, -1.0),
+        Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, -1.0)))
+
+    /**
+     *  +---------+ 1,1
+     *  +         +
+     *  +         +----+
+     *  +         +    +
+     *  +-----+---+    +
+     *            +----+
+     */
+
+    val touchesPolygon2 = Polygon(
+      Array(0),
+      Array(Point(1.0, 0.0), Point(2.0, 0.0),
+        Point(2.0, -2.0), Point(1.0, -2.0), Point(1.0, 0.0)))
+
+    assert(box.relate(touchesPolygon2) == Relate.Disjoint)
+
+    // the interiors of the boxes do not intersect
+    assert(box.relate(touchesPolygon) === Relate.Disjoint)
+
+    /**
+     *  +---------+ 1,1
+     *  +   0,0   +     2,0
+     *  +     +---+----+
+     *  +     +   +    +
+     *  +-----+---+    +
+     *        +--------+
+     */
+
+    val intersectsPolygon = Polygon(
+      Array(0),
+      Array(Point(0.0, 0.0), Point(2.0, 0.0),
+      Point(2.0, -2.0), Point(0.0, -2.0), Point(0.0, 0.0)))
+
+    assert(box.relate(intersectsPolygon) == Relate.Intersects)
+
+  }
 }

@@ -56,37 +56,52 @@ trait Shape extends DataType with Serializable {
   /**
    * Tests whether this shape intersects the argument shape.
    * <p>
-   * The <code>intersects</code> predicate has the following equivalent definitions:
+   * A strict intersection is one where
    * <ul>
    * <li>The two geometries have at least one point in common
-   * <li><code>! other.disjoint(this) = true</code>
-   * <br>(<code>intersects</code> is the inverse of <code>disjoint</code>)
+   * <li><code>! (other.contains(this) || this.contains(other)) </code>
    * </ul>
    *
    * @param  other  the <code>Shape</code> with which to compare this <code>Shape</code>
+   * @param  strict is this intersection strict?
    * @return        <code>true</code> if the two <code>Shape</code>s intersect
    *
    * @see Shape#disjoint
    */
-  def intersects(other: Shape): Boolean = {
+  def intersects(other: Shape, strict: Boolean): Boolean = {
     if (!boundingBox.disjoint(other.boundingBox)) {
       (this, other) match {
         case (p: Point, q: Point) => p.equals(q)
         case (p: Point, q: Polygon) => q.touches(p)
         case (p: Polygon, q: Point) => p.touches(q)
-        case (p: Polygon, q: Line) => p.intersects(q)
-        case (p: Polygon, q: PolyLine) => p.intersects(q)
-        case (p: Polygon, q: Polygon) => p.intersects(q)
-        case (p: PolyLine, q: Line) => p.intersects(q)
-        case (p: PolyLine, q: Polygon) => p.intersects(q)
-        case (p: Line, q: Polygon) => q.intersects(p)
-        case (p: Line, q: PolyLine) => q.intersects(p)
+        case (p: Polygon, q: Line) => p.intersects(q, strict)
+        case (p: Polygon, q: PolyLine) => p.intersects(q, strict)
+        case (p: Polygon, q: Polygon) => p.intersects(q, strict)
+        case (p: PolyLine, q: Line) => p.intersects(q, strict)
+        case (p: PolyLine, q: Polygon) => p.intersects(q, strict)
+        case (p: Line, q: Polygon) => q.intersects(p, strict)
+        case (p: Line, q: PolyLine) => q.intersects(p, strict)
         case _ => ???
       }
     } else  {
       false
     }
   }
+
+  /**
+   * Computes the non strict intersection between two shapes.
+   * <p>
+   * The <code>intersects</code> predicate has the following equivalent definitions:
+   * <ul>
+   * <li>The two geometries have at least one point in common
+   * <li><code>! other.disjoint(this) = true</code>
+   * <br>(<code>intersects</code> is the inverse of <code>disjoint</code>)
+   * </ul> *
+   *
+   * @param other
+   * @return
+   */
+  def intersects(other: Shape): Boolean = this.intersects(other, false)
 
   /**
    * Tests whether this shape contains the
@@ -122,7 +137,7 @@ trait Shape extends DataType with Serializable {
         case (p: Point, q: PolyLine) => false
 
         case (p: Polygon, q: Point) => p.contains(q)
-        case (p: Polygon, q: Line) => p.contains(q)
+        case (p: Polygon, q: Line) => ???
 
         case (p: Line, q: Point) => p.contains(q)
         case (p: Line, q: Line) => p.contains(q)
@@ -194,7 +209,7 @@ object NullShape extends Shape {
 
   override def isEmpty() = true
 
-  override def intersects(shape: Shape): Boolean = false
+  override def intersects(shape: Shape, strict: Boolean = false): Boolean = false
 
   override def contains(shape: Shape): Boolean = false
 

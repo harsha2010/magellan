@@ -121,34 +121,30 @@ class Polygon extends Shape {
   }
 
   /**
-    * A polygon intersects a line iff it is a proper intersection,
-    * or if either vertex of the line touches the polygon.
+    * A polygon intersects a line iff it is a proper intersection(strict),
+    * or if the interior of the polygon contains any part of the line.
     *
     * @param line
+   *  @param strict
     * @return
     */
-  private [magellan] def intersects(line: Line): Boolean = {
-    var intersects = false
-    if(this.contains(line.getStart()) || this.contains(line.getEnd())){
-      intersects = true
-    }
-    else{
-      intersects = loops.exists(_.intersects(line))
-    }
-    intersects
+  private [magellan] def intersects(line: Line, strict: Boolean): Boolean = {
+    val interior = this.contains(line.getStart()) || this.contains(line.getEnd())
+    val strictIntersects = loops.exists(_.intersects(line))
+    strictIntersects || (!strict && interior)
   }
 
   /**
-    * A polygon intersects a polyline iff it is a proper intersection,
+    * A polygon intersects a polyline iff it is a proper intersection (strict),
     * or if either vertex of the polyline touches the polygon.
     *
     * @param polyline
+   *  @param strict
     * @return
     */
-  private [magellan] def intersects(polyline: PolyLine): Boolean = {
-    polyline.intersects(this)
+  private [magellan] def intersects(polyline: PolyLine, strict: Boolean): Boolean = {
+    polyline.intersects(this, strict)
   }
-
 
   /**
     * A polygon intersects another polygon iff at least one edge of the
@@ -157,16 +153,15 @@ class Polygon extends Shape {
     * @param polygon
     * @return
     */
-  private [magellan] def intersects(polygon: Polygon): Boolean = {
-    var intersects = false
-    if(polygon.getVertexes().exists(other => this.contains(other))
-      || this.getVertexes().exists(vertex => polygon.contains(vertex))){
-        intersects = true
-      }
-    else{
-       intersects =  polygon.loops.exists(otherLoop => this.loops.exists(_.intersects(otherLoop)))
-      }
-    intersects
+  private [magellan] def intersects(polygon: Polygon, strict: Boolean): Boolean = {
+    val touches =
+      polygon.getVertexes().exists(other => this.contains(other)) ||
+      this.getVertexes().exists(vertex => polygon.contains(vertex))
+
+    val strictIntersects = polygon.loops
+      .exists(otherLoop => this.loops.exists(_.intersects(otherLoop)))
+
+    strictIntersects || (!strict && touches)
   }
 
   private [magellan] def contains(box: BoundingBox): Boolean = {
@@ -180,6 +175,12 @@ class Polygon extends Shape {
     !(lines exists (!contains(_)))
   }
 
+  /**
+   * Checks if the polygon intersects the bounding box in a strict sense.
+   *
+   * @param box
+   * @return
+   */
   private [magellan] def intersects(box: BoundingBox): Boolean = {
     val BoundingBox(xmin, ymin, xmax, ymax) = box
     val lines = Array(
