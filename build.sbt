@@ -91,5 +91,5 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
 licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
 
 assemblyShadeRules in assembly := Seq(
-  ShadeRule.rename("com.google.common.**" -> "shadedguava.@1").inAll
+  ShadeRule.rename("com.google.**" -> "shadedguava.@1").inAll
 )
