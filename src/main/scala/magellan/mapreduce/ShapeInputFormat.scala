@@ -18,7 +18,7 @@ package magellan.mapreduce
 
 import java.util.concurrent.TimeUnit
 
-import com.google.common.base.{Stopwatch, Ticker}
+import com.google.common.base.Stopwatch
 import magellan.io.{ShapeKey, ShapeWritable}
 import org.apache.commons.logging.LogFactory
 import org.apache.hadoop.fs.{LocatedFileStatus, Path}
