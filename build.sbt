@@ -24,7 +24,8 @@ sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
   "commons-io" % "commons-io" % "2.4",
-  "com.google.guava" % "guava" % "14.0" % "provided",
+  "com.google.guava" % "guava" % "14.0.1" % "provided",
+  "org.apache.commons" % "commons-lang3" % "3.5" % "provided",
   "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
   "com.lihaoyi" % "fastparse_2.11" % "0.4.3" % "provided",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
