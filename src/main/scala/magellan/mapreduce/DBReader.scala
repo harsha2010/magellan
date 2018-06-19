@@ -85,8 +85,13 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
           fld.set(new String(b))
           fld
         }
+        case 'D' => {
+          val b = Array.fill[Byte](length)(0)
+          dis.readFully(b)
+          new Text(b)
+        }
 
-        case _ => ???
+        case _ => throw new NotImplementedError(s"Support for field type '${fieldType.toChar}' has not yet been implemented (field name '$fieldName').")
       }
       value.put(fieldName, v)
     }
