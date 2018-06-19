@@ -73,4 +73,22 @@ class DBReaderSuite extends FunSuite with TestSparkContext {
     assert(baseRdd.count() == 22597)
     assert(baseRdd.first()("route_ident").trim() === "[u'025A_BR_2498#_1']")
   }
+
+  test("read dBase date") {
+    val path = this.getClass.getClassLoader.getResource("testdbreader/date_test.dbf").getPath
+    val baseRdd = sc.newAPIHadoopFile(
+      path,
+      classOf[DBInputFormat],
+      classOf[ShapeKey],
+      classOf[MapWritable]
+    ).map { case (s: ShapeKey, v: MapWritable) =>
+      v.entrySet().map { kv =>
+        val k = kv.getKey.asInstanceOf[Text].toString
+        val v = kv.getValue.asInstanceOf[Text].toString
+        (k, v)
+      }.toMap
+    }
+    assert(baseRdd.count() == 1)
+    assert(baseRdd.first()("DATE") == "20180619")
+  }
 }
