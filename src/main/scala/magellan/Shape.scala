@@ -200,27 +200,6 @@ trait Shape extends DataType with Serializable {
   }
 }
 
-/**
- * A null shape indicates an absence of geometric data.
- */
-object NullShape extends Shape {
-
-  override def getType() = 0
-
-  override def isEmpty() = true
-
-  override def intersects(shape: Shape, strict: Boolean = false): Boolean = false
-
-  override def contains(shape: Shape): Boolean = false
-
-  override def transform(fn: (Point) => Point): Shape = this
-
-  override def boundingBox = BoundingBox(
-      Int.MinValue, Int.MinValue,
-      Int.MaxValue, Int.MaxValue
-    )
-}
-
 object Shape {
 
   @inline final def area(a: Point, b: Point, c: Point) = {
