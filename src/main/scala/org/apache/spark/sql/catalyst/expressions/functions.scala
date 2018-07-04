@@ -48,8 +48,8 @@ case class PointConverter(
   }
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    ctx.addMutableState(classOf[PointUDT].getName, "pointUDT", "pointUDT = new org.apache.spark.sql.types.PointUDT();")
-    defineCodeGen(ctx, ev, (c1, c2) => s"pointUDT.serialize($c1, $c2)")
+    val pnt = ctx.addMutableState(classOf[PointUDT].getName, "pointUDT", v => s"$v = new org.apache.spark.sql.types.PointUDT();")
+    defineCodeGen(ctx, ev, (c1, c2) => s"$pnt.serialize($c1, $c2)")
   }
 }
 
@@ -68,14 +68,12 @@ case class Transformer(
   override def dataType: DataType = child.dataType
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val serializersVar = ctx.freshName("serializers")
-
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
-      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
-        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
-        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
-        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+    val serializersVar = ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      v =>s"$v = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$v.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$v.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$v.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$v.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
 
     val shapeVar = ctx.freshName("shape")
@@ -111,14 +109,12 @@ case class WKT(override val child: Expression)
   extends UnaryExpression with MagellanExpression {
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val serializersVar = ctx.freshName("serializers")
-
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
-      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
-        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
-        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
-        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+    val serializersVar = ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      v => s"$v = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$v.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$v.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$v.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$v.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
 
     val childTypeVar = ctx.freshName("childType")
@@ -201,14 +197,12 @@ case class Indexer(
     val indexSerializerVar = ctx.freshName("indexSerializer")
     val indexVar = ctx.freshName("v")
 
-    val serializersVar = ctx.freshName("serializers")
-
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
-      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
-        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
-        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
-        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+    val serializersVar = ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      v => s"$v = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$v.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$v.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$v.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$v.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
 
     val idx = ctx.references.length
@@ -261,14 +255,12 @@ case class AsGeoJSON(override val child: Expression)
     val childShapeVar = ctx.freshName("childShape")
     val shapeSerializerVar = ctx.freshName("shapeSerializer")
     val resultVar = ctx.freshName("result")
-    val serializersVar = ctx.freshName("serializers")
-
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
-      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
-        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
-        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
-        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+    val serializersVar = ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      v => s"$v = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$v.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$v.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$v.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$v.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
 
     nullSafeCodeGen(ctx, ev, (c1) => {
@@ -306,16 +298,15 @@ case class Buffer(override val child: Expression, distance: Double)
     val distanceVar = ctx.freshName("distance")
     val resultVar = ctx.freshName("result")
     val resultTypeVar = ctx.freshName("resultType")
-    val serializersVar = ctx.freshName("serializers")
     val idx = ctx.references.length
     ctx.addReferenceObj("distance", distance);
 
-    ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, s"$serializersVar",
-      s"$serializersVar = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
-        s"$serializersVar.put(1, new org.apache.spark.sql.types.PointUDT());" +
-        s"$serializersVar.put(2, new org.apache.spark.sql.types.LineUDT());" +
-        s"$serializersVar.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
-        s"$serializersVar.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
+    val serializersVar = ctx.addMutableState(classOf[java.util.HashMap[Integer, UserDefinedType[Shape]]].getName, "serializers",
+      v => s"$v = new java.util.HashMap<Integer, org.apache.spark.sql.types.UserDefinedType<magellan.Shape>>() ;" +
+        s"$v.put(1, new org.apache.spark.sql.types.PointUDT());" +
+        s"$v.put(2, new org.apache.spark.sql.types.LineUDT());" +
+        s"$v.put(3, new org.apache.spark.sql.types.PolyLineUDT());" +
+        s"$v.put(5, new org.apache.spark.sql.types.PolygonUDT());" +
         "")
 
     nullSafeCodeGen(ctx, ev, (c1) => {

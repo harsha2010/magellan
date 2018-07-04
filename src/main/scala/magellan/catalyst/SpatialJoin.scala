@@ -97,8 +97,8 @@ private[magellan] case class SpatialJoin(session: SparkSession)
             .fold[Expression](Indexer(rightProjection, precision))(identity)
 
           val join = Join(
-            Generate(Inline(leftIndexer), true, false, None, Seq(c1, r1), l),
-            Generate(Inline(rightIndexer), true, false, None, Seq(c2, r2), r),
+            Generate(Inline(leftIndexer), Nil, false, None, Seq(c1, r1), l),
+            Generate(Inline(rightIndexer), Nil, false, None, Seq(c2, r2), r),
             joinType,
             Some(And(EqualTo(c1, c2), transformedCondition)))
 
