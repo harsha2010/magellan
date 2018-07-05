@@ -158,14 +158,14 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
     val ring = Array(Point(1.0, 1.0), Point(1.0, -1.0),
       Point(-1.0, -1.0), Point(-1.0, 1.0),
       Point(1.0, 1.0))
-    val polygons = sc.parallelize(Seq(
+    val polygons = Seq(
       ("1", Polygon(Array(0), ring))
-    )).toDF("id", "polygon")
+    ).toDF("id", "polygon")
 
-    val points = sc.parallelize(Seq(
+    val points =Seq(
       ("a", 1, Point(0.0, 0.0)),
       ("b" , 2, Point(2.0, 2.0))
-    )).toDF("name", "value", "point")
+    ).toDF("name", "value", "point")
 
     val joined = points.join(broadcast(polygons index 5)).where($"point" within $"polygon")
     assert(joined.queryExecution.executedPlan.toString() contains "BroadcastExchange")
@@ -186,10 +186,10 @@ class SpatialJoinSuite extends FunSuite with TestSparkContext {
 
     val cities = sc.parallelize(Seq(("San Francisco", Point(-122.5076401, 37.7576793)))).toDF("city", "point")
 
-    val results = cities.join(countries index 5).where($"point" within $"polygon").collect()(0)
+    val results = cities.join(countries index 5).where($"point" within $"polygon")
 
     //polygon, name, point, city
-    assert(results.length === 4)
+    assert(results.columns.size === 4)
   }
 
   test("Optimize Left Outer Join") {
