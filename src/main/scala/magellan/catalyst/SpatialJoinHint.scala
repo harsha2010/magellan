@@ -27,5 +27,5 @@ case class SpatialJoinHint(child: LogicalPlan, hints: Map[String, String])
 
   override def output: Seq[Attribute] = child.output
 
-  override lazy val canonicalized: LogicalPlan = SpatialJoinHint(child, hints)
+  override def doCanonicalize(): LogicalPlan = SpatialJoinHint(child, hints)
 }
