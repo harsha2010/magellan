@@ -17,7 +17,9 @@
 package magellan.io
 
 import java.io.{DataInputStream, File, FileInputStream}
+import java.nio.{ByteBuffer, ByteOrder}
 
+import magellan.{NullShape, Point}
 import org.apache.commons.io.EndianUtils
 import org.scalatest.FunSuite
 
@@ -48,4 +50,48 @@ class ShapeReaderSuite extends FunSuite {
     val polygon = polygonReader.readFields(dis)
     assert(polygon.length() === expectedLength)
   }
+
+  test("read file with null shape") {
+    val path = this.getClass.getClassLoader.getResource("testnullshape/test_null.shp").getPath
+    val dis = new DataInputStream(new FileInputStream(new File(path)))
+    val header = new Array[Byte](100)
+    dis.readFully(header, 0, 100) // discard the first 100 bytes
+
+    val shapeTypeBuffer = ByteBuffer.wrap(header, 32, 4)
+        .order(ByteOrder.LITTLE_ENDIAN)
+    assert(shapeTypeBuffer.getInt == 1) // We expect the shapefile to contain points
+
+
+    /*
+     * Read first the point with geometry
+     */
+    // discard the record number and content length
+    assert(dis.readInt() === 1)
+    dis.readInt() //content length in bytes
+
+    // discard the geometry type
+    assert(EndianUtils.swapInteger(dis.readInt()) === 1)
+
+    // now read the polygon
+    val pointReader = new PointReader()
+    val point = pointReader.readFields(dis)
+    assert(point.asInstanceOf[Point].getX() == 3.0)
+    assert(point.asInstanceOf[Point].getY() == 3.0)
+
+    /*
+     * Now read the null shape
+     */
+    // discard the record number and content length
+    assert(dis.readInt() === 2)
+    dis.readInt() //content length in bytes
+
+    // discard the geometry type
+    assert(EndianUtils.swapInteger(dis.readInt()) === 0)
+
+    // now read the polygon
+    val nullShapeReader = new NullShapeReader()
+    val nullShape = nullShapeReader.readFields(dis)
+    assert(nullShape.asInstanceOf[NullShape].getType() === 0)
+  }
+
 }

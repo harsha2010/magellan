@@ -34,7 +34,7 @@ private[magellan] trait ShapeReader {
 
 class NullShapeReader extends ShapeReader {
 
-  override def readFields(dataInput: DataInput): Shape = ???
+  override def readFields(dataInput: DataInput): Shape = NullShape
 
 }
 
