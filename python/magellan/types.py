@@ -17,10 +17,10 @@
 import json
 import sys
 
-from itertools import izip
+from itertools import izip, repeat
 
 from pyspark import SparkContext
-from pyspark.sql.types import DataType, UserDefinedType, StructField, StructType, \
+from pyspark.sql.types import DataType, UserDefinedType, Row, StructField, StructType, \
     ArrayType, DoubleType, IntegerType
 
 __all__ = ['Point']
@@ -69,14 +69,16 @@ class PointUDT(UserDefinedType):
         """
         The class name of the paired Scala UDT.
         """
-        return "magellan.PointUDT"
+        return "org.apache.spark.sql.types.PointUDT"
 
     def serialize(self, obj):
         """
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, Point):
-            return obj
+            #pnt = Row(IntegerType(), DoubleType(),DoubleType(),DoubleType(),DoubleType(),DoubleType(),DoubleType() )
+            #return pnt("udt",obj.x,obj.y,obj.x,obj.y,obj.x,obj.y)
+            return 1,obj.x, obj.y,obj.x, obj.y,obj.x, obj.y
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -87,9 +89,9 @@ class PointUDT(UserDefinedType):
         if isinstance(datum, Point):
             return datum
         else:
-            assert len(datum) == 2, \
-                "PointUDT.deserialize given row with length %d but requires 2" % len(datum)
-            return Point(datum[0], datum[1])
+            assert len(datum) == 7, \
+                "PointUDT.deserialize given row with length %d but requires 7" % len(datum)
+            return Point(datum[5], datum[6])
 
     def simpleString(self):
         return 'point'
@@ -173,14 +175,19 @@ class PolygonUDT(UserDefinedType):
         """
         The class name of the paired Scala UDT.
         """
-        return "magellan.PolygonUDT"
+        return "org.apache.spark.sql.types.PolygonUDT"
 
     def serialize(self, obj):
         """
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, Polygon):
-            return obj
+            x_list = []
+            y_list = []
+            for p in obj.points:
+                x_list.append(p.x)
+                y_list.append(p.y)
+            return 5, min(x_list), min(y_list), max(x_list), max(y_list), obj.indices, x_list, y_list
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -191,9 +198,9 @@ class PolygonUDT(UserDefinedType):
         if isinstance(datum, Polygon):
             return datum
         else:
-            assert len(datum) == 2, \
+            assert len(datum) == 8, \
                 "PolygonUDT.deserialize given row with length %d but requires 2" % len(datum)
-            return Polygon(datum[0], [self.pointUDT.deserialize(point) for point in datum[1]])
+            return Polygon(datum[5], [self.pointUDT.deserialize(point) for point in zip(repeat(1), datum[6], datum[7], datum[6], datum[7], datum[6], datum[7])])
 
     def simpleString(self):
         return 'polygon'
@@ -223,6 +230,20 @@ class Polygon(Shape):
 
     def __init__(self, indices = [], points = []):
         self.indices = indices
+        self.xcoordinates = [p.x for p in points]
+        self.ycoordinates = [p.y for p in points]
+        if points:
+            self.xmin = min(self.xcoordinates)
+            self.ymin = min(self.ycoordinates)
+            self.xmax = max(self.xcoordinates)
+            self.ymax = max(self.ycoordinates)
+        else:
+            self.xmin = None
+            self.ymin = None
+            self.xmax = None
+            self.ymax = None
+        self.boundingBox = BoundingBox(self.xmin, self.ymin, self.xmax, self.ymax)
+        self.size = len(points)
         self.points = points
 
     def __str__(self):
@@ -289,14 +310,19 @@ class PolyLineUDT(UserDefinedType):
         """
         The class name of the paired Scala UDT.
         """
-        return "magellan.PolyLineUDT"
+        return "org.apache.spark.sql.types.PolyLineUDT"
 
     def serialize(self, obj):
         """
         Converts the a user-type object into a SQL datum.
         """
         if isinstance(obj, PolyLine):
-            return obj
+            x_list = []
+            y_list = []
+            for p in obj.points:
+                x_list.append(p.x)
+                y_list.append(p.y)
+            return 3, min(x_list), min(y_list), max(x_list), max(y_list), obj.indices, x_list, y_list
         else:
             raise TypeError("cannot serialize %r of type %r" % (obj, type(obj)))
 
@@ -335,6 +361,20 @@ class PolyLine(Shape):
 
     def __init__(self, indices = [], points = []):
         self.indices = indices
+        self.xcoordinates = [p.x for p in points]
+        self.ycoordinates = [p.y for p in points]
+        if points:
+            self.xmin = min(self.xcoordinates)
+            self.ymin = min(self.ycoordinates)
+            self.xmax = max(self.xcoordinates)
+            self.ymax = max(self.ycoordinates)
+        else:
+            self.xmin = None
+            self.ymin = None
+            self.xmax = None
+            self.ymax = None
+        self.boundingBox = BoundingBox(self.xmin, self.ymin, self.xmax, self.ymax)
+        self.size = len(points)
         self.points = points
 
     def __str__(self):
@@ -385,3 +425,16 @@ def _inbound_shape_converter(json_string):
 def _create_row_inbound_converter(dataType):
     return lambda *a: dataType.fromInternal(a)
 
+class BoundingBox(object):
+
+    def __init__(self,xmin,ymin,xmax,ymax):
+        self.xmin = xmin
+        self.ymin = ymin
+        self.xmax = xmax
+        self.ymax = ymax
+
+    def intersects(self, other):
+        if not other.xmin >= self.xmax and other.ymax >= self.min and other.ymax <= self.ymin and other.xmax <= self.xmin:
+            return True
+        else:
+            return False

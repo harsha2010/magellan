@@ -16,11 +16,14 @@
 
 from pyspark import SparkContext
 from pyspark.sql.column import Column, _create_column_from_literal
+from pyspark.sql.functions import col as _col
 
 def _bin_op(name, doc="binary operator"):
     """ Create a method for given binary operator
     """
     def _(col, other):
+        if isinstance(other, str):
+            other = _col(other)
         jc = other._jc if isinstance(other, Column) else other
         jcol = col._jc
         sc = SparkContext._active_spark_context
@@ -56,9 +59,9 @@ def _unary_op(name, doc="unary operator"):
     _.__doc__ = doc
     return _
 
-within = _bin_op("magellan.catalyst.Within")
-intersects = _bin_op("magellan.catalyst.Intersects")
-transform = _unary_op("magellan.catalyst.Transformer")
+within = _bin_op("org.apache.spark.sql.types.Within")
+intersects = _bin_op("org.apache.spark.sql.types.Intersects")
+transform = _unary_op("org.apache.spark.sql.types.Transformer")
 Column.within = within
 Column.intersects = intersects
 Column.transform = transform
