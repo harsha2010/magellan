@@ -86,7 +86,7 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
         }
         case 'D' => {
           val b = Array.fill[Byte](length)(0)
-          dis.readFully(b, 0, 8)
+          dis.readFully(b, 0, length)
           val fld = new Text()
           fld.clear()
           if (b(0) != '0') {
