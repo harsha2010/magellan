@@ -17,16 +17,15 @@
 package magellan.mapreduce
 
 import java.io.DataInputStream
+import java.text.SimpleDateFormat
 
-import scala.collection.mutable.ListBuffer
-
+import magellan.io.ShapeKey
 import org.apache.commons.io.EndianUtils
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 
-import magellan.io.ShapeKey
+import scala.collection.mutable.ListBuffer
 
 private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
 
@@ -83,6 +82,19 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
           val fld = new Text()
           fld.clear()
           fld.set(new String(b))
+          fld
+        }
+        case 'D' => {
+          val b = Array.fill[Byte](length)(0)
+          dis.readFully(b, 0, 8)
+          val fld = new Text()
+          fld.clear()
+          if (b(0) != '0') {
+            val value = new String(b)
+            val format = new SimpleDateFormat("yyyyMMdd")
+            val date = format.parse(value)
+            fld.set(date.toString)
+          }
           fld
         }
 
