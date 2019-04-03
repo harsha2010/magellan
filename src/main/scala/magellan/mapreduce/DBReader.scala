@@ -90,10 +90,12 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
           val fld = new Text()
           fld.clear()
           if (b(0) != '0') {
-            val value = new String(b)
-            val format = new SimpleDateFormat("yyyyMMdd")
-            val date = format.parse(value)
-            fld.set(date.toString)
+            val value = new String(b).trim
+            if (!value.isEmpty) {
+              val format = new SimpleDateFormat(if (length == 8 ) "yyyyMMdd" else "yyyyMMddHHmmss")
+              val date = format.parse(value)
+              fld.set(date.toString)
+            }
           }
           fld
         }
