@@ -72,16 +72,23 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
         case 'C' => {
           val b = Array.fill[Byte](length)(0)
           dis.readFully(b)
+          val value = new String(b).trim
           val fld = new Text()
-          fld.append(b, 0, length)
+          fld.clear()
+          fld.set(value)
           fld
         }
         case 'N' | 'F' => {
           val b = Array.fill[Byte](length)(0)
           dis.readFully(b)
+          var value = new String(b).trim
+          val index = value.indexOf(0)
+          if (index != -1) {
+            value = value.substring(0, index)
+          }
           val fld = new Text()
           fld.clear()
-          fld.set(new String(b))
+          fld.set(value)
           fld
         }
         case 'D' => {
