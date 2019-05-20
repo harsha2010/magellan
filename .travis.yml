@@ -14,6 +14,6 @@ matrix:
       scala: 2.11.12
       env: TEST_HADOOP_VERSION="2.7.7" TEST_SPARK_VERSION="2.4.3"
 script:
-  - sbt -Dhadoop.testVersion=$TEST_HADOOP_VERSION -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION coverage test
+  - sbt -Dhadoop.testVersion=$TEST_HADOOP_VERSION -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
 after_success:
   - bash <(curl -s https://codecov.io/bash)
