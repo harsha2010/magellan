@@ -4,11 +4,11 @@ version := "1.0.6-SNAPSHOT"
 
 organization := "harsha2010"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.12"
 
-crossScalaVersions := Seq("2.11.8")
+crossScalaVersions := Seq("2.11.12")
 
-sparkVersion := "2.3.1"
+sparkVersion := "2.4.3"
 
 scalacOptions += "-optimize"
 
@@ -18,19 +18,29 @@ testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion.va
 
 val testHadoopVersion = settingKey[String]("The version of Hadoop to test against.")
 
-testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.7.3")
+testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "3.1.2")
 
 sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
-  "commons-io" % "commons-io" % "2.4",
-  "com.google.guava" % "guava" % "14.0.1" % "provided",
+  "commons-io" % "commons-io" % "2.6",
+  "com.google.guava" % "guava" % "27.1-jre",
   "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
-  "com.lihaoyi" % "fastparse_2.11" % "0.4.3" % "provided",
-  "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+  "com.lihaoyi" %% "fastparse" % "0.4.4" % "provided",
+  "org.scalatest" %% "scalatest" % "3.0.5" % "test",
   "com.vividsolutions" % "jts" % "1.13" % "test",
-  "com.esri.geometry" % "esri-geometry-api" % "1.2.1"
+  "com.esri.geometry" % "esri-geometry-api" % "1.2.1",
+  "com.fasterxml.jackson.core" % "jackson-core" % "2.9.8",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.8",
+  "com.fasterxml.jackson.core" % "jackson-annotations" % "2.9.8",
+  "com.fasterxml.jackson.jaxrs" % "jackson-jaxrs-base" % "2.9.8",
+  "com.fasterxml.jackson.jaxrs" % "jackson-jaxrs-json-provider" % "2.9.8",
+  "com.fasterxml.jackson.module" % "jackson-module-paranamer" % "2.9.8",
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.8"
+
 )
+
+libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"
 
 libraryDependencies ++= Seq(
   "org.apache.hadoop" % "hadoop-client" % testHadoopVersion.value % "test",
@@ -81,7 +91,8 @@ spName := "harsha2010/magellan"
 
 parallelExecution in Test := false
 
-ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
+
+scoverage.ScoverageKeys.coverageHighlighting := {
   if (scalaBinaryVersion.value == "2.10") false
   else true
 }
