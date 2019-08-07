@@ -17,16 +17,15 @@
 package magellan.mapreduce
 
 import java.io.DataInputStream
+import java.text.SimpleDateFormat
 
-import scala.collection.mutable.ListBuffer
-
+import magellan.io.ShapeKey
 import org.apache.commons.io.EndianUtils
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 
-import magellan.io.ShapeKey
+import scala.collection.mutable.ListBuffer
 
 private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
 
@@ -73,16 +72,38 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
         case 'C' => {
           val b = Array.fill[Byte](length)(0)
           dis.readFully(b)
+          val value = new String(b).trim
           val fld = new Text()
-          fld.append(b, 0, length)
+          fld.clear()
+          fld.set(value)
           fld
         }
         case 'N' | 'F' => {
           val b = Array.fill[Byte](length)(0)
           dis.readFully(b)
+          var value = new String(b).trim
+          val index = value.indexOf(0)
+          if (index != -1) {
+            value = value.substring(0, index)
+          }
           val fld = new Text()
           fld.clear()
-          fld.set(new String(b))
+          fld.set(value)
+          fld
+        }
+        case 'D' => {
+          val b = Array.fill[Byte](length)(0)
+          dis.readFully(b, 0, length)
+          val fld = new Text()
+          fld.clear()
+          if (b(0) != '0') {
+            val value = new String(b).trim
+            if (!value.isEmpty) {
+              val format = new SimpleDateFormat(if (length == 8 ) "yyyyMMdd" else "yyyyMMddHHmmss")
+              val date = format.parse(value)
+              fld.set(date.toString)
+            }
+          }
           fld
         }
 
@@ -115,6 +136,9 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
     val date = Array.fill[Byte](3)(0)
     dis.read(date)
     numRecords = EndianUtils.swapInteger(dis.readInt())
+    if (numRecords == 0) {
+      return
+    }
     val numBytesInHeader = EndianUtils.swapShort(dis.readShort())
     numBytesInRecord = EndianUtils.swapShort(dis.readShort())
     // skip the next 20 bytes

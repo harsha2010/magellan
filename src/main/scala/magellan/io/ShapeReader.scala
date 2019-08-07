@@ -41,8 +41,8 @@ class NullShapeReader extends ShapeReader {
 private[magellan] class PointReader extends ShapeReader {
 
   override def readFields(dataInput: DataInput): Shape = {
-    val x = EndianUtils.swapDouble(dataInput.readDouble())
-    val y = EndianUtils.swapDouble(dataInput.readDouble())
+    val x = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
+    val y = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
     Point(x, y)
   }
 
@@ -52,10 +52,10 @@ private[magellan] class PolygonReader extends ShapeReader {
 
   override def readFields(dataInput: DataInput): Polygon = {
     // extract bounding box.
-    val xmin = EndianUtils.swapDouble(dataInput.readDouble())
-    val ymin = EndianUtils.swapDouble(dataInput.readDouble())
-    val xmax = EndianUtils.swapDouble(dataInput.readDouble())
-    val ymax = EndianUtils.swapDouble(dataInput.readDouble())
+    val xmin = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
+    val ymin = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
+    val xmax = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
+    val ymax = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
 
     val box = BoundingBox(xmin, ymin, xmax, ymax)
 
@@ -81,8 +81,8 @@ private[magellan] class PolygonReader extends ShapeReader {
     val ycoordinates = Array.fill(numPoints)(0.0)
 
     for (index <- 0 until numPoints) {
-      val x = Double.longBitsToDouble(Long.reverseBytes(dataInput.readLong()))
-      val y = Double.longBitsToDouble(Long.reverseBytes(dataInput.readLong()))
+      val x = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
+      val y = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
       xcoordinates.update(index, x)
       ycoordinates.update(index, y)
     }
@@ -96,7 +96,7 @@ private[magellan] class PolyLineReader extends ShapeReader {
 
   def extract(dataInput: DataInput): (Array[Int], Array[Point]) = {
     // extract bounding box.
-    (0 until 4).foreach { _ => EndianUtils.swapDouble(dataInput.readDouble())}
+    (0 until 4).foreach { _ => Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))}
 
     // numRings
     val numRings = EndianUtils.swapInteger(dataInput.readInt())
@@ -119,8 +119,8 @@ private[magellan] class PolyLineReader extends ShapeReader {
     val points = ArrayBuffer[Point]()
     for (_ <- 0 until numPoints) {
       points.+= {
-        val x = EndianUtils.swapDouble(dataInput.readDouble())
-        val y = EndianUtils.swapDouble(dataInput.readDouble())
+        val x = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
+        val y = Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong()))
         Point(x, y)
       }
     }
@@ -139,7 +139,7 @@ private[magellan] class PolyLineZReader extends PolyLineReader {
     val (indices, points) = extract(dataInput)
     // throw away the Z and M values
     val size = points.length
-    (0 until (4 + 2 * size)).foreach(_ => dataInput.readDouble())
+    (0 until (4 + 2 * size)).foreach(_ => Double.longBitsToDouble(EndianUtils.swapLong(dataInput.readLong())))
     if(indices.size != points.size)
       PolyLine( new Array[Int](points.size), points)
     else
