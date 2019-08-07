@@ -136,6 +136,9 @@ private[magellan] class DBReader extends RecordReader[ShapeKey, MapWritable] {
     val date = Array.fill[Byte](3)(0)
     dis.read(date)
     numRecords = EndianUtils.swapInteger(dis.readInt())
+    if (numRecords == 0) {
+      return
+    }
     val numBytesInHeader = EndianUtils.swapShort(dis.readShort())
     numBytesInRecord = EndianUtils.swapShort(dis.readShort())
     // skip the next 20 bytes
