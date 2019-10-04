@@ -1,6 +1,6 @@
 name := "magellan"
 
-version := "1.0.6-SNAPSHOT"
+version := "1.0.7-SNAPSHOT"
 
 organization := "harsha2010"
 
@@ -8,7 +8,7 @@ scalaVersion := "2.11.8"
 
 crossScalaVersions := Seq("2.11.8")
 
-sparkVersion := "2.3.1"
+sparkVersion := "2.4.3"
 
 scalacOptions += "-optimize"
 
@@ -82,11 +82,13 @@ spName := "harsha2010/magellan"
 parallelExecution in Test := false
 
 ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
-  if (scalaBinaryVersion.value == "2.10") false
+  if (scalaBinaryVersion.value == "2.11") false
   else true
 }
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
 
 licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
+
+fork in run := true
 
