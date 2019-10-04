@@ -90,5 +90,5 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
 
 licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
 
-fork in run := true
+//fork in run := true
 
