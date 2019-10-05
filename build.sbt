@@ -1,3 +1,5 @@
+import com.typesafe.sbt.SbtGit.GitKeys._
+
 name := "magellan"
 
 version := "1.0.7-SNAPSHOT"
@@ -18,7 +20,7 @@ testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion)
 
 val testHadoopVersion = settingKey[String]("The version of Hadoop to test against.")
 
-testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.7.3")
+testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.7.7")
 
 //sparkComponents := Seq("core", "sql")
 
@@ -70,7 +72,7 @@ pomExtra := (
     </license>
   </licenses>
   <scm>
-    <url>git@github.com:harsha2010/magellan.git</url>
+    <url>git@github.com:rahulbsw/magellan.git</url>
     <connection>scm:git:git@github.com:harsha2010/magellan.git</connection>
   </scm>
   <developers>
@@ -79,7 +81,7 @@ pomExtra := (
       <name>Ram Sriharsha</name>
       <url>www.linkedin.com/in/harsha340</url>
     </developer>
-  </developers>)
+ </developers>)
 
 //spName := "harsha2010/magellan"
 
@@ -94,5 +96,10 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".sbtcredentials")
 
 licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
 
-//fork in run := true
 
+val root = (project in file(".")).
+  enablePlugins(ScalaUnidocPlugin, GhpagesPlugin, SiteScaladocPlugin).
+  settings(
+    name := "magellan",
+    gitRemoteRepo := "git://github.com/harsha2010/magellan.git"
+  )

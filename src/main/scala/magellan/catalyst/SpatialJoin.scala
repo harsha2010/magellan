@@ -107,7 +107,6 @@ private[magellan] case class SpatialJoin(session: SparkSession)
     }
   }
 
-  AttributeReference
   private def attr(name: String, dt: DataType): Attribute = {
     // name: String, dataType: DataType, nullable: Boolean = true,
     // metadata: Metadata = Metadata.empty), exprId: ExprId = NamedExpression.newExprId,
