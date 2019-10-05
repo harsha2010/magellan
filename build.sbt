@@ -8,29 +8,33 @@ scalaVersion := "2.11.8"
 
 crossScalaVersions := Seq("2.11.8")
 
-sparkVersion := "2.4.3"
+val sparkVersion = "2.4.3"
 
 scalacOptions += "-optimize"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
-testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion.value)
+testSparkVersion := sys.props.get("spark.testVersion").getOrElse(sparkVersion)
 
 val testHadoopVersion = settingKey[String]("The version of Hadoop to test against.")
 
 testHadoopVersion := sys.props.getOrElse("hadoop.testVersion", "2.7.3")
 
-sparkComponents := Seq("core", "sql")
+//sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
-  "commons-io" % "commons-io" % "2.4",
-  "com.google.guava" % "guava" % "14.0.1" % "provided",
+   "commons-io" % "commons-io" % "2.4",
+  "com.google.guava" % "guava" % "28.0-jre" % "provided",
   "org.slf4j" % "slf4j-api" % "1.7.16" % "provided",
   "com.lihaoyi" % "fastparse_2.11" % "0.4.3" % "provided",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
   "com.vividsolutions" % "jts" % "1.13" % "test",
-  "com.esri.geometry" % "esri-geometry-api" % "1.2.1"
+  "com.esri.geometry" % "esri-geometry-api" % "1.2.1",
+  "org.apache.hadoop" % "hadoop-client" % testHadoopVersion.value % Provided,
+  "org.apache.spark" %% "spark-core" % testSparkVersion.value % Provided ,
+  "org.apache.spark" %% "spark-sql" % testSparkVersion.value % Provided
 )
+
 
 libraryDependencies ++= Seq(
   "org.apache.hadoop" % "hadoop-client" % testHadoopVersion.value % "test",
@@ -40,13 +44,13 @@ libraryDependencies ++= Seq(
 
 // This is necessary because of how we explicitly specify Spark dependencies
 // for tests rather than using the sbt-spark-package plugin to provide them.
-spIgnoreProvided := true
+//spIgnoreProvided := true
 
 publishMavenStyle := true
 
-spAppendScalaVersion := true
+//spAppendScalaVersion := true
 
-spIncludeMaven := true
+//rspIncludeMaven := true
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
@@ -77,12 +81,12 @@ pomExtra := (
     </developer>
   </developers>)
 
-spName := "harsha2010/magellan"
+//spName := "harsha2010/magellan"
 
 parallelExecution in Test := false
 
-ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
-  if (scalaBinaryVersion.value == "2.11") false
+scoverage.ScoverageKeys.coverageHighlighting := {
+  if (scalaBinaryVersion.value == "2.10") false
   else true
 }
 

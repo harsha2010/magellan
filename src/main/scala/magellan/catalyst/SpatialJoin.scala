@@ -107,6 +107,7 @@ private[magellan] case class SpatialJoin(session: SparkSession)
     }
   }
 
+  AttributeReference
   private def attr(name: String, dt: DataType): Attribute = {
     // name: String, dataType: DataType, nullable: Boolean = true,
     // metadata: Metadata = Metadata.empty), exprId: ExprId = NamedExpression.newExprId,
@@ -117,7 +118,7 @@ private[magellan] case class SpatialJoin(session: SparkSession)
     val nullable = true.asInstanceOf[AnyRef]
     val metadata = Metadata.empty
     val exprId = NamedExpression.newExprId
-    val qualifier = None
+    val qualifier: Seq[String] = Seq.empty[String]
     val isGenerated = false.asInstanceOf[AnyRef]
     if (ctor.getParameterCount == 7) {
       // prior to Spark 2.3
