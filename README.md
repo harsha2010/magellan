@@ -14,6 +14,9 @@ Magellan is the first library to extend Spark SQL to provide a relational abstra
 
 You can find notes on the various released versions [here](https://github.com/harsha2010/magellan/releases)
 
+# API Doc
+ [ScalaDoc](https://rahulbsw.github.io/magellan/latest/api)
+
 # Linking
 
 You can link against the latest release using the following coordinates:
