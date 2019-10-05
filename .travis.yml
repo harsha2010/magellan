@@ -9,7 +9,7 @@ matrix:
   include: 
     - jdk: openjdk8
       scala: 2.11.8
-      env: TEST_HADOOP_VERSION="2.7.3" TEST_SPARK_VERSION="2.4.3"
+      env: TEST_HADOOP_VERSION="2.7.7" TEST_SPARK_VERSION="2.4.3"
     - jdk: openjdk8
       scala: 2.11.8
       env: TEST_HADOOP_VERSION="2.7.3" TEST_SPARK_VERSION="2.3.1"
