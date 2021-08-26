@@ -1,4 +1,4 @@
-resolvers += "Spark Package Main Repo" at "https://dl.bintray.com/spark-packages/maven"
+resolvers += "spark-packages" at "https://repos.spark-packages.org/"
 
 addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.2.0")
 
