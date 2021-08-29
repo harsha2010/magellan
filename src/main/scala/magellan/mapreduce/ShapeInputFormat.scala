@@ -66,6 +66,11 @@ private[magellan] class ShapeInputFormat
           blkLocations(blkIndex).getCachedHosts))
       } else {
         val s = splitInfos(key).toSeq
+        val blkIndex = getBlockIndex(blkLocations, s(0))
+        splits.+=(makeSplit(path, s(0), length - s(0), blkLocations(blkIndex).getHosts,
+          blkLocations(blkIndex).getCachedHosts))
+        /*
+        val s = splitInfos(key).toSeq
         val start = s
         val end = s.drop(1) ++ Seq(length)
         start.zip(end).foreach { case (startOffset: Long, endOffset: Long) =>
@@ -73,6 +78,7 @@ private[magellan] class ShapeInputFormat
           splits.+=(makeSplit(path, startOffset, endOffset - startOffset, blkLocations(blkIndex).getHosts,
             blkLocations(blkIndex).getCachedHosts))
         }
+        */
       }
     }
     sw.stop

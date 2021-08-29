@@ -35,7 +35,8 @@ libraryDependencies ++= Seq(
 libraryDependencies ++= Seq(
   "org.apache.hadoop" % "hadoop-client" % testHadoopVersion.value % "test",
   "org.apache.spark" %% "spark-core" % testSparkVersion.value % "test" exclude("org.apache.hadoop", "hadoop-client"),
-  "org.apache.spark" %% "spark-sql" % testSparkVersion.value % "test" exclude("org.apache.hadoop", "hadoop-client")
+  "org.apache.spark" %% "spark-sql" % testSparkVersion.value % "test" exclude("org.apache.hadoop", "hadoop-client"),
+  "org.apache.hadoop" % "hadoop-client" % testHadoopVersion.value % "provided"
 )
 
 // This is necessary because of how we explicitly specify Spark dependencies
